@@ -24,3 +24,34 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 
 /* Outfit library PNG export */
 .outfit-open{display:block;width:100%;padding:0;text-align:left}.outfit-download{display:flex;align-items:center;justify-content:center;gap:5px;width:calc(100% - 20px);margin:0 10px 10px;padding:8px;background:#f2ecfa;color:#6d5595;border-radius:8px;font-size:12px;font-weight:650}.outfit-download:disabled{opacity:.6}
+
+
+/* It Girl Looks: compact Dance Flow-inspired library */
+.inspo-studio-tabs{display:flex;gap:3px;background:#f0e9f8;padding:3px;border-radius:10px;margin-bottom:14px}
+.inspo-studio-tabs button{flex:1;min-width:0;padding:9px 4px;border-radius:8px;color:#78658a;font-size:12px;font-weight:650}
+.inspo-studio-tabs button.active{background:white;color:#7453a8;box-shadow:0 1px 3px #40275914}
+.inspo-studio-heading h1{font-size:19px;margin:0}
+.inspo-studio-heading .primary{padding:7px 11px;font-size:12px;white-space:nowrap}
+.inspo-studio .inspo-filters{margin-bottom:10px}
+.inspo-studio .inspo-filter-grid{gap:7px}
+.inspo-studio .inspo-filter-grid label{font-size:11px;gap:4px}
+.inspo-studio .inspo-filter-grid select{padding:8px;font-size:12px}
+.inspo-compact-list{background:white;border:1px solid #e9e0f0;border-radius:12px;overflow:hidden}
+.inspo-compact-row{display:flex;align-items:center;gap:10px;min-height:66px;padding:8px 10px;border-bottom:1px solid #f0ebf4}
+.inspo-compact-row:last-child{border-bottom:0}
+.inspo-compact-thumb{flex:0 0 48px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:#f6f1fa;border-radius:8px;overflow:hidden;color:#9279af;padding:0}
+.inspo-compact-thumb img{width:100%;height:100%;object-fit:cover}
+.inspo-compact-text{flex:1;min-width:0;text-align:left;padding:0;display:flex;flex-direction:column;gap:4px}
+.inspo-compact-text strong,.inspo-compact-text small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inspo-compact-text strong{font-size:13px;font-weight:700}
+.inspo-compact-text small{font-size:11px;color:#84788d}
+.inspo-compact-action{width:30px;height:32px;display:flex;align-items:center;justify-content:center;color:#8465b2;border-radius:7px}
+.inspo-compact-action:hover{background:#f2eaf9}
+.inspo-studio-modal{width:min(100%,520px)}
+.inspo-detail-photo{display:block;width:100%;max-height:360px;object-fit:contain;background:#f8f5fa;border-radius:10px}
+.inspo-detail-note{font-size:13px;white-space:pre-wrap;line-height:1.6;margin:12px 0}
+.inspo-detail-video{width:100%;aspect-ratio:16/9;border:0;border-radius:9px;margin:8px 0}
+.inspo-source-link{display:inline-flex;align-items:center;gap:6px;margin:10px 0;font-size:12px;color:#7655a8}
+.inspo-detail-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.inspo-detail-actions button{font-size:12px;padding:8px 9px}
+@media(max-width:400px){.inspo-studio-tabs button{font-size:11px}.inspo-compact-row{gap:7px}.inspo-detail-actions button{padding:7px}}
