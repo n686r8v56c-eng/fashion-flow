@@ -29,3 +29,17 @@ drop policy if exists "Users read own wardrobe photos" on storage.objects;
 create policy "Users read own wardrobe photos" on storage.objects for select to authenticated using(bucket_id='wardrobe' and (storage.foldername(name))[1]=(select auth.uid())::text);
 drop policy if exists "Users remove own wardrobe photos" on storage.objects;
 create policy "Users remove own wardrobe photos" on storage.objects for delete to authenticated using(bucket_id='wardrobe' and (storage.foldername(name))[1]=(select auth.uid())::text);
+
+-- Inspiration looks: user-owned external outfit references
+create table if not exists public.inspiration_looks (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null references auth.users(id) on delete cascade,
+ title text not null, occasion text default '', season text default '사계절',
+ main_color text default '', main_item text default '', source_url text default '',
+ notes text default '', image_path text,
+ created_at timestamptz not null default now(),updated_at timestamptz not null default now()
+);
+create index if not exists inspiration_looks_user_idx on public.inspiration_looks(user_id);
+alter table public.inspiration_looks enable row level security;
+drop policy if exists "Own inspiration looks" on public.inspiration_looks;
+create policy "Own inspiration looks" on public.inspiration_looks for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
