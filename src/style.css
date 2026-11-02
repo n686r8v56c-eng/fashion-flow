@@ -12,3 +12,9 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .modal .upload span{display:block;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
 .modal .upload img{width:auto;height:auto;max-width:100%;object-fit:contain}
 @media(max-width:480px){.modal{padding:14px}.modal .two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Fashion Flow mobile canvas controls */
+.canvas-piece{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.canvas-piece img{-webkit-user-drag:none;pointer-events:none}
+.canvas-piece.selected{cursor:move}
+.resize-handle{position:absolute;right:-10px;bottom:-10px;width:24px;height:24px;border-radius:50%;border:3px solid #fff;background:#8e73c6;box-shadow:0 1px 5px #4b316c55;touch-action:none;z-index:3;cursor:nwse-resize}
