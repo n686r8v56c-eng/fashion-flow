@@ -54,7 +54,7 @@ export default function FashionBookmarkStudio({item,skills,onSave,onDelete,onUpd
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{skills.find(m=>m.id===c.moveId)?.name||'기술 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
   {!clips.length&&<p className="ref-hint">편집 모드에서 영상 속 기술 구간을 추가해 줘. 한 영상에 여러 기술을 연결할 수 있어.</p>}
   {clip&&(mode==='edit'?<div className="ref-fields">
-   <label>연결할 기술<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">기술 선택</option>{skills.map(m=><option key={m.id} value={m.id}>{{m.name}</option>)}</select></label>
+   <label>연결할 기술<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">기술 선택</option>{skills.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
    <div className="ref-two"><label>시작 (mm:ss)<input value={clip.start} onChange={e=>update('start',e.target.value)}/></label><label>종료 (mm:ss)<input value={clip.end} onChange={e=>update('end',e.target.value)}/></label></div>
    <div className="ref-two"><button type="button" onClick={()=>update('start',fmt(time))}>현재 위치 → 시작</button><button type="button" onClick={()=>update('end',fmt(time))}>현재 위치 → 종료</button></div>
    <label>주의할 점<textarea rows="3" value={clip.caution||''} onChange={e=>update('caution',e.target.value)} placeholder="이 구간에서 주의할 자세나 기술 포인트"/></label>
