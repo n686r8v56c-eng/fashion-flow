@@ -1,0 +1,28 @@
+import React,{useState} from 'react';
+import {Plus,X,Trash2,Pencil,Heart,ImagePlus,Search,Layers} from 'lucide-react';
+import {supabase,uploadPhoto} from './supabase';
+const SEASONS=['전체','사계절','봄','여름','가을','겨울'];
+const EMPTY={title:'',occasion:'',season:'사계절',main_color:'',main_item:'',source_url:'',notes:''};
+export default function Inspiration({references,urls,uid,onRefresh,onUse}){
+ const [editing,setEditing]=useState(null),[file,setFile]=useState(null),[preview,setPreview]=useState(''),[saving,setSaving]=useState(false);
+ const [search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[occasion,setOccasion]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체');
+ const options=(key)=>['전체',...new Set(references.map(r=>r[key]).filter(Boolean))];
+ const filtered=references.filter(r=>(season==='전체'||r.season===season)&&(occasion==='전체'||r.occasion===occasion)&&(color==='전체'||r.main_color===color)&&(item==='전체'||r.main_item===item)&&[r.title,r.notes,r.main_item,r.main_color].join(' ').toLowerCase().includes(search.toLowerCase()));
+ const update=(key,value)=>setEditing(v=>({...v,[key]:value}));
+ const open=(r)=>{setEditing({...EMPTY,...r});setFile(null);setPreview('')};
+ const close=()=>{setEditing(null);setFile(null);setPreview('')};
+ async function save(e){e.preventDefault();if(saving)return;setSaving(true);let newPath=null;try{
+ if(!editing.id&&!file)throw Error('참고 코디 사진을 선택해 주세요.');
+ if(file)newPath=await uploadPhoto(file,uid);
+ const payload={title:editing.title.trim(),occasion:editing.occasion.trim(),season:editing.season,main_color:editing.main_color.trim(),main_item:editing.main_item.trim(),source_url:editing.source_url.trim(),notes:editing.notes,image_path:newPath||editing.image_path||null,user_id:uid,updated_at:new Date().toISOString()};
+ const query=editing.id?supabase.from('inspiration_looks').update(payload).eq('id',editing.id).eq('user_id',uid):supabase.from('inspiration_looks').insert(payload);
+ const {error}=await query;if(error)throw error;
+ if(newPath&&editing.image_path)await supabase.storage.from('wardrobe').remove([editing.image_path]);
+ await onRefresh();close();
+ }catch(e){if(newPath)await supabase.storage.from('wardrobe').remove([newPath]);alert(e.message)}finally{setSaving(false)}}
+ async function remove(r){if(!confirm('이 참고 코디를 삭제할까요?'))return;const {error}=await supabase.from('inspiration_looks').delete().eq('id',r.id).eq('user_id',uid);if(error){alert(error.message);return}if(r.image_path)await supabase.storage.from('wardrobe').remove([r.image_path]);await onRefresh()}
+ return <><div className="heading"><div><h1>잇걸룩</h1><p className="muted">마음에 드는 코디를 모아 나만의 스타일 레퍼런스를 만들어요 · {references.length}개</p></div><button className="primary" onClick={()=>open({})}><Plus size={16}/> 추가</button></div>
+ <div className="inspo-filters"><div className="search"><Search size={16}/><input placeholder="코디 이름·색상·아이템 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div><div className="inspo-filter-grid">{[['계절',season,setSeason,SEASONS],['TPO',occasion,setOccasion,options('occasion')],['주요 컬러',color,setColor,options('main_color')],['주요 아이템',item,setItem,options('main_item')]].map(([title,value,setter,choices])=><label key={title}>{title}<select value={value} onChange={e=>setter(e.target.value)}>{choices.map(x=><option key={x}>{x}</option>)}</select></label>)}</div></div>
+ <div className="inspo-grid">{filtered.map(r=><div className="inspo-card" key={r.id}><img src={urls[r.id]||''} alt={r.title}/><div className="inspo-info"><strong>{r.title}</strong><small>{[r.occasion,r.season,r.main_color,r.main_item].filter(Boolean).join(' · ')}</small><div className="inspo-actions"><button onClick={()=>onUse(r)}><Layers size={15}/> 코디 참고</button><button aria-label="수정" onClick={()=>open(r)}><Pencil size={15}/></button><button aria-label="삭제" onClick={()=>remove(r)}><Trash2 size={15}/></button></div></div></div>)}</div>{!filtered.length&&<p className="empty">해당하는 참고 코디가 없어요. 사진을 등록해 보세요.</p>}
+ {editing&&<div className="overlay" onClick={close}><div className="modal" onClick={e=>e.stopPropagation()}><div className="heading"><h2>{editing.id?'잇걸룩 수정':'잇걸룩 추가'}</h2><button className="iconbtn" onClick={close}><X/></button></div><form onSubmit={save}><label className="upload"><ImagePlus/><span>{file?file.name:'참고 코디 사진 선택 (10MB 이하)'}</span><input type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f){setFile(f);setPreview(URL.createObjectURL(f))}}}/>{preview&&<img src={preview} alt="미리보기"/>}{!preview&&editing.image_path&&urls[editing.id]&&<img src={urls[editing.id]} alt="현재 사진"/>}</label><label>이름 *<input required value={editing.title} onChange={e=>update('title',e.target.value)}/></label><div className="two"><label>TPO<input placeholder="데이트, 출근, 여행" value={editing.occasion} onChange={e=>update('occasion',e.target.value)}/></label><label>계절<select value={editing.season} onChange={e=>update('season',e.target.value)}>{SEASONS.slice(1).map(x=><option key={x}>{x}</option>)}</select></label></div><div className="two"><label>주요 컬러<input placeholder="블랙" value={editing.main_color} onChange={e=>update('main_color',e.target.value)}/></label><label>주요 아이템<input placeholder="롱코트" value={editing.main_item} onChange={e=>update('main_item',e.target.value)}/></label></div><label>원본 URL<input type="url" placeholder="https://..." value={editing.source_url} onChange={e=>update('source_url',e.target.value)}/></label><label>메모<textarea rows={2} value={editing.notes} onChange={e=>update('notes',e.target.value)}/></label><button className="primary" disabled={saving}>{saving?'저장 중…':'저장'}</button></form></div></div>}</>
+}
