@@ -55,3 +55,11 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .inspo-detail-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 .inspo-detail-actions button{font-size:12px;padding:8px 9px}
 @media(max-width:400px){.inspo-studio-tabs button{font-size:11px}.inspo-compact-row{gap:7px}.inspo-detail-actions button{padding:7px}}
+
+
+/* Keep reference-library filters compact until explicitly expanded */
+.inspo-studio .inspo-filter-toolbar{display:flex;justify-content:flex-end;margin-top:-3px}
+.inspo-filter-toggle{display:inline-flex;align-items:center;gap:5px;color:#77618e;font-size:11px;font-weight:650;padding:5px 3px}
+.inspo-studio .inspo-filter-grid{margin-top:3px}
+.inspo-studio .empty{padding:22px 14px;min-height:86px;font-size:12px;line-height:1.5}
+.inspo-studio .inspo-filters{gap:5px}
