@@ -1,5 +1,5 @@
 import React,{useMemo,useState} from 'react';
-import {Copy,ExternalLink,Pencil} from 'lucide-react';
+import {Copy,ExternalLink} from 'lucide-react';
 import './FashionLearningNotes.css';
 const ytId=url=>{try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return u.pathname.split('/')[1]||'';if(u.hostname.includes('youtube.com')||u.hostname.includes('youtube-nocookie.com'))return u.searchParams.get('v')||u.pathname.split('/').filter(Boolean).pop()||''}catch{}return ''};
 const seconds=v=>{const p=String(v||'').split(':').map(Number);return p.length===2&&p.every(Number.isFinite)?Math.max(0,p[0]*60+p[1]):0};
@@ -43,12 +43,12 @@ export default function FashionLearningNotes({skills=[],videos=[],notes=[],photo
   {copied&&<small className="fl-note-feedback" role="status">{copied}</small>}
   <div className="fl-note-list">{shown.map((n,i)=><article className="fl-note-entry" key={(n.id||n.skillId||'note')+'-'+i}>
    {n.photo&&<img src={n.photo} alt="" loading="lazy"/>}
-   <div className="fl-note-info"><strong>{n.skill}</strong><small>{[n.season,n.color,n.item,n.type].filter(Boolean).join(' · ')}</small>
+   <div className="fl-note-info">{n.id?<button type="button" className="fl-note-edit-title" onClick={()=>onEdit?.(notes.find(m=>m.id===n.id))} title="자유 메모 편집">{n.skill}</button>:<strong>{n.skill}</strong>}<small>{[n.season,n.color,n.item,n.type].filter(Boolean).join(' · ')}</small>
    {n.bookmarkTitle&&<small>{n.bookmarkTitle} · {n.start}–{n.end}</small>}
    {n.date&&<small>{new Date(n.date).toLocaleDateString('ko-KR')}</small>}
    <div className="fl-note-content"><p>{n.content}</p>
    {n.youtubeUrl&&<a href={n.youtubeUrl} target="_blank" rel="noopener noreferrer" aria-label="원본 유튜브 구간 열기" title="유튜브 구간 열기"><ExternalLink size={15}/></a>}
-   {n.id&&<button type="button" onClick={()=>onEdit?.(notes.find(m=>m.id===n.id))} aria-label="자유 메모 편집"><Pencil size={15}/></button>}
+   
    </div></div>
   </article>)}</div>
   {!shown.length&&<p className="fl-note-empty">선택한 조건에 해당하는 메모가 없어.</p>}
