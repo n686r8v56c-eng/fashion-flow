@@ -62,6 +62,7 @@ export default function FashionBookmarkStudio({item,skills,onSave,onDelete,onUpd
   </div>:<div className="ref-practice">
    <strong>{skills.find(m=>m.id===clip.moveId)?.name||'삭제된 기술'}</strong><small>{clip.start} – {clip.end}</small>
    <div className="ref-two"><button type="button" disabled={!ready} onClick={()=>seek(parse(clip.start))}><Play size={14}/> 구간 재생</button><button type="button" className={repeat?'selected':''} onClick={()=>setRepeat(x=>!x)}><Repeat size={14}/> 반복 {repeat?'ON':'OFF'}</button></div>
+   {clip.caution?.trim()&&<div className="ref-practice-caution"><strong>주의할 점</strong><p>{clip.caution}</p></div>}
    <label>기술 숙련도<select value={reviewStatus||skills.find(m=>m.id===clip.moveId)?.status||'미습득'} onChange={e=>setReviewStatus(e.target.value)}>{levels.map(x=><option key={x}>{x}</option>)}</select></label><label>이번 연습 평가 메모<textarea rows="3" value={reviewNote} onChange={e=>setReviewNote(e.target.value)} placeholder="어려운 점 · 잘한 점 · 다음에 연습할 부분"/></label><button type="button" className="secondary" onClick={()=>{onUpdateMove(clip.moveId,reviewStatus||skills.find(m=>m.id===clip.moveId)?.status||'미습득',reviewNote,v.id);setReviewNote('');setReviewStatus('')}}><Check size={14}/> 평가·메모 기록</button>
    <small>숙련도는 기술 라이브러리와 같은 값을 사용해.</small>
    {skills.find(m=>m.id===clip.moveId)?.lastEvaluatedAt&&<small>마지막 평가: {new Date(skills.find(m=>m.id===clip.moveId).lastEvaluatedAt).toLocaleDateString('ko-KR')}</small>}
