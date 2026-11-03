@@ -205,3 +205,19 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .fc-expand{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:7px;padding:7px 9px;border-radius:8px;background:#f1e9f9;color:#7958ac;font-size:11px;font-weight:700}
 .fc-reference-list{max-height:none}
 .fc-dot.reference{background:#c5a6e5}
+
+
+/* Fashion Flow home: four KPIs, four quick actions, outfit and it-girl galleries */
+.home-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.home-kpis button{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;text-align:left;min-width:0;padding:13px 14px;background:#fff;border:1px solid #eee8f3;border-radius:11px}
+.home-kpis strong{font-size:24px;color:#7256a2;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.home-kpis small{font-size:11px;color:#857a90}
+.home-quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0 0 18px}
+.home-quick button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:10px 4px;color:#6f529d;background:#f0e8f9;border:1px solid #e4d9f1;border-radius:9px;font-weight:700;font-size:12px;white-space:nowrap}
+.home-itgirl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.home-itgirl-card{display:flex;flex-direction:column;gap:5px;min-width:0;overflow:hidden;text-align:left;background:white;border:1px solid #eee8f3;border-radius:10px;padding:6px}
+.home-itgirl-card img,.home-itgirl-placeholder{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;background:#f4eff9}
+.home-itgirl-placeholder{display:grid;place-items:center;color:#9a87ae}
+.home-itgirl-card b{font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.home-itgirl-card small{font-size:10px;color:#877a97}
+@media(min-width:700px){.home-itgirl-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.home-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.home-quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
