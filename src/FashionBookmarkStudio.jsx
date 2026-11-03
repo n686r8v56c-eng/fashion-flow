@@ -6,6 +6,26 @@ import './fashion-bookmark-studio.css';
 const parse=s=>{const m=String(s||'').match(/^(\d+):([0-5]\d)$/);return m?Number(m[1])*60+Number(m[2]):NaN};
 const fmt=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(Math.floor(n%60)).padStart(2,'0');
 const levels=['미습득','연습 중','습득 완료'];
+function LinkedItemSearch({items,selectedId,onSelect,label='연결할 기술'}){
+ const selected=items.find(x=>x.id===selectedId);
+ const [query,setQuery]=useState(selected?.name||''),[opened,setOpened]=useState(false);
+ const results=items.filter(x=>[x.name,x.genre,x.category,x.subcategory].some(v=>String(v||'').toLocaleLowerCase().includes(query.toLocaleLowerCase())));
+ const choose=x=>{onSelect(x.id);setQuery(x.name);setOpened(false)};
+ return <div style={{display:'grid',gap:5,minWidth:0}}>
+   <label style={{fontSize:12,color:'#8b7a99'}}>{label}</label>
+   <input type="search" autoComplete="off" placeholder="기술 이름·분류 검색" value={query}
+     style={{width:'100%',minWidth:0,fontSize:16}} onFocus={e=>{setOpened(true);e.target.select()}}
+     onChange={e=>{setQuery(e.target.value);onSelect('');setOpened(true)}}
+     onKeyDown={e=>{if(e.key==='Escape')setOpened(false);if(e.key==='Enter'&&opened&&results.length){e.preventDefault();choose(results[0])}}}/>
+   {opened&&<div style={{maxHeight:220,overflowY:'auto',border:'1px solid #e8e0f0',borderRadius:9,background:'white'}}>
+     {results.length?results.map(x=><button type="button" key={x.id} onMouseDown={e=>e.preventDefault()} onClick={()=>choose(x)}
+       style={{width:'100%',textAlign:'left',display:'grid',gap:3,padding:'10px',border:0,borderBottom:'1px solid #f1ecf5',background:x.id===selectedId?'#f4eafb':'white',color:'#352c42'}}>
+       <span>{x.name}</span><small style={{color:'#9587a4'}}>{[x.genre,x.category,x.subcategory].filter(Boolean).join(' · ')}</small>
+     </button>):<p style={{padding:10,fontSize:12,color:'#998ba7'}}>검색 결과 없음</p>}
+   </div>}
+   {selectedId&&<small style={{color:'#8b7a99'}}>연결됨: {selected?.name||'다시 선택해 줘'}</small>}
+ </div>
+}
 function Player({id,ready,onState}){
  const mount=useRef(null);useEffect(()=>{if(!id)return;let player=null,disposed=false;const create=()=>{if(disposed||!window.YT?.Player||!mount.current)return;player=new window.YT.Player(mount.current,{videoId:id,playerVars:{playsinline:1,rel:0},events:{onReady:e=>ready(e.target),onStateChange:e=>onState(e.data)}})};
  if(window.YT?.Player)create();else{const prev=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{prev?.();create()};if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s)}}
@@ -50,11 +70,11 @@ export default function FashionBookmarkStudio({item,skills,onSave,onDelete,onUpd
   <div className="ref-switch"><button type="button" className={mode==='practice'?'on':''} onClick={()=>setMode('practice')}>연습 모드</button><button type="button" className={mode==='edit'?'on':''} onClick={()=>setMode('edit')}>편집 모드</button></div>
   <div className={zoomed?'ref-video-shell zoomed':'ref-video-shell'}><Player id={videoId} ready={target=>{player.current=target;setReady(Boolean(target))}} onState={state=>setPlaying(state===1)}/>{activeClip?.caution?.trim()&&<div className="ref-video-caution" role="status"><strong>주의할 점</strong><span>{activeClip.caution}</span></div>}</div>
   {<div className="ref-zoom-bar"><button type="button" className={zoomed?'active':''} aria-pressed={zoomed} onClick={()=>setZoomed(z=>!z)}>{zoomed?'원본 화면':'영상 확대'}</button><small>{zoomed?'가장자리가 잘릴 수 있어. 원본 화면으로 돌아갈 수 있어.':'검은 여백이 있는 영상은 확대해서 볼 수 있어.'}</small></div>}
-  <div className="ref-heading"><strong>연결 기술 · 영상 구간</strong>{mode==='edit'&&<button type="button" onClick={()=>{change('clips',[...clips,{id:uid(),moveId:skills.find(m=>true)?.id||'',start:fmt(time),end:fmt(time+10)}]);setIndex(clips.length)}}><Plus size={14}/> 구간 추가</button>}</div>
+  <div className="ref-heading"><strong>연결 기술 · 영상 구간</strong>{mode==='edit'&&<button type="button" onClick={()=>{change('clips',[...clips,{id:uid(),moveId:(clips[index]||clips[clips.length-1])?.moveId||'',start:fmt(time),end:fmt(time+10),caution:''}]);setIndex(clips.length)}}><Plus size={14}/> 구간 추가</button>}</div>
   {clips.length>0&&<div className="ref-tabs">{clips.map((c,i)=><button type="button" key={c.id||i} className={i===index?'chosen':''} onClick={()=>pick(i)}>{skills.find(m=>m.id===c.moveId)?.name||'기술 선택'}<small>{c.start}–{c.end}</small></button>)}</div>}
   {!clips.length&&<p className="ref-hint">편집 모드에서 영상 속 기술 구간을 추가해 줘. 한 영상에 여러 기술을 연결할 수 있어.</p>}
   {clip&&(mode==='edit'?<div className="ref-fields">
-   <label>연결할 기술<select value={clip.moveId||''} onChange={e=>update('moveId',e.target.value)}><option value="">기술 선택</option>{skills.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
+   <LinkedItemSearch key={clip.id||index} items={skills} selectedId={clip.moveId||''} onSelect={id=>update('moveId',id)}/>
    <div className="ref-two"><label>시작 (mm:ss)<input value={clip.start} onChange={e=>update('start',e.target.value)}/></label><label>종료 (mm:ss)<input value={clip.end} onChange={e=>update('end',e.target.value)}/></label></div>
    <div className="ref-two"><button type="button" onClick={()=>update('start',fmt(time))}>현재 위치 → 시작</button><button type="button" onClick={()=>update('end',fmt(time))}>현재 위치 → 종료</button></div>
    <label>주의할 점<textarea rows="3" value={clip.caution||''} onChange={e=>update('caution',e.target.value)} placeholder="이 구간에서 주의할 자세나 기술 포인트"/></label>
