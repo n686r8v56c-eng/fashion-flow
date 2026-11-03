@@ -94,3 +94,20 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .real-photo-slot small{text-align:center;font-size:10px;color:#7f7191;font-weight:650}
 .real-photo-pair:has(.real-photo-slot:only-child){grid-template-columns:minmax(0,1fr)}
 .real-photo-pair:has(.real-photo-slot:only-child) .real-photo-slot img{max-height:370px;object-fit:contain;background:#f6f2fa}
+
+/* Outfit Studio / Worn outfits */
+.outfit-subtabs{display:flex;gap:4px;background:#efe8f7;border-radius:10px;padding:4px;margin-bottom:14px}
+.outfit-subtabs button{flex:1;border-radius:8px;padding:9px;font-size:12px;color:#806a97}
+.outfit-subtabs button.selected{background:white;color:#7953b0;font-weight:700}
+.worn-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.worn-card{background:white;border:1px solid #eee5f3;border-radius:10px;overflow:hidden;min-width:0}
+.worn-card>img,.worn-placeholder{width:100%;aspect-ratio:3/4;object-fit:cover;background:#f5eff9}
+.worn-placeholder{display:grid;place-items:center;color:#a28abd}
+.worn-card>div{padding:9px;display:grid;gap:3px;position:relative}
+.worn-card b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.worn-card small{font-size:11px;color:#8b8195}
+.worn-card button{position:absolute;right:7px;bottom:7px;color:#8d75a6}
+.worn-veil{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#21142e99;padding:12px}
+.worn-modal{box-sizing:border-box;width:100%;max-width:min(480px,calc(100vw - 24px));max-height:90dvh;overflow-y:auto;overflow-x:hidden;background:white;border-radius:14px;padding:15px;display:grid;gap:12px}
+.worn-modal label{display:grid;gap:5px;font-size:12px}
+.worn-modal input{min-width:0;max-width:100%}
