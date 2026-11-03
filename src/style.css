@@ -157,3 +157,33 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .worn-photo-veil{position:fixed;inset:0;z-index:220;background:#141019ed;display:grid;place-items:center;padding:34px 12px;overflow:hidden}
 .worn-photo-veil>img{max-width:100%;max-height:100%;object-fit:contain}
 .worn-photo-close{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;color:white;padding:8px}
+
+
+/* It-girl bookmark modal */
+.itgirl-veil{position:fixed;inset:0;z-index:170;background:#24162f99;display:grid;place-items:center;padding:12px}
+.itgirl-modal{background:#fff;width:100%;max-width:480px;max-height:88dvh;overflow:auto;border-radius:14px;padding:13px;box-sizing:border-box;min-width:0}
+.itgirl-modal *{box-sizing:border-box;min-width:0}
+.itgirl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.itgirl-head strong{font-size:16px}
+.itgirl-head>div{display:flex;align-items:center;gap:7px}
+.itgirl-head button{display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:6px;color:#755b97}
+.itgirl-add{background:#eee5f9;border-radius:7px;font-size:12px;font-weight:700}
+.itgirl-filters{display:flex;gap:3px;background:#f2ecf8;border-radius:9px;padding:3px;margin-bottom:9px}
+.itgirl-filters button{flex:1;font-size:11px;padding:8px 2px;color:#877b96;white-space:nowrap;border-radius:7px}
+.itgirl-filters button.selected{background:#fff;color:#7855a5;font-weight:700}
+.itgirl-search{display:flex;align-items:center;gap:7px;background:#f8f5fb;border:1px solid #eee8f4;border-radius:8px;padding:0 9px;margin-bottom:10px}
+.itgirl-search input{border:0!important;box-shadow:none!important;background:transparent!important;width:100%;height:34px;font-size:12px}
+.itgirl-list{display:grid;gap:2px;max-height:55dvh;overflow:auto}
+.itgirl-row{display:flex;align-items:center;gap:7px;padding:7px 3px;border-bottom:1px solid #f0eaf5}
+.itgirl-symbol{display:grid;place-items:center;background:#f1e9f8;border-radius:8px;width:35px;height:35px;flex:none;color:#8266a7}
+.itgirl-open{display:grid;text-align:left;flex:1;gap:4px;padding:2px 3px;overflow:hidden}
+.itgirl-open b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.itgirl-open small{font-size:10px;color:#8c8096}
+.itgirl-row>button:not(.itgirl-open){flex:none;padding:5px;color:#8a7c99}
+.itgirl-error{font-size:12px;color:#9f3565;margin:8px 0}
+.itgirl-formveil{position:fixed;inset:0;z-index:185;background:#23162b9c;display:grid;place-items:center;padding:16px}
+.itgirl-form{width:100%;max-width:380px;background:white;border-radius:13px;padding:15px;display:grid;gap:11px;max-height:85dvh;overflow:auto}
+.itgirl-form label{display:grid;gap:5px;font-size:12px;color:#665878}
+.itgirl-form input,.itgirl-form select{width:100%;max-width:100%;font-size:14px}
+.itgirl-form>.primary{justify-self:end}
+@media(max-width:370px){.itgirl-row{gap:4px}.itgirl-row>button:not(.itgirl-open){padding:4px}.itgirl-symbol{width:30px;height:32px}}
