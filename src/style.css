@@ -243,3 +243,13 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .linked-bookmark-filter{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 10px;margin:8px 0;background:#f1eaf9;border-radius:9px;color:#705199;font-size:11px;min-width:0}
 .linked-bookmark-filter span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .linked-bookmark-filter button{background:#fff;color:#705199;border:0;border-radius:7px;padding:7px 9px;font-size:11px;white-space:nowrap;flex:none;cursor:pointer}
+
+
+/* One-paste video URL or timestamp markers for fashion/cosmetic libraries */
+.fashion-bulk-import,.cosmetic-bulk-import{display:grid;gap:8px;margin:9px 0 12px;padding:10px;border:1px solid #e7daf3;border-radius:11px;background:#f8f4fc;min-width:0}
+.fashion-bulk-import>b,.cosmetic-bulk-import>b{font-size:12px;color:#6d508e}
+.fashion-bulk-import textarea,.cosmetic-bulk-import textarea{box-sizing:border-box;display:block;width:100%;min-width:0;max-width:100%;background:white;border:1px solid #e5d9ef;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5;resize:vertical;min-height:92px}
+.fashion-bulk-footer,.cosmetic-bulk-footer{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.fashion-bulk-footer small,.cosmetic-bulk-footer small,.fashion-bulk-import>small,.cosmetic-bulk-import>small{font-size:11px;color:#857597}
+.fashion-bulk-footer button,.cosmetic-bulk-footer button{display:inline-flex;gap:4px;align-items:center;justify-content:center;border:0;border-radius:8px;background:#8260b0;color:white;padding:8px 10px;font-size:12px;font-weight:700}
+.fashion-bulk-footer button:disabled,.cosmetic-bulk-footer button:disabled{opacity:.45}
