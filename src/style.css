@@ -220,4 +220,4 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .home-itgirl-placeholder{display:grid;place-items:center;color:#9a87ae}
 .home-itgirl-card b{font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
 .home-itgirl-card small{font-size:10px;color:#877a97}
-@media(min-width:700px){.home-itgirl-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.home-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.home-quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:700px){.home-itgirl-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.home-quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
