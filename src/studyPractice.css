@@ -58,3 +58,101 @@
 .muscle-bulk-footer small,.muscle-bulk-import>small{font-size:11px;color:#8c7d99}
 .muscle-bulk-footer button{display:inline-flex;align-items:center;gap:4px;background:#8864b8;color:white;border:0;border-radius:8px;padding:8px 11px;font-size:12px;font-weight:700}
 .muscle-bulk-footer button:disabled{opacity:.5}
+
+
+/* Readable phone typography; retain desktop sizes and existing layout. */
+@media (max-width: 749px) {
+    .muscle-study-modes button {
+        font-size: 16px !important
+    }
+    .muscle-study-timeline button {
+        font-size: 14px !important
+    }
+    .muscle-study-video-empty {
+        font-size: 15px !important
+    }
+    .muscle-study-markers-title b {
+        font-size: 16px !important
+    }
+    .muscle-study-markers-title button {
+        font-size: 15px !important
+    }
+    .muscle-study-markers-title button small {
+        font-size: 14px !important
+    }
+    .muscle-study-markers>small {
+        font-size: 14px !important
+    }
+    .muscle-study-marker-head>button:first-child {
+        font-size: 14px !important
+    }
+    .muscle-study-marker-head input {
+        font-size: 15px !important
+    }
+    .muscle-study-marker-card textarea {
+        font-size: 15px !important
+    }
+    .muscle-study-picker>b {
+        font-size: 14px !important
+    }
+    .muscle-study-categories label {
+        font-size: 13px !important
+    }
+    .muscle-study-picker select {
+        font-size: 15px !important
+    }
+    .muscle-study-picker>small {
+        font-size: 13px !important
+    }
+    .muscle-study-create-link {
+        font-size: 14px !important
+    }
+    .muscle-study-create input {
+        font-size: 15px !important
+    }
+    .muscle-study-create button {
+        font-size: 14px !important
+    }
+    .muscle-study-save {
+        font-size: 15px !important
+    }
+    .muscle-study-selected>b {
+        font-size: 15px !important
+    }
+    .muscle-study-selected small {
+        font-size: 14px !important
+    }
+    .muscle-study-selected p {
+        font-size: 15px !important
+    }
+    .muscle-study-practice>label {
+        font-size: 15px !important
+    }
+    .muscle-study-practice select,.muscle-study-practice textarea {
+        font-size: 16px !important
+    }
+    .muscle-study-evaluate {
+        font-size: 15px !important
+    }
+    .muscle-study-practice>b {
+        font-size: 15px !important
+    }
+    .muscle-study-history small {
+        font-size: 13px !important
+    }
+    .muscle-study-history p {
+        font-size: 15px !important
+    }
+    .muscle-bulk-import>b {
+        font-size: 15px !important
+    }
+    .muscle-bulk-import textarea {
+        font-size: 15px !important
+    }
+    .muscle-bulk-footer small,.muscle-bulk-import>small {
+        font-size: 14px !important
+    }
+    .muscle-bulk-footer button {
+        font-size: 15px !important
+    }
+}

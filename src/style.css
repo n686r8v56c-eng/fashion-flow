@@ -253,3 +253,411 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .fashion-bulk-footer small,.cosmetic-bulk-footer small,.fashion-bulk-import>small,.cosmetic-bulk-import>small{font-size:11px;color:#857597}
 .fashion-bulk-footer button,.cosmetic-bulk-footer button{display:inline-flex;gap:4px;align-items:center;justify-content:center;border:0;border-radius:8px;background:#8260b0;color:white;padding:8px 10px;font-size:12px;font-weight:700}
 .fashion-bulk-footer button:disabled,.cosmetic-bulk-footer button:disabled{opacity:.45}
+
+
+/* Readable phone typography; retain desktop sizes and existing layout. */
+@media (max-width: 749px) {
+    label {
+        font-size: 16px !important
+    }
+    .muted {
+        font-size: 16px !important
+    }
+    .email {
+        font-size: 15px !important
+    }
+    .bottom-nav button {
+        font-size: 14px !important
+    }
+    .hero p {
+        font-size: 14px !important
+    }
+    .hero span {
+        font-size: 16px !important
+    }
+    .item-info strong,.outfit-detail strong {
+        font-size: 16px !important
+    }
+    .item-info small,.outfit-detail small {
+        font-size: 14px !important
+    }
+    .learn-grid p {
+        font-size: 16px !important
+    }
+    .slot-head button {
+        font-size: 15px !important
+    }
+    .slot-empty {
+        font-size: 15px !important
+    }
+    .slot-piece small {
+        font-size: 13px !important
+    }
+    .canvas-piece span {
+        font-size: 15px !important
+    }
+    .picker-grid span {
+        font-size: 15px !important
+    }
+    .auth-card p {
+        font-size: 16px !important
+    }
+    .auth-card .link {
+        font-size: 16px !important
+    }
+    @media (min-width:900px) {
+        .bottom-nav button {
+            font-size: 16px !important
+        }
+    }
+    @media (max-width:650px) {
+        .heading .primary {
+            font-size: 15px !important
+        }
+    }
+    @media (max-width:650px) {
+        .canvas-controls .row .secondary {
+            font-size: 14px !important
+        }
+    }
+    .inspo-info small {
+        font-size: 14px !important
+    }
+    .inspo-actions button {
+        font-size: 14px !important
+    }
+    .inspiration-reference p {
+        font-size: 15px !important
+    }
+    .reference-picker span {
+        font-size: 14px !important
+    }
+    .outfit-download {
+        font-size: 15px !important
+    }
+    .inspo-studio-tabs button {
+        font-size: 15px !important
+    }
+    .inspo-studio-heading .primary {
+        font-size: 15px !important
+    }
+    .inspo-studio .inspo-filter-grid label {
+        font-size: 14px !important
+    }
+    .inspo-studio .inspo-filter-grid select {
+        font-size: 15px !important
+    }
+    .inspo-compact-text strong {
+        font-size: 16px !important
+    }
+    .inspo-compact-text small {
+        font-size: 14px !important
+    }
+    .inspo-detail-note {
+        font-size: 16px !important
+    }
+    .inspo-source-link {
+        font-size: 15px !important
+    }
+    .inspo-detail-actions button {
+        font-size: 15px !important
+    }
+    @media (max-width:400px) {
+        .inspo-studio-tabs button {
+            font-size: 14px !important
+        }
+    }
+    .inspo-filter-toggle {
+        font-size: 14px !important
+    }
+    .inspo-studio .empty {
+        font-size: 15px !important
+    }
+    .fashion-learn {
+        font-size: 16px !important
+    }
+    .fl-tabs button {
+        font-size: 15px !important
+    }
+    .fl-search input {
+        font-size: 15px !important
+    }
+    .fl-filters select {
+        font-size: 15px !important
+    }
+    .fl-rowtext b {
+        font-size: 16px !important
+    }
+    .fl-rowtext small {
+        font-size: 14px !important
+    }
+    .fl-alert {
+        font-size: 15px !important
+    }
+    .fl-legacy h3 {
+        font-size: 16px !important
+    }
+    .fl-modal label {
+        font-size: 15px !important
+    }
+    .fl-modal input,.fl-modal select,.fl-modal textarea {
+        font-size: 16px !important
+    }
+    .fl-guidehead b {
+        font-size: 15px !important
+    }
+    .fl-guidehead button,.fl-small {
+        font-size: 14px !important
+    }
+    .fl-guide b {
+        font-size: 15px !important
+    }
+    .fl-chips button {
+        font-size: 14px !important
+    }
+    .fl-clip small {
+        font-size: 14px !important
+    }
+    @media (max-width:370px) {
+        .fl-tabs button {
+            font-size: 14px !important
+        }
+    }
+    @media (max-width:420px) {
+        .fl-modal .fl-guidehead button {
+            font-size: 14px !important
+        }
+    }
+    .real-stats small {
+        font-size: 14px !important
+    }
+    .real-filters select {
+        font-size: 14px !important
+    }
+    .real-card b {
+        font-size: 15px !important
+    }
+    .real-card small {
+        font-size: 13px !important
+    }
+    .real-card span {
+        font-size: 14px !important
+    }
+    .real-modal label {
+        font-size: 15px !important
+    }
+    .real-modal input,.real-modal select {
+        font-size: 16px !important
+    }
+    .real-head>b {
+        font-size: 16px !important
+    }
+    .real-head>span {
+        font-size: 14px !important
+    }
+    .real-mini {
+        font-size: 14px !important
+    }
+    .real-item input,.real-item select {
+        font-size: 14px !important
+    }
+    .real-photo-slot small {
+        font-size: 13px !important
+    }
+    .outfit-subtabs button {
+        font-size: 15px !important
+    }
+    .worn-card b {
+        font-size: 15px !important
+    }
+    .worn-card small {
+        font-size: 14px !important
+    }
+    .worn-modal label {
+        font-size: 15px !important
+    }
+    .fashion-weather {
+        font-size: 15px !important
+    }
+    .fc-month {
+        font-size: 16px !important
+    }
+    .fc-week span {
+        font-size: 13px !important
+    }
+    .fc-days button,.fc-days>span {
+        font-size: 15px !important
+    }
+    .fc-tabs button {
+        font-size: 15px !important
+    }
+    .fc-section-head b {
+        font-size: 15px !important
+    }
+    .fc-add {
+        font-size: 15px !important
+    }
+    .fc-look b,.fc-plan b {
+        font-size: 15px !important
+    }
+    .fc-look small,.fc-plan small {
+        font-size: 14px !important
+    }
+    .fc-edit label {
+        font-size: 15px !important
+    }
+    @media (max-width:370px) {
+        .fashion-weather {
+            font-size: 14px !important
+        }
+    }
+    .fl-ready-filter button {
+        font-size: 14px !important
+    }
+    .fl-inventory-connector>input {
+        font-size: 16px !important
+    }
+    .fl-inventory-item b {
+        font-size: 15px !important
+    }
+    .fl-inventory-item small,.fl-inventory-help {
+        font-size: 13px !important
+    }
+    .fl-practice-btn {
+        font-size: 15px !important
+    }
+    .worn-ref-heading b {
+        font-size: 16px !important
+    }
+    .worn-ref-upload {
+        font-size: 14px !important
+    }
+    .itgirl-add {
+        font-size: 15px !important
+    }
+    .itgirl-filters button {
+        font-size: 14px !important
+    }
+    .itgirl-search input {
+        font-size: 15px !important
+    }
+    .itgirl-open b {
+        font-size: 15px !important
+    }
+    .itgirl-open small {
+        font-size: 13px !important
+    }
+    .itgirl-error {
+        font-size: 15px !important
+    }
+    .itgirl-form label {
+        font-size: 15px !important
+    }
+    .itgirl-form input,.itgirl-form select {
+        font-size: 16px !important
+    }
+    .fc-inventory-empty {
+        font-size: 13px !important
+    }
+    .fc-inventory-item>span:last-child {
+        font-size: 13px !important
+    }
+    .fc-expand {
+        font-size: 14px !important
+    }
+    .home-kpis small {
+        font-size: 14px !important
+    }
+    .home-quick button {
+        font-size: 15px !important
+    }
+    .home-itgirl-card b {
+        font-size: 14px !important
+    }
+    .home-itgirl-card small {
+        font-size: 13px !important
+    }
+    .studio-list-heading .muted {
+        font-size: 14px !important
+    }
+    .studio-outfit-description strong {
+        font-size: 16px !important
+    }
+    .studio-outfit-description small {
+        font-size: 14px !important
+    }
+    .studio-editor-head>.ghost {
+        font-size: 15px !important
+    }
+    .studio-editor-title {
+        font-size: 16px !important
+    }
+    .studio-save {
+        font-size: 15px !important
+    }
+    .studio-more-menu button {
+        font-size: 15px !important
+    }
+    .studio-editor-head~.mode-switch button {
+        font-size: 15px !important
+    }
+    .studio-show-slots {
+        font-size: 15px !important
+    }
+    .studio-editor-head~.slot-grid .slot-head strong {
+        font-size: 15px !important
+    }
+    .studio-editor-head~.slot-grid .slot-head button {
+        font-size: 14px !important
+    }
+    .studio-editor-head~.slot-grid .slot-empty {
+        font-size: 14px !important
+    }
+    .studio-work-actions button {
+        font-size: 15px !important
+    }
+    .studio-reference button {
+        font-size: 14px !important
+    }
+    .studio-details-toggle strong {
+        font-size: 16px !important
+    }
+    .studio-details-toggle small {
+        font-size: 14px !important
+    }
+    .studio-picker-head h2 small {
+        font-size: 14px !important
+    }
+    .studio-picker-done {
+        font-size: 15px !important
+    }
+    @media (max-width:380px) {
+        .studio-editor-title {
+            font-size: 15px !important
+        }
+    }
+    .worn-filter-row button {
+        font-size: 15px !important
+    }
+    .linked-bookmark-btn {
+        font-size: 14px !important
+    }
+    .linked-bookmark-filter {
+        font-size: 14px !important
+    }
+    .linked-bookmark-filter button {
+        font-size: 14px !important
+    }
+    .fashion-bulk-import>b,.cosmetic-bulk-import>b {
+        font-size: 15px !important
+    }
+    .fashion-bulk-import textarea,.cosmetic-bulk-import textarea {
+        font-size: 15px !important
+    }
+    .fashion-bulk-footer small,.cosmetic-bulk-footer small,.fashion-bulk-import>small,.cosmetic-bulk-import>small {
+        font-size: 14px !important
+    }
+    .fashion-bulk-footer button,.cosmetic-bulk-footer button {
+        font-size: 15px !important
+    }
+}

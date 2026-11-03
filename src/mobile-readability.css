@@ -1,0 +1,19 @@
+/* Phone readability, including compact controls and inline component labels. */
+@media (max-width: 749px) {
+  :root { font-size: 16px; }
+  body { line-height: 1.5; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+  button { line-height: 1.35; }
+  [style*="font-size: 8px"], [style*="font-size:8px"] { font-size: 13px !important; }
+  [style*="font-size: 9px"], [style*="font-size:9px"] { font-size: 13px !important; }
+  [style*="font-size: 10px"], [style*="font-size:10px"] { font-size: 13px !important; }
+  [style*="font-size: 11px"], [style*="font-size:11px"] { font-size: 14px !important; }
+  [style*="font-size: 12px"], [style*="font-size:12px"] { font-size: 15px !important; }
+  [style*="font-size: 13px"], [style*="font-size:13px"] { font-size: 16px !important; }
+  [style*="font-size: 14px"], [style*="font-size:14px"] { font-size: 16px !important; }
+  .metrics small { white-space: normal; text-align: center; line-height: 1.35; }
+  .bottom-nav button { font-size: 13px !important; min-width: 0; }
+  .subtabs { overflow-x: auto; }
+  .subtabs button { flex-shrink: 0; min-height: 36px; height: auto; }
+  .small-primary { min-height: 34px; height: auto; padding-top: 6px; padding-bottom: 6px; }
+}
