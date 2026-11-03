@@ -15,3 +15,5 @@
 .ref-zoom-bar small{font-size:10px;color:#91859e}
 
 .move-cautions{display:flex;flex-direction:column;gap:7px;padding:10px;background:#f8f5fb;border-radius:9px}.move-cautions>strong{font-size:12px}.move-caution-entry{padding:5px 0;border-bottom:1px solid #e8e0ef}.move-caution-entry:last-child{border-bottom:0}.move-caution-entry small{font-size:10px;color:#9383a2}.move-caution-entry p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5}
+
+.ref-practice-caution{padding:10px 12px;margin:8px 0 12px;border-radius:10px;background:#f5f0fa;color:#443651;font-size:13px;line-height:1.5}.ref-practice-caution strong{display:block;color:#755397;margin-bottom:4px}.ref-practice-caution p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
