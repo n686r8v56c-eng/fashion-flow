@@ -1,7 +1,7 @@
-import React,{useState,useEffect} from 'react';
+import React,{useState,useEffect,useRef} from 'react';
 import {Plus,X,Pencil,Trash2,Search,Play,BookOpen,Copy,Download,ExternalLink,Bookmark,Check,ImagePlus,Layers} from 'lucide-react';
 import {supabase,uploadPhoto,photoUrl} from './supabase';
-import FashionBookmarkStudio from './FashionBookmarkStudio';
+import StudyPracticeBookmark,{parseTimeMarkers,makeMarkers,youtubeId} from './StudyPracticeBookmark';
 import FashionLearningNotes from './FashionLearningNotes';
 const uid=()=>crypto.randomUUID(),SEASONS=['사계절','봄','여름','가을','겨울'],STATUS=['미습득','연습 중','습득 완료'];
 const empty=()=>({skills:[],videos:[],notes:[]});
@@ -10,10 +10,48 @@ const stamp=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padS
 const ytId=url=>{try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return u.pathname.slice(1).split('/')[0];if(u.hostname.includes('youtube.com'))return u.searchParams.get('v')||u.pathname.split('/').pop()}catch{}return ''};
 const copy=text=>navigator.clipboard?.writeText(text).catch(()=>{});
 export default function FashionLearning({references,urls,userId,onRefresh,onUse,inventory=[],inventoryUrls={},onPractice}){
- const [state,setState]=useState(empty),[tab,setTab]=useState('videos'),[linkedSkill,setLinkedSkill]=useState(null),[search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체'),[editing,setEditing]=useState(null),[guide,setGuide]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[upload,setUpload]=useState(null),[playing,setPlaying]=useState(false),[selectedClip,setSelectedClip]=useState(0),[availability,setAvailability]=useState('전체'),[itemSearch,setItemSearch]=useState('');
+ const [state,setState]=useState(empty),[tab,setTab]=useState('videos'),[bulkText,setBulkText]=useState(''),[bulkNotice,setBulkNotice]=useState(''),[linkedSkill,setLinkedSkill]=useState(null),[search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체'),[editing,setEditing]=useState(null),[guide,setGuide]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[upload,setUpload]=useState(null),[playing,setPlaying]=useState(false),[selectedClip,setSelectedClip]=useState(0),[availability,setAvailability]=useState('전체'),[itemSearch,setItemSearch]=useState('');
  useEffect(()=>{let active=true;setLoading(true);supabase.from('fashion_learning_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!active)return;if(error)setError('학습 데이터 테이블 설정 필요: supabase-fashion-learning.sql');else {setState({...empty(),...(data?.payload||{})});setError('')}setLoading(false)}).catch(e=>{if(active){setError(e.message);setLoading(false)}});return()=>{active=false}},[userId]);
  useEffect(()=>{let active=true;Promise.all(state.skills.filter(s=>s.image_path).map(async s=>[s.id,await photoUrl(s.image_path)])).then(a=>{if(active)setPhotos(Object.fromEntries(a))});return()=>{active=false}},[state.skills]);
- async function commit(next){setState(next);const {error}=await supabase.from('fashion_learning_data').upsert({user_id:userId,payload:next,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){setError(error.message);alert('저장 실패: '+error.message)}else setError('')}
+ const stateRef=useRef(state);stateRef.current=state;
+ async function commit(next){stateRef.current=next;setState(next);const {error}=await supabase.from('fashion_learning_data').upsert({user_id:userId,payload:next,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){setError(error.message);alert('저장 실패: '+error.message)}else setError('')}
+ const toStudio=video=>({...video,segments:(video.clips||[]).map(c=>({...c,skillId:c.moveId||c.skillId||c.skillIds?.[0]||'',label:c.label||''}))});
+ const fromStudio=video=>{const {segments,...other}=video;return {...other,clips:(segments||[]).map(c=>({...c,moveId:c.skillId||'',skillIds:c.skillId?[c.skillId]:[]}))}};
+ const storeVideo=async video=>{
+  const value=fromStudio(video),next=structuredClone(stateRef.current);
+  const i=next.videos.findIndex(x=>x.id===value.id);
+  if(i<0)next.videos.push(value);else next.videos[i]=value;
+  await commit(next);
+ };
+ const createStudySkill=name=>{
+  const clean=String(name||'').trim();if(!clean)return '';
+  const existing=stateRef.current.skills.find(x=>x.name?.trim().toLocaleLowerCase()===clean.toLocaleLowerCase());
+  if(existing)return existing.id;
+  const id=uid(),next=structuredClone(stateRef.current);
+  next.skills.push({id,name:clean,season:'미분류',item:'',color:'',occasion:'',status:'미습득',memo:'',image_path:'',reference_id:'',inventoryIds:[],createdFrom:'bookmark-study'});
+  commit(next).catch(e=>alert(e.message));return id;
+ };
+ const importBulkBookmarks=async()=>{
+  const lines=bulkText.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const urls=lines.filter(x=>/^https?:\/\/\S+$/i.test(x));
+  if(urls.length>1)return setBulkNotice('유튜브 URL은 하나만 넣어 줘.');
+  const url=urls[0]||'';
+  if(url&&!youtubeId(url))return setBulkNotice('유효한 유튜브 URL을 입력해 줘.');
+  const {items,errors}=parseTimeMarkers(lines.filter(x=>x!==url).join('\n'));
+  if(errors.length)return setBulkNotice('목차 형식 오류: '+errors.join(', ')+'번째 줄');
+  if(!url&&!items.length)return setBulkNotice('URL 또는 목차를 입력해 줘.');
+  if(items.some((x,i)=>i>0&&x.start<=items[i-1].start))return setBulkNotice('목차는 시각 순서대로 넣어 줘.');
+  if(url&&stateRef.current.videos.some(v=>youtubeId(v.url)===youtubeId(url))&&!confirm('이미 등록된 영상이야. 별도로 북마크할까?'))return;
+  const id=uid(),title=url?'유튜브 영상 · '+youtubeId(url):(items[0]?.label||'타임마커 노트');
+  await storeVideo({id,title,url,segments:makeMarkers(items)});
+  setBulkText('');setBulkNotice('북마크 1개 · 타임마커 '+items.length+'개 등록 완료');
+  if(url)fetch('https://noembed.com/embed?url='+encodeURIComponent('https://www.youtube.com/watch?v='+youtubeId(url))).then(r=>r.json()).then(meta=>{
+   if(meta.title&&!meta.error){
+    const next=structuredClone(stateRef.current),v=next.videos.find(x=>x.id===id);
+    if(v&&v.title===title){v.title=meta.title;commit(next).catch(()=>{})}
+   }
+  }).catch(()=>{});
+ };
  const start=(kind,x)=>{setUpload(null);setGuide(false);setPlaying(false);setSelectedClip(0);setItemSearch('');setEditing({kind,data:x?structuredClone(x):kind==='skills'?{id:uid(),name:'',season:'사계절',color:'',item:'',occasion:'',status:'미습득',memo:'',image_path:'',reference_id:'',inventoryIds:[]}:kind==='videos'?{id:uid(),title:'',url:'',clips:[]}: {id:uid(),title:'',skillId:'',memo:'',at:new Date().toISOString()}})};
  const edit=(k,v)=>setEditing(old=>({...old,data:{...old.data,[k]:v}}));
  const save=async()=>{if(!editing?.data)return;const {kind}=editing;let x={...editing.data};if(!(x.name||x.title)?.trim())return alert('이름을 입력해 줘.');try{if(kind==='skills'&&upload){const path=await uploadPhoto(upload,userId);x.image_path=path}const next=structuredClone(state),i=next[kind].findIndex(v=>v.id===x.id);if(i<0)next[kind].push(x);else next[kind][i]=x;await commit(next);setEditing(null)}catch(e){alert(e.message)}};
@@ -36,9 +74,10 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  const media=(url,start=0,end=null)=>{const id=ytId(url);return id?'https://www.youtube-nocookie.com/embed/'+id+'?start='+seconds(start)+(end?'&end='+seconds(end):'')+'&autoplay=1':null};
  const seedGuide={season:SEASONS,color:['블랙','화이트','그레이','베이지','브라운','네이비','레드','블루','핑크','퍼플'],item:['목도리','코트','니트','셔츠','청바지','스커트','원피스','부츠','가방','모자','액세서리']};
  return <div className="fashion-learn">
- <div className="fl-tabs">{[['skills','기술'],['videos','북마크'],['notes','학습 노트']].map(([id,name])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setLinkedSkill(null);setSearch('')}}>{name} ({state[id].length})</button>)}</div>
+ <div className="fl-tabs">{[['videos','북마크'],['skills','기술'],['notes','학습 노트']].map(([id,name])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setLinkedSkill(null);setSearch('')}}>{name} ({state[id].length})</button>)}</div>
  <div className="fl-heading"><h2>{tab==='skills'?'코디 기술 라이브러리':tab==='videos'?'영상 북마크':'학습 노트'}</h2><div>{tab!=='notes'&&<button className="fl-icon" title="JSON 다운로드" onClick={exportJson}><Download size={16}/></button>}<button className="primary" onClick={()=>start(tab)}><Plus size={15}/> 추가</button></div></div>
  {error&&<p className="fl-alert">{error}</p>}{loading&&<p className="muted">학습 데이터 불러오는 중…</p>}
+ {tab==='videos'&&<div className="fashion-bulk-import"><b>영상 URL · 타임스탬프 한 번에 등록</b><textarea rows={4} value={bulkText} onChange={e=>{setBulkText(e.target.value);setBulkNotice('')}} placeholder={'https://www.youtube.com/watch?v=XXXXXXXXXXX\n00:00 도입\n01:03 코디 설명\n04:03 실전 활용'}/><div className="fashion-bulk-footer"><small>URL만 · 목차만 · 둘 다 등록 가능</small><button type="button" disabled={!bulkText.trim()} onClick={importBulkBookmarks}><Plus size={14}/> 한 번에 등록</button></div>{bulkNotice&&<small role="status">{bulkNotice}</small>}</div>}
  {tab==='videos'&&linkedSkill&&<div className="linked-bookmark-filter"><span>{getSkill(linkedSkill)?.name||'선택한 기술'} · 연결 영상 {videosForSkill(linkedSkill).length}개</span><button type="button" onClick={()=>{setLinkedSkill(null);setSearch('')}}>전체 보기 ×</button></div>}
  <div className="fl-search"><Search size={15}/><input placeholder="기술·메모 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
  {tab==='skills'&&<div className="fl-ready-filter"><button className={availability==='전체'?'active':''} onClick={()=>setAvailability('전체')}>전체</button><button className={availability==='연습 가능'?'active':''} onClick={()=>setAvailability('연습 가능')}>연습 가능</button><button className={availability==='아이템 없음'?'active':''} onClick={()=>setAvailability('아이템 없음')}>아이템 없음</button></div>}{tab==='skills'&&<div className="fl-filters"><select value={season} onChange={e=>setSeason(e.target.value)}>{['전체',...SEASONS].map(x=><option key={x}>{x}</option>)}</select><select value={color} onChange={e=>setColor(e.target.value)}>{opts('color').map(x=><option key={x}>{x}</option>)}</select><select value={item} onChange={e=>setItem(e.target.value)}>{opts('item').map(x=><option key={x}>{x}</option>)}</select></div>}
@@ -60,7 +99,7 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  <label>숙련도<select value={editing.data.status} onChange={e=>edit('status',e.target.value)}>{STATUS.map(x=><option key={x}>{x}</option>)}</select></label>
  <div className="fl-inventory-connector"><div className="fl-guidehead"><b>내 인벤토리 연결 · {linkedItems(editing.data).length}개</b></div><input value={itemSearch} onChange={e=>setItemSearch(e.target.value)} placeholder="내 옷 검색 · 여러 개 선택 가능"/><div className="fl-inventory-list">{inventory.filter(i=>[i.title,i.category,i.color,i.subcategory].join(' ').toLowerCase().includes(itemSearch.toLowerCase())).sort((a,b)=>Number(suggested(editing.data).some(x=>x.id===b.id))-Number(suggested(editing.data).some(x=>x.id===a.id))).map(i=><label key={i.id} className="fl-inventory-item"><input type="checkbox" checked={(editing.data.inventoryIds||[]).includes(i.id)} onChange={()=>toggleInventory(i.id)}/>{inventoryUrls[i.id]&&<img src={inventoryUrls[i.id]} alt=""/>}<span><b>{i.title}</b><small>{[i.color,i.category].filter(Boolean).join(' · ')}{suggested(editing.data).some(x=>x.id===i.id)?' · 추천':''}</small></span></label>)}</div><small className="fl-inventory-help">컬러·아이템이 일치하는 옷을 먼저 보여줘. 선택한 옷만 기술에 연결돼.</small>{linkedItems(editing.data).length>0&&<button className="fl-practice-btn" type="button" onClick={()=>{const selected=linkedItems(editing.data);onPractice?.({skill:editing.data,items:selected});setEditing(null)}}><Layers size={15}/> 이 아이템으로 코디 연습</button>}</div><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label>
  {state.skills.some(x=>x.id===editing.data.id)&&<div className="fl-linked"><b>이 기술이 연결된 영상 구간</b>{linked(editing.data.id).map(c=><div className="fl-clip" key={c.id}><span>{c.video.title} · {c.start}–{c.end}</span><button onClick={()=>window.open('https://www.youtube.com/watch?v='+ytId(c.video.url)+'&t='+seconds(c.start)+'s','_blank')}><ExternalLink size={14}/></button>{c.caution&&<small>주의: {c.caution}</small>}{c.memo&&<small>{c.memo}</small>}</div>)}</div>}
- </>:editing.kind==='videos'?<FashionBookmarkStudio key={editing.data.id} item={state.videos.some(v=>v.id===editing.data.id)?editing.data:null} skills={state.skills} notify={message=>alert(message)} onSave={async video=>{const next=structuredClone(state);const i=next.videos.findIndex(v=>v.id===video.id);if(i<0)next.videos.push(video);else next.videos[i]=video;await commit(next);setEditing(null)}} onDelete={()=>remove('videos',editing.data.id)} onUpdateMove={async(id,status,note,bookmarkId)=>{const next=structuredClone(state);const skill=next.skills.find(s=>s.id===id);if(!skill)return;skill.status=status;skill.statusHistory=[...(skill.statusHistory||[]),{id:uid(),status,at:new Date().toISOString(),note,bookmarkId,source:'북마크 연습'}];await commit(next)}}/>:<><label>제목<input value={editing.data.title} onChange={e=>edit('title',e.target.value)}/></label><label>연결 기술<select value={editing.data.skillId||''} onChange={e=>edit('skillId',e.target.value)}><option value="">자유 메모</option>{state.skills.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label></>}
+ </>:editing.kind==='videos'?<StudyPracticeBookmark key={editing.data.id} bookmark={toStudio(editing.data)} skills={state.skills.map(x=>({...x,area:x.season||'미분류',muscle:x.item||''}))} history={state.skills.flatMap(x=>(x.statusHistory||[]).map(h=>({...h,skillId:x.id,memo:h.note||h.memo||''})))} onCreateSkill={createStudySkill} onAutoSave={video=>storeVideo(video).catch(err=>setError(err.message))} onSave={async video=>{await storeVideo(video);setEditing(null)}} onEvaluate={async entry=>{const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===entry.skillId);if(!skill)return;skill.status=entry.status;skill.statusHistory=[...(skill.statusHistory||[]),{id:uid(),status:entry.status,at:new Date().toISOString(),note:entry.memo||'',bookmarkId:entry.bookmarkId,source:'북마크 연습'}];await commit(next)}} onDelete={()=>remove('videos',editing.data.id)}/>>:<><label>제목<input value={editing.data.title} onChange={e=>edit('title',e.target.value)}/></label><label>연결 기술<select value={editing.data.skillId||''} onChange={e=>edit('skillId',e.target.value)}><option value="">자유 메모</option>{state.skills.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label></>}
  {editing.kind!=='videos'&&<div className="fl-actions"><button className="primary" onClick={save}><Check size={15}/> 저장</button>{state[editing.kind].some(x=>x.id===editing.data.id)&&<button className="fl-small" onClick={()=>remove(editing.kind,editing.data.id)}><Trash2 size={15}/> 삭제</button>}</div>}
  </section></div>}
  </div>
