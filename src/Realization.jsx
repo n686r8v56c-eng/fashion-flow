@@ -2,12 +2,13 @@ import React,{useEffect,useState} from 'react';
 import {Plus,X,Pencil,Trash2,Camera,Check,Layers,ImagePlus} from 'lucide-react';
 import {supabase,uploadPhoto,photoUrl} from './supabase';
 const seasons=['사계절','봄','여름','가을','겨울'];const uid=()=>crypto.randomUUID();
-export default function Realization({userId,items,outfits,onOpenStudio}){
+export default function Realization({userId,items,outfits,onOpenStudio,startNew=false}){
  const [looks,setLooks]=useState([]),[pics,setPics]=useState({}),[edit,setEdit]=useState(null),[filter,setFilter]=useState('전체'),[season,setSeason]=useState('전체'),[tpo,setTpo]=useState('전체'),[color,setColor]=useState('전체'),[file,setFile]=useState(null),[proof,setProof]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  useEffect(()=>{let alive=true;supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!alive)return;if(error)setError('Supabase에서 supabase-fashion-realization.sql을 실행해 줘.');else{setLooks(Array.isArray(data?.payload?.looks)?data.payload.looks:[]);setError('')}});return()=>{alive=false}},[userId]);
  useEffect(()=>{let alive=true;Promise.all(looks.flatMap(l=>[['ref',l.reference_path],['proof',l.proof_path]].filter(x=>x[1]).map(async ([type,path])=>[l.id+'-'+type,await photoUrl(path)]))).then(a=>{if(alive)setPics(Object.fromEntries(a))});return()=>{alive=false}},[looks]);
  const saveAll=async next=>{const{error}=await supabase.from('fashion_realization_data').upsert({user_id:userId,payload:{looks:next},updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;setLooks(next)};
  const open=l=>{setEdit(l?structuredClone(l):{id:uid(),title:'',season:'사계절',occasion:'',color:'',reference_path:'',proof_path:'',required:[],outfitId:'',completed:false,createdAt:new Date().toISOString(),createdDate:new Date().toLocaleDateString('sv-SE')});setFile(null);setProof(null)};
+ useEffect(()=>{if(startNew)open(null)},[startNew]);
  const patch=(key,value)=>setEdit(e=>({...e,[key]:value}));
  const save=async()=>{if(!edit.title.trim())return alert('코디 이름을 입력해 줘.');setBusy(true);try{let current={...edit};if(file)current.reference_path=await uploadPhoto(file,userId);if(proof){current.proof_path=await uploadPhoto(proof,userId);current.completed=true;current.completedAt=new Date().toISOString()}const next=looks.some(l=>l.id===current.id)?looks.map(l=>l.id===current.id?current:l):[current,...looks];await saveAll(next);setEdit(null)}catch(e){alert(e.message)}finally{setBusy(false)}};
  const remove=async()=>{if(!confirm('실현 프로젝트를 삭제할까?'))return;try{await saveAll(looks.filter(l=>l.id!==edit.id));setEdit(null)}catch(e){alert(e.message)}};
