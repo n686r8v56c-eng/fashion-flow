@@ -3,8 +3,9 @@ import{Plus,Camera,Trash2,X,ChevronLeft}from'lucide-react';
 import{supabase,uploadPhoto,photoUrl}from'./supabase';
 
 const KEY={실착:'fashion_worn_data',실현:'fashion_realization_data'};
-export default function WornLooks({userId}){
+export default function WornLooks({userId,startNew=false}){
  const[looks,setLooks]=useState([]),[realized,setRealized]=useState([]),[images,setImages]=useState({}),[refImages,setRefImages]=useState({}),[editing,setEditing]=useState(false),[selected,setSelected]=useState(null),[zoom,setZoom]=useState(null),[title,setTitle]=useState(''),[photo,setPhoto]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ useEffect(()=>{if(startNew)setEditing(true)},[startNew]);
  const rows=[...realized.map(x=>({...x,origin:'실현',image_path:x.proof_path})),...looks.map(x=>({...x,origin:'실착'}))];
  const active=selected&&rows.find(x=>x.id===selected.id&&x.origin===selected.origin);
  async function refresh(){if(!userId)return;const[a,b]=await Promise.all([supabase.from('fashion_worn_data').select('payload').eq('user_id',userId).maybeSingle(),supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle()]);if(a.error||b.error){setError(a.error?.message||b.error?.message||'기록 조회 실패');return}setError('');setLooks(a.data?.payload?.looks||[]);setRealized((b.data?.payload?.looks||[]).filter(x=>x.completed&&x.proof_path))}
