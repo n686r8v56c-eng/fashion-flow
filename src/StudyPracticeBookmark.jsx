@@ -80,8 +80,8 @@ function SkillPicker({skills,selectedId,onChoose,onCreate}){
  return <div className="muscle-study-picker">
   <b>기술 연결</b>
   <div className="muscle-study-categories">
-   <label>대분류<select value={area} onChange={e=>{SetArea(e.target.value);SetMuscle('전체')}}><option value="전체">전체</option>{areas.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-   <label>소분류<select value={muscle} onChange={e=>SetMuscle(e.target.value)}><option value="전체">전체</option>{muscles.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+   <label>계절 (대분류)<select value={area} onChange={e=>{SetArea(e.target.value);SetMuscle('전체')}}><option value="전체">전체</option>{areas.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+   <label>주요 아이템 (소분류)<select value={muscle} onChange={e=>SetMuscle(e.target.value)}><option value="전체">전체</option>{muscles.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
   </div>
   <select aria-label="연결할 기술" value={available.some(x=>x.id===selectedId)?selectedId:''} onChange={e=>onChoose(e.target.value)}>
    <option value="">기술 선택 ({available.length}개)</option>{available.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
