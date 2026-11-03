@@ -187,3 +187,15 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .itgirl-form input,.itgirl-form select{width:100%;max-width:100%;font-size:14px}
 .itgirl-form>.primary{justify-self:end}
 @media(max-width:370px){.itgirl-row{gap:4px}.itgirl-row>button:not(.itgirl-open){padding:4px}.itgirl-symbol{width:30px;height:32px}}
+
+
+/* Calendar actual: registered wardrobe items, compact 5–6-column grid */
+.fc-actual-wrap{display:grid;gap:0;min-width:0}
+.fc-inventory-heading{margin-top:15px;margin-bottom:9px}
+.fc-inventory-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;width:100%;min-width:0}
+.fc-inventory-item{min-width:0;display:flex;flex-direction:column;gap:4px;align-items:center}
+.fc-inventory-item img,.fc-inventory-empty{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:7px;background:#f6f1fa;display:grid;place-items:center}
+.fc-inventory-empty{font-size:9px;color:#a69ab1;text-align:center;padding:2px}
+.fc-inventory-item>span:last-child{display:block;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;color:#786e85;text-align:center}
+.fc-dot.inventory{background:#bea5db}
+@media(max-width:390px){.fc-inventory-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
