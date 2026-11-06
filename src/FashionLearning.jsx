@@ -12,7 +12,7 @@ const stamp=s=>{s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padS
 const ytId=url=>{try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return u.pathname.slice(1).split('/')[0];if(u.hostname.includes('youtube.com'))return u.searchParams.get('v')||u.pathname.split('/').pop()}catch{}return ''};
 const copy=text=>navigator.clipboard?.writeText(text).catch(()=>{});
 export default function FashionLearning({references,urls,userId,onRefresh,onUse,inventory=[],inventoryUrls={},onPractice}){
- const [state,setState]=useState(empty),[tab,setTab]=useState('skills'),[activeGroup,setActiveGroup]=useState('style'),[activeLevel,setActiveLevel]=useState(1),[openedSkill,setOpenedSkill]=useState(null),[editMode,setEditMode]=useState(false),[resourceTab,setResourceTab]=useState(null),[renameTarget,setRenameTarget]=useState(null),[renameValue,setRenameValue]=useState(''),[bulkText,setBulkText]=useState(''),[bulkNotice,setBulkNotice]=useState(''),[linkedSkill,setLinkedSkill]=useState(null),[search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체'),[editing,setEditing]=useState(null),[guide,setGuide]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[upload,setUpload]=useState(null),[playing,setPlaying]=useState(false),[selectedClip,setSelectedClip]=useState(0),[availability,setAvailability]=useState('전체'),[itemSearch,setItemSearch]=useState('');
+ const [state,setState]=useState(empty),[tab,setTab]=useState('skills'),[activeGroup,setActiveGroup]=useState('style'),[activeLevel,setActiveLevel]=useState(1),[openedSkill,setOpenedSkill]=useState(null),[activeVideos,setActiveVideos]=useState({}),[videoInput,setVideoInput]=useState(null),[videoUrl,setVideoUrl]=useState(''),[editMode,setEditMode]=useState(false),[resourceTab,setResourceTab]=useState(null),[renameTarget,setRenameTarget]=useState(null),[renameValue,setRenameValue]=useState(''),[bulkText,setBulkText]=useState(''),[bulkNotice,setBulkNotice]=useState(''),[linkedSkill,setLinkedSkill]=useState(null),[search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체'),[editing,setEditing]=useState(null),[guide,setGuide]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[upload,setUpload]=useState(null),[playing,setPlaying]=useState(false),[selectedClip,setSelectedClip]=useState(0),[availability,setAvailability]=useState('전체'),[itemSearch,setItemSearch]=useState('');
  useEffect(()=>{let active=true;setLoading(true);supabase.from('fashion_learning_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!active)return;if(error)setError('학습 데이터 테이블 설정 필요: supabase-fashion-learning.sql');else {setState({...empty(),...(data?.payload||{})});setError('')}setLoading(false)}).catch(e=>{if(active){setError(e.message);setLoading(false)}});return()=>{active=false}},[userId]);
  useEffect(()=>{let active=true;Promise.all(state.skills.filter(s=>s.image_path).map(async s=>[s.id,await photoUrl(s.image_path)])).then(a=>{if(active)setPhotos(Object.fromEntries(a))});return()=>{active=false}},[state.skills]);
  const renamePressTimer=useRef(null),suppressCategoryClick=useRef(false);
@@ -130,7 +130,48 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  const opts=k=>['전체',...new Set(state.skills.map(x=>x[k]).filter(Boolean))];
  const getSkill=id=>state.skills.find(s=>s.id===id);
  const linked=skillId=>state.videos.flatMap(v=>(v.clips||[]).filter(c=>c.skillIds?.includes(skillId)).map(c=>({...c,video:v})));
- const videosForSkill=skillId=>state.videos.filter(v=>(v.clips||[]).some(c=>(c.skillIds||[]).includes(skillId)||c.moveId===skillId||c.skillId===skillId));
+ const videosForSkill=skillId=>{
+  const skill=state.skills.find(s=>s.id===skillId);
+  const direct=(skill?.videos||[]).map((v,i)=>typeof v==='string'
+   ? {id:'direct:'+i,url:v,source:'direct',index:i}
+   : {id:v.id||'direct:'+i,url:v.url||'',source:'direct',index:i});
+  const legacy=state.videos.filter(v=>(v.clips||[]).some(c=>(c.skillIds||[]).includes(skillId)||c.moveId===skillId||c.skillId===skillId))
+   .map(v=>({id:v.id,url:v.url,source:'legacy',title:v.title}));
+  return [...direct,...legacy].filter(v=>ytId(v.url));
+ };
+ const addSkillVideo=async()=>{
+  if(!videoInput)return;
+  const id=ytId(videoUrl.trim());
+  if(!id||!/^[-_a-zA-Z0-9]{11}$/.test(id))return alert('유효한 유튜브 링크를 입력해 줘.');
+  const key=videoInput;
+  const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===key);
+  if(!skill)return;
+  const current=videosForSkill(key);
+  if(current.length>=5)return alert('영상은 동작별 최대 5개까지 등록할 수 있어.');
+  if(current.some(v=>ytId(v.url)===id))return alert('이미 추가한 영상이야.');
+  skill.videos=[...(skill.videos||[]),{id:uid(),url:'https://www.youtube.com/watch?v='+id}];
+  await commit(next);
+  setActiveVideos(p=>({...p,[key]:current.length}));
+  setVideoInput(null);setVideoUrl('');
+ };
+ const deleteSkillVideo=async(skillId,video)=>{
+  if(!confirm('이 동작에서 영상 링크를 제거할까?'))return;
+  const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===skillId);
+  if(!skill)return;
+  if(video.source==='direct'){
+   skill.videos=(skill.videos||[]).filter((x,i)=>i!==video.index);
+  }else{
+   // Preserve old bookmark data, its timeline, notes and other skill links.
+   const old=next.videos.find(v=>v.id===video.id);
+   if(old)old.clips=(old.clips||[]).map(c=>({...c,skillIds:(c.skillIds||[]).filter(x=>x!==skillId),moveId:c.moveId===skillId?'':c.moveId,skillId:c.skillId===skillId?'':c.skillId}));
+  }
+  await commit(next);
+  setActiveVideos(p=>({...p,[skillId]:0}));
+ };
+ const copySkillVideo=async url=>{
+  try{await navigator.clipboard.writeText(url)}catch{window.prompt('영상 링크 복사',url)}
+ };
+
  const showLinkedVideos=skill=>{setLinkedSkill(skill.id);setSearch('');setTab('videos');setEditing(null)};
  const exportJson=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='fashion-learning.json';a.click();URL.revokeObjectURL(url)};
  const media=(url,start=0,end=null)=>{const id=ytId(url);return id?'https://www.youtube-nocookie.com/embed/'+id+'?start='+seconds(start)+(end?'&end='+seconds(end):'')+'&autoplay=1':null};
@@ -169,35 +210,29 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
        <button type="button" title="기술 삭제" aria-label="기술 삭제" onClick={()=>remove('skills',skill.id)}><Trash2 size={15}/></button>
       </div>:<button type="button" className="fl-skill-link" title="연결 자료 펼치기" aria-label="연결 자료 펼치기" onClick={()=>setOpenedSkill(opened?null:skill.id)}><Link2 size={18}/></button>}
     </div>
-    {opened&&<div className="fl-skill-detail">
-     {skillPhoto&&<img className="fl-skill-photo" src={skillPhoto} alt={skill.name+' 참고 사진'}/>}
-     <div className="fl-skill-meta">{[skill.season,skill.item,skill.color,skill.status].filter(Boolean).join(' · ')}</div>
-     {skill.memo&&<div className="fl-skill-note"><strong>메모</strong><p>{skill.memo}</p></div>}
-     {!!linkedItems(skill).length&&<div className="fl-skill-inventory"><strong>연결된 인벤토리</strong><div>{linkedItems(skill).map(x=><span key={x.id}>{inventoryUrls[x.id]&&<img src={inventoryUrls[x.id]} alt=""/>}{x.title}</span>)}</div></div>}
-     <div className="fl-skill-video-heading"><strong>연결된 영상 · {videos.length}</strong><button type="button" onClick={()=>start('videos')}><Plus size={14}/> 북마크 추가</button></div>
-     {videos.length?videos.map(video=><div className="fl-skill-video" key={video.id}>
-       <div className="fl-skill-video-caption"><strong>{video.title||'참고 영상'}</strong><button type="button" aria-label="영상 북마크 편집" onClick={()=>start('videos',video)}><Pencil size={15}/></button></div>
-       {ytId(video.url)&&<iframe title={video.title||'참고 영상'} src={'https://www.youtube-nocookie.com/embed/'+ytId(video.url)+'?playsinline=1'} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/>}
-       <div className="fl-skill-video-actions">{ytId(video.url)&&<a target="_blank" rel="noopener noreferrer" href={'https://www.youtube.com/watch?v='+ytId(video.url)}><ExternalLink size={14}/> 영상 열기</a>}{(video.clips||[]).filter(c=>(c.skillIds||[]).includes(skill.id)||c.moveId===skill.id||c.skillId===skill.id).map((c,i)=><a key={c.id||i} target="_blank" rel="noopener noreferrer" href={'https://www.youtube.com/watch?v='+ytId(video.url)+'&t='+seconds(c.start)+'s'}>{c.label||c.start||'구간 '+(i+1)}</a>)}</div>
-      </div>):<p className="fl-skill-video-empty">연결된 영상이 없어. 북마크에 기술을 연결하면 여기 표시돼.</p>}
-     <div className="fl-skill-detail-actions">
-      {editMode&&<button type="button" onClick={()=>start('skills',skill)}><Pencil size={14}/> 상세 수정</button>}
-      {!!linkedItems(skill).length&&<button type="button" onClick={()=>onPractice?.({skill,items:linkedItems(skill)})}><Layers size={14}/> 이 아이템으로 코디 연습</button>}
-     </div>
+    {opened&&<div className="fl-skill-detail fl-bodycare-video-detail">
+     {videos.length>0&&(()=>{
+      const selectedIndex=Math.min(activeVideos[skill.id]||0,videos.length-1);
+      const current=videos[selectedIndex];
+      const id=ytId(current.url);
+      return <>
+       <div className="fl-video-tabs" role="tablist" aria-label="기술 영상 선택">
+        {videos.map((v,i)=><button key={v.id+':'+i} type="button" role="tab" aria-selected={i===selectedIndex} className={i===selectedIndex?'active':''} onClick={()=>setActiveVideos(p=>({...p,[skill.id]:i}))}>영상 {i+1}</button>)}
+       </div>
+       <iframe className="fl-current-video" key={id+':'+selectedIndex} title={skill.name+' 영상 '+(selectedIndex+1)} src={'https://www.youtube-nocookie.com/embed/'+id+'?playsinline=1&rel=0'} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/>
+       <div className="fl-video-actions">
+        <button type="button" onClick={()=>copySkillVideo(current.url)}><Link2 size={15}/> 링크 복사</button>
+        <a target="_blank" rel="noopener noreferrer" href={'https://www.youtube.com/watch?v='+id}><ExternalLink size={15}/> 영상 열기</a>
+        <button type="button" onClick={()=>deleteSkillVideo(skill.id,current)}><Trash2 size={15}/> 링크 삭제</button>
+       </div>
+      </>;
+     })()}
+     {videos.length<5&&<button type="button" className="fl-video-add" onClick={()=>{setVideoInput(skill.id);setVideoUrl('')}}><Plus size={16}/> 영상 추가</button>}
+     {videos.length===0&&<p className="fl-skill-video-empty">등록된 영상이 없어. 영상 추가를 눌러 줘.</p>}
     </div>}
    </div>;
   })}
   {!loading&&!filtered.length&&<div className="fl-structured-empty">이 단계에 등록된 항목이 없어. + 버튼으로 추가할 수 있어.</div>}
- </div>
- <div className="fl-resources">
-  <button type="button" className="fl-resource-toggle" aria-expanded={resourceTab!==null} onClick={()=>setResourceTab(v=>v===null?'videos':null)}>영상 북마크 · 학습 노트 {resourceTab===null?<ChevronDown size={16}/>:<ChevronUp size={16}/>}</button>
-  {resourceTab!==null&&<>
-    <div className="fl-resource-tabs"><button type="button" className={resourceTab==='videos'?'active':''} onClick={()=>setResourceTab('videos')}>북마크 ({state.videos.length})</button><button type="button" className={resourceTab==='notes'?'active':''} onClick={()=>setResourceTab('notes')}>학습 노트 ({state.notes.length})</button></div>
-    {resourceTab==='videos'?<div className="fl-resource-list">
-      <button type="button" className="fl-resource-new" onClick={()=>start('videos')}><Plus size={15}/> 영상 북마크 추가</button>
-      {state.videos.map(v=><button type="button" key={v.id} className="fl-resource-video" onClick={()=>start('videos',v)}>{ytId(v.url)&&<img src={'https://img.youtube.com/vi/'+ytId(v.url)+'/mqdefault.jpg'} alt=""/>}<span>{v.title||'영상 북마크'}<small>연결 구간 {(v.clips||[]).length}개</small></span><Pencil size={15}/></button>)}
-    </div>:<><button type="button" className="fl-resource-new" onClick={()=>start('notes')}><Plus size={15}/> 학습 노트 추가</button><FashionLearningNotes skills={state.skills} videos={state.videos} notes={state.notes} photos={photos} urls={urls} onEdit={n=>n&&start('notes',n)}/></>}
-  </>}
  </div>
  {editing&&<div className="fl-veil" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><section className={'fl-modal'+(editing.kind==='skills'?' fl-simple-modal':'')}><div className="fl-modalhead"><b>{editing.kind==='skills'?(state.skills.some(x=>x.id===editing.data.id)?'동작 수정':'동작 추가'):(editing.kind==='videos'?'영상 북마크':'학습 노트')+' 편집'}</b><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
  {editing.kind==='skills'?<div className="fl-simple-skill-form">
@@ -210,6 +245,13 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  </div> :editing.kind==='videos'?<StudyPracticeBookmark key={editing.data.id} bookmark={toStudio(editing.data)} skills={state.skills.map(x=>({...x,area:x.season||'미분류',muscle:x.item||''}))} history={state.skills.flatMap(x=>(x.statusHistory||[]).map(h=>({...h,skillId:x.id,memo:h.note||h.memo||''})))} onCreateSkill={createStudySkill} onAutoSave={video=>storeVideo(video).catch(err=>setError(err.message))} onSave={async video=>{await storeVideo(video);setEditing(null)}} onEvaluate={async entry=>{const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===entry.skillId);if(!skill)return;skill.status=entry.status;skill.statusHistory=[...(skill.statusHistory||[]),{id:uid(),status:entry.status,at:new Date().toISOString(),note:entry.memo||'',bookmarkId:entry.bookmarkId,source:'북마크 연습'}];await commit(next)}} onDelete={()=>remove('videos',editing.data.id)}/>:<><label>제목<input value={editing.data.title} onChange={e=>edit('title',e.target.value)}/></label><label>연결 기술<select value={editing.data.skillId||''} onChange={e=>edit('skillId',e.target.value)}><option value="">자유 메모</option>{state.skills.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label></>}
  {editing.kind==='notes'&&<div className="fl-actions"><button className="primary" onClick={save}><Check size={15}/> 저장</button>{state[editing.kind].some(x=>x.id===editing.data.id)&&<button className="fl-small" onClick={()=>remove(editing.kind,editing.data.id)}><Trash2 size={15}/> 삭제</button>}</div>}
  </section></div>}
+ {videoInput&&<div className="fl-veil" onMouseDown={e=>{if(e.target===e.currentTarget)setVideoInput(null)}}>
+  <form className="fl-modal fl-video-add-modal" onSubmit={e=>{e.preventDefault();addSkillVideo().catch(err=>alert(err.message))}}>
+   <div className="fl-modalhead"><b>영상 추가</b><button type="button" onClick={()=>setVideoInput(null)}><X size={18}/></button></div>
+   <label>유튜브 링크<input type="url" autoFocus required inputMode="url" placeholder="https://www.youtube.com/watch?v=..." value={videoUrl} onChange={e=>setVideoUrl(e.target.value)}/></label>
+   <button type="submit" className="primary" disabled={!videoUrl.trim()}>추가</button>
+  </form>
+ </div>}
  {renameTarget&&<div className="fl-veil" onMouseDown={e=>{if(e.currentTarget===e.target)setRenameTarget(null)}}><form className="fl-modal fl-name-modal" onSubmit={saveRename}>
   <div className="fl-modalhead"><b>{renameTarget.type==='group'?'하단 분류 이름 변경':'Lv.'+(renameTarget.index+1)+' 단계 이름 변경'}</b><button type="button" onClick={()=>setRenameTarget(null)}><X size={18}/></button></div>
   <label>새 이름<input autoFocus maxLength={20} required value={renameValue} onChange={e=>setRenameValue(e.target.value)}/></label>
