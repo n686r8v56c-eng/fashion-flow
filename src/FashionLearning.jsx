@@ -87,9 +87,26 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
    }
   }).catch(()=>{});
  };
- const start=(kind,x)=>{setUpload(null);setGuide(false);setPlaying(false);setSelectedClip(0);setItemSearch('');setEditing({kind,data:x?structuredClone(x):kind==='skills'?{id:uid(),name:'',season:'사계절',color:'',item:'',occasion:'',status:'미습득',memo:'',image_path:'',reference_id:'',inventoryIds:[],flowGroup:activeGroup,flowLevel:activeLevel}:kind==='videos'?{id:uid(),title:'',url:'',clips:[]}: {id:uid(),title:'',skillId:'',memo:'',at:new Date().toISOString()}})};
+ const start=(kind,x)=>{setUpload(null);setGuide(false);setPlaying(false);setSelectedClip(0);setItemSearch('');setEditing({kind,data:x?structuredClone(x):kind==='skills'?{id:uid(),name:'',en:'',ko:'',season:'사계절',color:'',item:'',occasion:'',status:'미습득',memo:'',image_path:'',reference_id:'',inventoryIds:[],flowGroup:activeGroup,flowLevel:activeLevel}:kind==='videos'?{id:uid(),title:'',url:'',clips:[]}: {id:uid(),title:'',skillId:'',memo:'',at:new Date().toISOString()}})};
  const edit=(k,v)=>setEditing(old=>({...old,data:{...old.data,[k]:v}}));
- const save=async()=>{if(!editing?.data)return;const {kind}=editing;let x={...editing.data};if(!(x.name||x.title)?.trim())return alert('이름을 입력해 줘.');try{if(kind==='skills'&&upload){const path=await uploadPhoto(upload,userId);x.image_path=path}const next=structuredClone(state),i=next[kind].findIndex(v=>v.id===x.id);if(i<0)next[kind].push(x);else next[kind][i]=x;await commit(next);setEditing(null)}catch(e){alert(e.message)}};
+ const save=async()=>{
+  if(!editing?.data)return;
+  const {kind}=editing;let x={...editing.data};
+  if(kind==='skills'){
+   x.en=String(x.en||'').trim();x.ko=String(x.ko||'').trim();
+   x.name=x.en||x.ko||String(x.name||'').trim();
+   x.flowGroup=x.flowGroup||activeGroup;
+   x.flowLevel=Math.max(1,Math.min(5,Number(x.flowLevel)||activeLevel));
+  }
+  if(!(x.name||x.title)?.trim())return alert('영문 이름 또는 한글 이름을 입력해 줘.');
+  try{
+   if(kind==='skills'&&upload){const path=await uploadPhoto(upload,userId);x.image_path=path}
+   const next=structuredClone(stateRef.current),i=next[kind].findIndex(v=>v.id===x.id);
+   if(i<0)next[kind].push(x);else next[kind][i]=x;
+   await commit(next);setEditing(null);
+   if(kind==='skills'){setActiveGroup(x.flowGroup);setActiveLevel(x.flowLevel);setOpenedSkill(null)}
+  }catch(e){alert(e.message)}
+ };
  const remove=async(kind,id)=>{if(!confirm('삭제할까요?'))return;const next=structuredClone(state);next[kind]=next[kind].filter(v=>v.id!==id);await commit(next);setEditing(null)};
  const addClip=()=>edit('clips',[...(editing.data.clips||[]),{id:uid(),start:'00:00',end:'00:30',skillIds:[],caution:'',memo:''}]);
  const patchClip=(id,key,value)=>edit('clips',editing.data.clips.map(c=>c.id===id?{...c,[key]:value}:c));
@@ -143,7 +160,7 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
     <div className="fl-skill-row">
      <span className="fl-row-number">{String(index+1).padStart(2,'0')}</span>
      <button type="button" className="fl-skill-toggle" aria-expanded={opened} onClick={()=>setOpenedSkill(opened?null:skill.id)}>
-      <strong>{skill.name}</strong>{opened?<ChevronUp size={18}/>:<ChevronDown size={18}/>}
+      <span className="fl-skill-names"><strong>{skill.en||skill.name}</strong>{skill.ko&&<small>{skill.ko}</small>}</span>{opened?<ChevronUp size={18}/>:<ChevronDown size={18}/>}
      </button>
      {editMode?<div className="fl-skill-edit-actions">
        <button type="button" title="위로 이동" aria-label="위로 이동" disabled={!canMove||index===0} onClick={()=>reorderSkill(skill,-1)}><ArrowUp size={15}/></button>
@@ -182,20 +199,16 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
     </div>:<><button type="button" className="fl-resource-new" onClick={()=>start('notes')}><Plus size={15}/> 학습 노트 추가</button><FashionLearningNotes skills={state.skills} videos={state.videos} notes={state.notes} photos={photos} urls={urls} onEdit={n=>n&&start('notes',n)}/></>}
   </>}
  </div>
- {editing&&<div className="fl-veil" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><section className="fl-modal"><div className="fl-modalhead"><b>{editing.kind==='skills'?'코디 기술':editing.kind==='videos'?'영상 북마크':'학습 노트'} 편집</b><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
- {editing.kind==='skills'?<>
- <label>기술 이름<input value={editing.data.name} onChange={e=>edit('name',e.target.value)} placeholder="예: 겨울 회색 목도리 코디"/></label>
- <div className="fl-two"><label>활용 분류<select value={editing.data.flowGroup||'style'} onChange={e=>edit('flowGroup',e.target.value)}>{FASHION_GROUPS.map(g=><option value={g.id} key={g.id}>{groupLabel(g.id)}</option>)}</select></label><label>학습 단계<select value={editing.data.flowLevel||1} onChange={e=>edit('flowLevel',Number(e.target.value))}>{levelsFor(editing.data.flowGroup||'style').map((name,i)=><option key={i} value={i+1}>Lv.{i+1} · {name}</option>)}</select></label></div>
- <div className="fl-guidehead"><b>분류</b><button onClick={()=>setGuide(!guide)}><BookOpen size={14}/> 분류 가이드</button></div>
- {guide&&<div className="fl-guide">{Object.entries(seedGuide).map(([key,arr])=><div key={key}><b>{key==='season'?'계절':key==='color'?'주요 컬러':'주요 아이템'}</b><div className="fl-chips">{arr.map(x=><button onClick={()=>chooseCategory(key,x)} key={x}>{x}</button>)}</div></div>)}</div>}
- <div className="fl-two"><label>계절<select value={editing.data.season} onChange={e=>edit('season',e.target.value)}>{SEASONS.map(x=><option key={x}>{x}</option>)}</select></label><label>주요 컬러<input value={editing.data.color} onChange={e=>edit('color',e.target.value)}/></label></div>
- <div className="fl-two"><label>주요 아이템<input value={editing.data.item} onChange={e=>edit('item',e.target.value)}/></label><label>TPO<input value={editing.data.occasion||''} onChange={e=>edit('occasion',e.target.value)}/></label></div>
- <label>대표 사진<input type="file" accept="image/*" onChange={e=>setUpload(e.target.files?.[0]||null)}/>{(photos[editing.data.id]||urls[editing.data.reference_id])&&<img className="fl-preview" src={photos[editing.data.id]||urls[editing.data.reference_id]}/>}</label>
- <label>숙련도<select value={editing.data.status} onChange={e=>edit('status',e.target.value)}>{STATUS.map(x=><option key={x}>{x}</option>)}</select></label>
- <div className="fl-inventory-connector"><div className="fl-guidehead"><b>내 인벤토리 연결 · {linkedItems(editing.data).length}개</b></div><input value={itemSearch} onChange={e=>setItemSearch(e.target.value)} placeholder="내 옷 검색 · 여러 개 선택 가능"/><div className="fl-inventory-list">{inventory.filter(i=>[i.title,i.category,i.color,i.subcategory].join(' ').toLowerCase().includes(itemSearch.toLowerCase())).sort((a,b)=>Number(suggested(editing.data).some(x=>x.id===b.id))-Number(suggested(editing.data).some(x=>x.id===a.id))).map(i=><label key={i.id} className="fl-inventory-item"><input type="checkbox" checked={(editing.data.inventoryIds||[]).includes(i.id)} onChange={()=>toggleInventory(i.id)}/>{inventoryUrls[i.id]&&<img src={inventoryUrls[i.id]} alt=""/>}<span><b>{i.title}</b><small>{[i.color,i.category].filter(Boolean).join(' · ')}{suggested(editing.data).some(x=>x.id===i.id)?' · 추천':''}</small></span></label>)}</div><small className="fl-inventory-help">컬러·아이템이 일치하는 옷을 먼저 보여줘. 선택한 옷만 기술에 연결돼.</small>{linkedItems(editing.data).length>0&&<button className="fl-practice-btn" type="button" onClick={()=>{const selected=linkedItems(editing.data);onPractice?.({skill:editing.data,items:selected});setEditing(null)}}><Layers size={15}/> 이 아이템으로 코디 연습</button>}</div><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label>
- {state.skills.some(x=>x.id===editing.data.id)&&<div className="fl-linked"><b>이 기술이 연결된 영상 구간</b>{linked(editing.data.id).map(c=><div className="fl-clip" key={c.id}><span>{c.video.title} · {c.start}–{c.end}</span><button onClick={()=>window.open('https://www.youtube.com/watch?v='+ytId(c.video.url)+'&t='+seconds(c.start)+'s','_blank')}><ExternalLink size={14}/></button>{c.caution&&<small>주의: {c.caution}</small>}{c.memo&&<small>{c.memo}</small>}</div>)}</div>}
- </>:editing.kind==='videos'?<StudyPracticeBookmark key={editing.data.id} bookmark={toStudio(editing.data)} skills={state.skills.map(x=>({...x,area:x.season||'미분류',muscle:x.item||''}))} history={state.skills.flatMap(x=>(x.statusHistory||[]).map(h=>({...h,skillId:x.id,memo:h.note||h.memo||''})))} onCreateSkill={createStudySkill} onAutoSave={video=>storeVideo(video).catch(err=>setError(err.message))} onSave={async video=>{await storeVideo(video);setEditing(null)}} onEvaluate={async entry=>{const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===entry.skillId);if(!skill)return;skill.status=entry.status;skill.statusHistory=[...(skill.statusHistory||[]),{id:uid(),status:entry.status,at:new Date().toISOString(),note:entry.memo||'',bookmarkId:entry.bookmarkId,source:'북마크 연습'}];await commit(next)}} onDelete={()=>remove('videos',editing.data.id)}/>:<><label>제목<input value={editing.data.title} onChange={e=>edit('title',e.target.value)}/></label><label>연결 기술<select value={editing.data.skillId||''} onChange={e=>edit('skillId',e.target.value)}><option value="">자유 메모</option>{state.skills.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label></>}
- {editing.kind!=='videos'&&<div className="fl-actions"><button className="primary" onClick={save}><Check size={15}/> 저장</button>{state[editing.kind].some(x=>x.id===editing.data.id)&&<button className="fl-small" onClick={()=>remove(editing.kind,editing.data.id)}><Trash2 size={15}/> 삭제</button>}</div>}
+ {editing&&<div className="fl-veil" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><section className={'fl-modal'+(editing.kind==='skills'?' fl-simple-modal':'')}><div className="fl-modalhead"><b>{editing.kind==='skills'?(state.skills.some(x=>x.id===editing.data.id)?'동작 수정':'동작 추가'):(editing.kind==='videos'?'영상 북마크':'학습 노트')+' 편집'}</b><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
+ {editing.kind==='skills'?<div className="fl-simple-skill-form">
+  <label>영문 이름<input autoFocus type="text" value={editing.data.en!==undefined?editing.data.en:(editing.data.name||'')} onChange={e=>edit('en',e.target.value)} placeholder="예: Grey Styling" maxLength={120}/></label>
+  <label>한글 이름<input type="text" value={editing.data.ko||''} onChange={e=>edit('ko',e.target.value)} placeholder="예: 그레이 코디" maxLength={120}/></label>
+  <label>분류<select value={editing.data.flowLevel||activeLevel} onChange={e=>edit('flowLevel',Number(e.target.value))}>
+   {levelsFor(editing.data.flowGroup||activeGroup).map((name,i)=><option value={i+1} key={i}>Lv.{i+1} · {name}</option>)}
+  </select></label>
+  <button type="button" className="fl-simple-save" disabled={!String(editing.data.en!==undefined?editing.data.en:(editing.data.name||'')).trim()&&!String(editing.data.ko||'').trim()} onClick={save}>저장</button>
+ </div> :editing.kind==='videos'?<StudyPracticeBookmark key={editing.data.id} bookmark={toStudio(editing.data)} skills={state.skills.map(x=>({...x,area:x.season||'미분류',muscle:x.item||''}))} history={state.skills.flatMap(x=>(x.statusHistory||[]).map(h=>({...h,skillId:x.id,memo:h.note||h.memo||''})))} onCreateSkill={createStudySkill} onAutoSave={video=>storeVideo(video).catch(err=>setError(err.message))} onSave={async video=>{await storeVideo(video);setEditing(null)}} onEvaluate={async entry=>{const next=structuredClone(stateRef.current),skill=next.skills.find(x=>x.id===entry.skillId);if(!skill)return;skill.status=entry.status;skill.statusHistory=[...(skill.statusHistory||[]),{id:uid(),status:entry.status,at:new Date().toISOString(),note:entry.memo||'',bookmarkId:entry.bookmarkId,source:'북마크 연습'}];await commit(next)}} onDelete={()=>remove('videos',editing.data.id)}/>:<><label>제목<input value={editing.data.title} onChange={e=>edit('title',e.target.value)}/></label><label>연결 기술<select value={editing.data.skillId||''} onChange={e=>edit('skillId',e.target.value)}><option value="">자유 메모</option>{state.skills.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>메모<textarea value={editing.data.memo||''} onChange={e=>edit('memo',e.target.value)}/></label></>}
+ {editing.kind==='notes'&&<div className="fl-actions"><button className="primary" onClick={save}><Check size={15}/> 저장</button>{state[editing.kind].some(x=>x.id===editing.data.id)&&<button className="fl-small" onClick={()=>remove(editing.kind,editing.data.id)}><Trash2 size={15}/> 삭제</button>}</div>}
  </section></div>}
  {renameTarget&&<div className="fl-veil" onMouseDown={e=>{if(e.currentTarget===e.target)setRenameTarget(null)}}><form className="fl-modal fl-name-modal" onSubmit={saveRename}>
   <div className="fl-modalhead"><b>{renameTarget.type==='group'?'하단 분류 이름 변경':'Lv.'+(renameTarget.index+1)+' 단계 이름 변경'}</b><button type="button" onClick={()=>setRenameTarget(null)}><X size={18}/></button></div>
