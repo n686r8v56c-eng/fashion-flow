@@ -829,3 +829,30 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
  .fl-video-tabs button{padding:8px 10px;font-size:11px}
  .fl-video-actions button,.fl-video-actions a,.fl-video-add{padding:7px 8px;font-size:11px}
 }
+
+/* Fashion Shopping Cart: shared missing items from It Girl Looks */
+.real-missing-list{display:grid;gap:8px;min-width:0}
+.real-missing-item{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px;align-items:center;min-width:0}
+.real-missing-item input{font-size:16px;min-width:0;width:100%}
+.real-missing-item>button{display:grid;place-items:center;width:34px;height:40px;color:#9278a9}
+.real-missing-help{font-size:12px;color:#9a8da3;line-height:1.5}
+.fashion-shopping-overlay{z-index:180;display:grid;place-items:center;padding:12px;overflow:hidden}
+.fashion-shopping-modal{width:min(100%,510px);max-width:calc(100vw - 24px);max-height:min(85dvh,760px);padding:16px;border-radius:16px;overflow-y:auto;overscroll-behavior:contain;display:grid;gap:14px}
+.fashion-shopping-modal *{box-sizing:border-box;min-width:0}
+.fashion-shopping-head{display:flex;justify-content:space-between;align-items:start;gap:10px;border-bottom:1px solid #efe7f4;padding-bottom:12px}
+.fashion-shopping-head h2{font-size:20px;color:#362b45;margin:0 0 5px}
+.fashion-shopping-head small{font-size:12px;color:#8a7d99}
+.fashion-shopping-head>.iconbtn{flex:none;color:#8b72aa}
+.fashion-shopping-list{display:grid;gap:10px}
+.fashion-shopping-item{border:1px solid #e8dcf0;border-radius:12px;padding:12px;background:#fdfbff;display:grid;gap:10px}
+.fashion-shopping-item-name{display:flex;align-items:center;gap:8px;color:#7450a6}
+.fashion-shopping-item-name strong{font-size:15px;overflow-wrap:anywhere}
+.fashion-shopping-connected{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.fashion-shopping-connected>span{flex-basis:100%;font-size:11px;color:#998ba5}
+.fashion-shopping-connected>button{display:inline-flex;background:#f1e9f8;color:#7756a2;padding:7px 10px;border:1px solid #e7d9f1;border-radius:8px;font-size:12px;text-align:left;max-width:100%;overflow-wrap:anywhere}
+.fashion-shopping-empty{padding:26px 12px;color:#8b7d9b;text-align:center;line-height:1.6;font-size:13px}
+@media(max-width:390px){
+ .fashion-shopping-modal{padding:13px}
+ .fashion-shopping-item{padding:10px}
+ .fashion-shopping-item-name strong{font-size:14px}
+}
