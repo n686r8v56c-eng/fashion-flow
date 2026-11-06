@@ -695,3 +695,73 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
  .fl-bottom-categories{bottom:calc(61px + env(safe-area-inset-bottom));padding:4px}
  .fl-bottom-categories>button{font-size:12px}
 }
+
+/* Body Care-inspired compact Fashion 활용 list */
+.fashion-learn-structured .fl-structure-top{margin-bottom:7px;gap:9px}
+.fashion-learn-structured .fl-structure-line{border-bottom:0;padding:2px 0 4px}
+.fashion-learn-structured .fl-heading.fl-skill-heading{
+ display:flex;align-items:center;justify-content:flex-end;gap:10px;
+ margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid #e9dfef
+}
+.fl-skill-count{flex:1;min-width:0;color:#978ba5;font-size:12px}
+.fl-skill-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.fashion-learn-structured .fl-skill-actions button{
+ min-height:35px;border:0;border-radius:9px;background:#f3ecf9;color:#7956a9;
+ display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 9px;font-size:12px
+}
+.fashion-learn-structured .fl-skill-actions .fl-edit-mode.active{background:#e4d5f5;color:#6a419c}
+.fashion-learn-structured .fl-skill-actions .fl-add-skill{min-width:38px}
+.fashion-learn-structured .fl-list.fl-structured-list{
+ border:0;border-top:1px solid #eee7f2;border-radius:0;background:#fff;overflow:visible
+}
+.fl-structured-list .fl-skill{border-bottom:1px solid #ede6f2;min-width:0}
+.fl-skill-row{display:flex;align-items:center;gap:7px;min-height:65px;padding:9px 2px;min-width:0}
+.fl-skill-row .fl-row-number{flex:0 0 24px;min-width:24px;font-size:13px;color:#a38bad}
+.fl-skill-toggle{display:flex;flex:1;min-width:0;align-items:center;text-align:left;gap:6px;padding:10px 1px;color:#362d40}
+.fl-skill-toggle strong{flex:1;min-width:0;font-size:15px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.fl-skill-toggle>svg{flex:none;color:#9379ae}
+.fl-skill-link{display:grid;place-items:center;flex:none;width:39px;height:39px;border-radius:10px;background:#f2eafa;color:#7954ad}
+.fl-skill-edit-actions{display:flex;flex:none;align-items:center;gap:3px}
+.fl-skill-edit-actions button{display:grid;place-items:center;width:29px;height:34px;padding:0;background:#f3edf8;color:#8463a9;border-radius:7px}
+.fl-skill-edit-actions button:last-child{color:#a16d8c}
+.fl-skill-edit-actions button:disabled{opacity:.3}
+.fl-skill-detail{display:grid;gap:11px;min-width:0;padding:0 3px 16px 31px;font-size:13px}
+.fl-skill-photo{display:block;width:100%;max-height:300px;object-fit:contain;background:#f6f1fa;border-radius:10px}
+.fl-skill-meta{font-size:12px;color:#8d7b9c}
+.fl-skill-note{background:#f8f5fb;border:1px solid #eee4f5;border-radius:10px;padding:11px}
+.fl-skill-note strong,.fl-skill-inventory>strong,.fl-skill-video-heading strong{font-size:13px;color:#594471}
+.fl-skill-note p{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.fl-skill-inventory{display:grid;gap:8px}
+.fl-skill-inventory>div{display:flex;flex-wrap:wrap;gap:7px}
+.fl-skill-inventory>div span{display:flex;align-items:center;gap:6px;background:#f6f0fa;border-radius:8px;padding:5px 8px;font-size:12px}
+.fl-skill-inventory img{width:28px;height:32px;object-fit:cover;border-radius:5px}
+.fl-skill-video-heading,.fl-skill-video-caption{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fl-skill-video-heading button,.fl-skill-video-caption button{display:flex;align-items:center;gap:5px;padding:7px;color:#7955a3;font-size:12px;background:#f2eafb;border-radius:8px}
+.fl-skill-video{display:grid;gap:7px;border:1px solid #e9def2;padding:9px;border-radius:10px;background:#fdfbfe;min-width:0}
+.fl-skill-video-caption strong{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
+.fl-skill-video iframe{display:block;border:0;border-radius:8px;width:100%;aspect-ratio:16/9;background:#21182c}
+.fl-skill-video-actions{display:flex;gap:5px;flex-wrap:wrap}
+.fl-skill-video-actions a{color:#7754a4;background:#f2eafb;border-radius:7px;padding:7px 9px;font-size:11px;display:flex;gap:4px;align-items:center;text-decoration:none}
+.fl-skill-video-empty{color:#9183a1;font-size:12px;line-height:1.5;margin:0}
+.fl-skill-detail-actions{display:flex;gap:6px;flex-wrap:wrap}
+.fl-skill-detail-actions button{display:flex;align-items:center;gap:5px;background:#f1e9f8;border:1px solid #e5d5f2;border-radius:8px;padding:8px 9px;color:#7552a0;font-size:12px}
+.fl-resources{margin:16px 0 16px;display:grid;gap:10px}
+.fl-resource-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;border:1px solid #e8dbf1;border-radius:10px;background:#f8f4fc;color:#7656a3;font-size:13px;font-weight:700;padding:12px;text-align:left}
+.fl-resource-tabs{display:flex;background:#f1eafa;border-radius:9px;gap:4px;padding:4px}
+.fl-resource-tabs button{flex:1;padding:8px;border-radius:7px;font-size:12px;color:#78658b}
+.fl-resource-tabs button.active{background:#fff;color:#7651aa;font-weight:700}
+.fl-resource-list{display:grid;gap:5px}
+.fl-resource-new{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#f2eafb;color:#7855a9;border-radius:8px;font-size:12px;padding:10px}
+.fl-resource-video{display:flex;align-items:center;gap:9px;width:100%;background:#fff;border:1px solid #eee6f3;border-radius:9px;padding:8px;text-align:left}
+.fl-resource-video img{flex:0 0 56px;width:56px;height:42px;border-radius:6px;object-fit:cover}
+.fl-resource-video>span{flex:1;display:grid;gap:4px;min-width:0;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.fl-resource-video small{font-size:11px;font-weight:400;color:#8b7d98}
+.fl-resource-video>svg{flex:none;color:#9476b3}
+.fl-bottom-categories>button{gap:0}
+@media(max-width:390px){
+ .fl-skill-row{gap:5px}
+ .fl-skill-edit-actions{gap:2px}
+ .fl-skill-edit-actions button{width:27px;height:32px}
+ .fl-skill-toggle strong{font-size:14px}
+ .fl-skill-detail{padding-left:27px}
+}
