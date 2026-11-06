@@ -113,7 +113,7 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  const opts=k=>['전체',...new Set(state.skills.map(x=>x[k]).filter(Boolean))];
  const getSkill=id=>state.skills.find(s=>s.id===id);
  const linked=skillId=>state.videos.flatMap(v=>(v.clips||[]).filter(c=>c.skillIds?.includes(skillId)).map(c=>({...c,video:v})));
- const videosForSkill=skillId=>state.videos.filter(v=>(v.clips||[]).some(c=>(c.skillIds||[]).includes(skillId)));
+ const videosForSkill=skillId=>state.videos.filter(v=>(v.clips||[]).some(c=>(c.skillIds||[]).includes(skillId)||c.moveId===skillId||c.skillId===skillId));
  const showLinkedVideos=skill=>{setLinkedSkill(skill.id);setSearch('');setTab('videos');setEditing(null)};
  const exportJson=()=>{const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='fashion-learning.json';a.click();URL.revokeObjectURL(url)};
  const media=(url,start=0,end=null)=>{const id=ytId(url);return id?'https://www.youtube-nocookie.com/embed/'+id+'?start='+seconds(start)+(end?'&end='+seconds(end):'')+'&autoplay=1':null};
@@ -164,7 +164,7 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
        <div className="fl-skill-video-actions">{ytId(video.url)&&<a target="_blank" rel="noopener noreferrer" href={'https://www.youtube.com/watch?v='+ytId(video.url)}><ExternalLink size={14}/> 영상 열기</a>}{(video.clips||[]).filter(c=>(c.skillIds||[]).includes(skill.id)||c.moveId===skill.id||c.skillId===skill.id).map((c,i)=><a key={c.id||i} target="_blank" rel="noopener noreferrer" href={'https://www.youtube.com/watch?v='+ytId(video.url)+'&t='+seconds(c.start)+'s'}>{c.label||c.start||'구간 '+(i+1)}</a>)}</div>
       </div>):<p className="fl-skill-video-empty">연결된 영상이 없어. 북마크에 기술을 연결하면 여기 표시돼.</p>}
      <div className="fl-skill-detail-actions">
-      <button type="button" onClick={()=>start('skills',skill)}><Pencil size={14}/> 상세 수정</button>
+      {editMode&&<button type="button" onClick={()=>start('skills',skill)}><Pencil size={14}/> 상세 수정</button>}
       {!!linkedItems(skill).length&&<button type="button" onClick={()=>onPractice?.({skill,items:linkedItems(skill)})}><Layers size={14}/> 이 아이템으로 코디 연습</button>}
      </div>
     </div>}
