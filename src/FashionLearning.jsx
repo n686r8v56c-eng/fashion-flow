@@ -96,22 +96,25 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
   <div className="fl-level-tabs" role="tablist" aria-label="활용 학습 단계">
    {levelsFor(activeGroup).map((name,i)=><button key={i} type="button" role="tab" aria-selected={activeLevel===i+1} className={activeLevel===i+1?'active':''} onClick={()=>{setActiveLevel(i+1);setTab('skills');setSearch('')}} onContextMenu={e=>{e.preventDefault();rename('level',activeGroup,i)}}><span>Lv.{i+1}</span><strong>{name}</strong></button>)}
   </div>
-  <div className="fl-structure-line"><strong>{groupLabel(activeGroup)} · Lv.{activeLevel} {levelsFor(activeGroup)[activeLevel-1]}</strong><button type="button" onClick={()=>rename('level',activeGroup,activeLevel-1)}><Pencil size={13}/> 단계 이름</button></div>
+  <div className="fl-structure-line"><strong>LEVEL {activeLevel} · {levelsFor(activeGroup)[activeLevel-1]}</strong><button type="button" onClick={()=>rename('level',activeGroup,activeLevel-1)}><Pencil size={13}/> 이름 변경</button></div>
  </div>
- <div className="fl-tabs">{[['skills','기술'],['videos','북마크'],['notes','학습 노트']].map(([id,name])=><button key={id} className={tab===id?'active':''} onClick={()=>{setTab(id);setLinkedSkill(null);setSearch('')}}>{name} ({state[id].length})</button>)}</div>
- <div className="fl-heading"><h2>{tab==='skills'?groupLabel(activeGroup)+' 기술':tab==='videos'?'영상 북마크':'학습 노트'}</h2><div>{tab!=='notes'&&<button className="fl-icon" title="JSON 다운로드" onClick={exportJson}><Download size={16}/></button>}<button className="primary" onClick={()=>start(tab)}><Plus size={15}/> 추가</button></div></div>
- {error&&<p className="fl-alert">{error}</p>}{loading&&<p className="muted">학습 데이터 불러오는 중…</p>}
- {tab==='videos'&&<div className="fashion-bulk-import"><b>영상 URL · 타임스탬프 한 번에 등록</b><textarea rows={4} value={bulkText} onChange={e=>{setBulkText(e.target.value);setBulkNotice('')}} placeholder={'https://www.youtube.com/watch?v=XXXXXXXXXXX\n00:00 도입\n01:03 코디 설명\n04:03 실전 활용'}/><div className="fashion-bulk-footer"><small>URL만 · 목차만 · 둘 다 등록 가능</small><button type="button" disabled={!bulkText.trim()} onClick={importBulkBookmarks}><Plus size={14}/> 한 번에 등록</button></div>{bulkNotice&&<small role="status">{bulkNotice}</small>}</div>}
- {tab==='videos'&&linkedSkill&&<div className="linked-bookmark-filter"><span>{getSkill(linkedSkill)?.name||'선택한 기술'} · 연결 영상 {videosForSkill(linkedSkill).length}개</span><button type="button" onClick={()=>{setLinkedSkill(null);setSearch('')}}>전체 보기 ×</button></div>}
- <div className="fl-search"><Search size={15}/><input placeholder="기술·메모 검색" value={search} onChange={e=>setSearch(e.target.value)}/></div>
- {tab==='skills'&&<div className="fl-ready-filter"><button className={availability==='전체'?'active':''} onClick={()=>setAvailability('전체')}>전체</button><button className={availability==='연습 가능'?'active':''} onClick={()=>setAvailability('연습 가능')}>연습 가능</button><button className={availability==='아이템 없음'?'active':''} onClick={()=>setAvailability('아이템 없음')}>아이템 없음</button></div>}{tab==='skills'&&<div className="fl-filters"><select value={season} onChange={e=>setSeason(e.target.value)}>{['전체',...SEASONS].map(x=><option key={x}>{x}</option>)}</select><select value={color} onChange={e=>setColor(e.target.value)}>{opts('color').map(x=><option key={x}>{x}</option>)}</select><select value={item} onChange={e=>setItem(e.target.value)}>{opts('item').map(x=><option key={x}>{x}</option>)}</select></div>}
- <div className="fl-list">
- {tab==='skills'&&filtered.map(s=><div className="fl-row" key={s.id}><button className="fl-thumbnail" onClick={()=>start('skills',s)}>{photos[s.id]||urls[s.reference_id]?<img src={photos[s.id]||urls[s.reference_id]}/>:<BookOpen size={18}/>}</button><button className="fl-rowtext" onClick={()=>start('skills',s)}><b>{s.name}</b><small>{[s.season,s.color,s.item,s.status].filter(Boolean).join(' · ')} · {isReady(s)?'연습 가능':'아이템 없음'}</small></button><button type="button" className="linked-bookmark-btn" title="연결된 영상 북마크 보기" onClick={()=>showLinkedVideos(s)}><Bookmark size={14}/>{videosForSkill(s.id).length}</button><button className="fl-icon" onClick={()=>start('skills',s)}><Pencil size={15}/></button></div>)}
- {tab==='videos'&&state.videos.filter(v=>(!linkedSkill||videosForSkill(linkedSkill).some(b=>b.id===v.id))&&[v.title,v.url,...(v.clips||[]).map(x=>x.memo)].join(' ').toLowerCase().includes(search.toLowerCase())).map(v=><div className="fl-row" key={v.id}><button className="fl-thumbnail" onClick={()=>start('videos',v)}>{ytId(v.url)?<img src={'https://img.youtube.com/vi/'+ytId(v.url)+'/mqdefault.jpg'}/>:<Bookmark size={17}/>}</button><button className="fl-rowtext" onClick={()=>start('videos',v)}><b>{v.title}</b><small>연결 구간 {(v.clips||[]).length}개 · {[...new Set((v.clips||[]).flatMap(c=>c.skillIds||[]))].length}개 기술</small></button><button className="fl-icon" onClick={()=>start('videos',v)}><Pencil size={15}/></button></div>)}
- 
+ <div className="fl-heading"><h2>{groupLabel(activeGroup)} · Lv.{activeLevel}</h2><div>
+  <button type="button" className="fl-icon" title="기존 데이터 JSON 백업" onClick={exportJson}><Download size={16}/></button>
+  <button type="button" className="primary" onClick={()=>start('skills')}><Plus size={16}/> 추가</button>
+ </div></div>
+ {error&&<p className="fl-alert">{error}</p>}{loading&&<p className="muted">불러오는 중…</p>}
+ <div className="fl-list fl-structured-list">
+  {filtered.map((skill,index)=><div className="fl-row" key={skill.id}>
+    <span className="fl-row-number">{String(index+1).padStart(2,'0')}</span>
+    <button type="button" className="fl-rowtext" onClick={()=>start('skills',skill)}>
+      <b>{skill.name}</b>
+      {skill.memo&&<small>{skill.memo}</small>}
+    </button>
+    {photos[skill.id]||urls[skill.reference_id]?<button type="button" className="fl-mini-photo" onClick={()=>start('skills',skill)}><img src={photos[skill.id]||urls[skill.reference_id]} alt=""/></button>:null}
+    <button type="button" className="fl-icon" aria-label="수정" onClick={()=>start('skills',skill)}><Pencil size={16}/></button>
+  </div>)}
+  {!loading&&!filtered.length&&<div className="fl-structured-empty">이 단계에 등록된 항목이 없어.<br/>+ 추가로 새 항목을 등록할 수 있어.</div>}
  </div>
- {tab==='notes'&&<FashionLearningNotes skills={state.skills} videos={state.videos} notes={state.notes} photos={photos} urls={urls} query={search} onEdit={n=>n&&start('notes',n)}/>}
- {tab==='skills'&&references.length>0&&<div className="fl-legacy"><h3>기존 활용 레퍼런스 ({references.length})</h3>{references.map(r=><div className="fl-row" key={r.id}><button className="fl-thumbnail">{urls[r.id]&&<img src={urls[r.id]}/>}</button><button className="fl-rowtext" onClick={()=>start('skills',{id:uid(),name:r.title,season:r.season,color:r.main_color,item:r.main_item,occasion:r.occasion,status:'미습득',memo:r.notes||'',reference_id:r.id})}><b>{r.title}</b><small>기술로 가져오기 · {r.season} · {r.main_color} · {r.main_item}</small></button><button className="fl-icon" onClick={()=>onUse(r)} title="코디 참고"><Layers size={15}/></button></div>)}</div>}
  {editing&&<div className="fl-veil" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><section className="fl-modal"><div className="fl-modalhead"><b>{editing.kind==='skills'?'코디 기술':editing.kind==='videos'?'영상 북마크':'학습 노트'} 편집</b><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
  {editing.kind==='skills'?<>
  <label>기술 이름<input value={editing.data.name} onChange={e=>edit('name',e.target.value)} placeholder="예: 겨울 회색 목도리 코디"/></label>
