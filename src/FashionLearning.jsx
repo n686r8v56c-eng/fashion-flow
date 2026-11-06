@@ -15,11 +15,28 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  const [state,setState]=useState(empty),[tab,setTab]=useState('skills'),[activeGroup,setActiveGroup]=useState('style'),[activeLevel,setActiveLevel]=useState(1),[renameTarget,setRenameTarget]=useState(null),[renameValue,setRenameValue]=useState(''),[bulkText,setBulkText]=useState(''),[bulkNotice,setBulkNotice]=useState(''),[linkedSkill,setLinkedSkill]=useState(null),[search,setSearch]=useState(''),[season,setSeason]=useState('전체'),[color,setColor]=useState('전체'),[item,setItem]=useState('전체'),[editing,setEditing]=useState(null),[guide,setGuide]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[upload,setUpload]=useState(null),[playing,setPlaying]=useState(false),[selectedClip,setSelectedClip]=useState(0),[availability,setAvailability]=useState('전체'),[itemSearch,setItemSearch]=useState('');
  useEffect(()=>{let active=true;setLoading(true);supabase.from('fashion_learning_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!active)return;if(error)setError('학습 데이터 테이블 설정 필요: supabase-fashion-learning.sql');else {setState({...empty(),...(data?.payload||{})});setError('')}setLoading(false)}).catch(e=>{if(active){setError(e.message);setLoading(false)}});return()=>{active=false}},[userId]);
  useEffect(()=>{let active=true;Promise.all(state.skills.filter(s=>s.image_path).map(async s=>[s.id,await photoUrl(s.image_path)])).then(a=>{if(active)setPhotos(Object.fromEntries(a))});return()=>{active=false}},[state.skills]);
+ const renamePressTimer=useRef(null),suppressCategoryClick=useRef(false);
+ const cancelRenamePress=()=>{if(renamePressTimer.current){clearTimeout(renamePressTimer.current);renamePressTimer.current=null}};
+ const startRenamePress=(type,group,index=-1)=>{
+  cancelRenamePress();suppressCategoryClick.current=false;
+  renamePressTimer.current=setTimeout(()=>{
+   renamePressTimer.current=null;suppressCategoryClick.current=true;
+   rename(type,group,index);
+  },580);
+ };
+ useEffect(()=>()=>clearTimeout(renamePressTimer.current),[]);
  const stateRef=useRef(state);stateRef.current=state;
  const groupNames=state.layout?.groupNames||{},levelNames=state.layout?.levelNames||{};
  const groupLabel=id=>groupNames[id]||FASHION_GROUPS.find(g=>g.id===id)?.label||id;
  const levelsFor=id=>Array.from({length:5},(_,i)=>levelNames[id]?.[i]||DEFAULT_LEVELS[i]);
- const chooseGroup=id=>{setActiveGroup(id);setActiveLevel(1);setTab('skills');setSearch('');setLinkedSkill(null)};
+ const chooseGroup=id=>{
+  if(suppressCategoryClick.current){suppressCategoryClick.current=false;return}
+  setActiveGroup(id);setActiveLevel(1);setTab('skills');setSearch('');setLinkedSkill(null)
+ };
+ const chooseLevel=i=>{
+  if(suppressCategoryClick.current){suppressCategoryClick.current=false;return}
+  setActiveLevel(i+1);setTab('skills');setSearch('')
+ };
  const rename=(type,group,index=-1)=>{setRenameTarget({type,group,index});setRenameValue(type==='group'?groupLabel(group):levelsFor(group)[index])};
  const saveRename=async e=>{
   e.preventDefault();
@@ -94,7 +111,10 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
  return <div className="fashion-learn fashion-learn-structured">
  <div className="fl-structure-top">
   <div className="fl-level-tabs" role="tablist" aria-label="활용 학습 단계">
-   {levelsFor(activeGroup).map((name,i)=><button key={i} type="button" role="tab" aria-selected={activeLevel===i+1} className={activeLevel===i+1?'active':''} onClick={()=>{setActiveLevel(i+1);setTab('skills');setSearch('')}} onContextMenu={e=>{e.preventDefault();rename('level',activeGroup,i)}}><span>Lv.{i+1}</span><strong>{name}</strong></button>)}
+   {levelsFor(activeGroup).map((name,i)=><button key={i} type="button" role="tab" aria-selected={activeLevel===i+1} className={activeLevel===i+1?'active':''} onClick={()=>chooseLevel(i)}
+    onPointerDown={e=>{if(e.pointerType!=='mouse'||e.button===0)startRenamePress('level',activeGroup,i)}}
+    onPointerUp={cancelRenamePress} onPointerCancel={cancelRenamePress} onPointerLeave={cancelRenamePress}
+    onContextMenu={e=>{e.preventDefault();cancelRenamePress();suppressCategoryClick.current=true;rename('level',activeGroup,i)}}><span>Lv.{i+1}</span><strong>{name}</strong></button>)}
   </div>
   <div className="fl-structure-line"><strong>LEVEL {activeLevel} · {levelsFor(activeGroup)[activeLevel-1]}</strong><button type="button" onClick={()=>rename('level',activeGroup,activeLevel-1)}><Pencil size={13}/> 이름 변경</button></div>
  </div>
@@ -135,8 +155,11 @@ export default function FashionLearning({references,urls,userId,onRefresh,onUse,
   <label>새 이름<input autoFocus maxLength={20} required value={renameValue} onChange={e=>setRenameValue(e.target.value)}/></label>
   <button className="primary" type="submit" disabled={!renameValue.trim()}>저장</button>
  </form></div>}
- <nav className="fl-bottom-categories" aria-label="활용 네 가지 분류">{FASHION_GROUPS.map(g=><button type="button" key={g.id} className={activeGroup===g.id?'active':''} onClick={()=>chooseGroup(g.id)}>
-  <span>{groupLabel(g.id)}</span><span className="fl-group-edit" onClick={e=>{e.stopPropagation();rename('group',g.id)}} aria-label="분류 이름 변경"><Pencil size={12}/></span>
+ <nav className="fl-bottom-categories" aria-label="활용 네 가지 분류">{FASHION_GROUPS.map(g=><button type="button" key={g.id} className={activeGroup===g.id?'active':''} onClick={()=>chooseGroup(g.id)}
+    onPointerDown={e=>{if(e.pointerType!=='mouse'||e.button===0)startRenamePress('group',g.id)}}
+    onPointerUp={cancelRenamePress} onPointerCancel={cancelRenamePress} onPointerLeave={cancelRenamePress}
+    onContextMenu={e=>{e.preventDefault();cancelRenamePress();suppressCategoryClick.current=true;rename('group',g.id)}}>
+  <span>{groupLabel(g.id)}</span><span className="fl-group-edit" onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();cancelRenamePress();rename('group',g.id)}} aria-label="분류 이름 변경"><Pencil size={12}/></span>
  </button>)}</nav>
  </div>
 }
