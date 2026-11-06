@@ -765,3 +765,43 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
  .fl-skill-toggle strong{font-size:14px}
  .fl-skill-detail{padding-left:27px}
 }
+
+/* Body Care-style minimal add/edit modal in Fashion 활용 */
+.fashion-learn .fl-modal.fl-simple-modal{
+ width:min(100%,480px);max-width:calc(100vw - 24px);
+ padding:18px 17px 20px;border-radius:17px;
+ gap:16px;max-height:min(88dvh,700px);
+}
+.fashion-learn .fl-simple-modal .fl-modalhead{border:0;padding-bottom:0;gap:12px}
+.fashion-learn .fl-simple-modal .fl-modalhead b{
+ font-size:20px;font-weight:800;color:#352a43;letter-spacing:-.4px
+}
+.fashion-learn .fl-simple-modal .fl-modalhead button{color:#7960a6}
+.fl-simple-skill-form{display:grid;gap:15px;min-width:0}
+.fashion-learn .fl-simple-skill-form label{
+ display:grid;gap:7px;min-width:0;color:#665478;font-size:15px;font-weight:700
+}
+.fashion-learn .fl-simple-skill-form input,
+.fashion-learn .fl-simple-skill-form select{
+ width:100%;min-width:0;min-height:47px;
+ padding:11px 12px;border:1px solid #d9c8e8;border-radius:11px;
+ background:#fff;color:#362d41;font-size:16px;line-height:1.35;
+ -webkit-appearance:none;appearance:none
+}
+.fashion-learn .fl-simple-skill-form input:focus,
+.fashion-learn .fl-simple-skill-form select:focus{
+ outline:2px solid #9870c7;outline-offset:2px;border-color:#9870c7
+}
+.fashion-learn .fl-simple-skill-form select{
+ -webkit-appearance:auto;appearance:auto
+}
+.fashion-learn .fl-simple-skill-form .fl-simple-save{
+ display:flex;align-items:center;justify-content:center;width:100%;
+ min-height:47px;margin-top:2px;padding:10px 14px;
+ border:0;border-radius:10px;background:#8e6fc2;color:#fff;
+ font-size:16px;font-weight:750
+}
+.fashion-learn .fl-simple-skill-form .fl-simple-save:disabled{opacity:.46}
+.fl-skill-names{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.fl-skill-names strong{flex:none}
+.fl-skill-names small{font-size:12px;color:#93849f;font-weight:400;line-height:1.3}
