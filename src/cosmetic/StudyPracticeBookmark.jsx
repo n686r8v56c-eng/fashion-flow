@@ -1,6 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Plus,Trash2,Play,Check,BookmarkPlus} from 'lucide-react';
-import './studyPractice.css';
 const uid=()=>globalThis.crypto?.randomUUID?.()||String(Date.now()+Math.random());
 export const youtubeId=value=>{
  try{
