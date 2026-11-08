@@ -1,6 +1,5 @@
 import React,{useMemo,useState} from 'react';
 import {Copy,ExternalLink} from 'lucide-react';
-import './LearningNotes.css';
 const videoId=url=>{try{const u=new URL(url);if(u.hostname.includes('youtu.be'))return u.pathname.split('/')[1]||'';if(u.hostname.includes('youtube.com')||u.hostname.includes('youtube-nocookie.com'))return u.searchParams.get('v')||u.pathname.split('/').filter(Boolean).pop()||''}catch{}return ''};
 const timestamp=v=>{const a=String(v||'').split(':').map(Number);return a.length===2&&a.every(Number.isFinite)?Math.max(0,a[0]*60+a[1]):0};
 const sourceUrl=(url,start)=>{const id=videoId(url);return id?'https://www.youtube.com/watch?v='+id+'&t='+timestamp(start)+'s':''};
