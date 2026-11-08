@@ -1,7 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {ChevronDown,ChevronUp,Link2,ExternalLink,Trash2,Plus,Pencil,ArrowUp,ArrowDown,RotateCcw,Download,Upload,X} from 'lucide-react';
 import {BEAUTY_SEED_DRILLS} from './bodyBeautySeedDrills.js';
-import './BodyVideoInboxLibrary.css';
 
 const DEFAULT_LABELS=['마사지','이완','폼롤러','도구','SNPE'];
 const VOICE_LEVEL_NAMES=['기초','음정','음색','기교','표현'];
