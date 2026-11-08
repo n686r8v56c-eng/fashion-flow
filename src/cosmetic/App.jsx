@@ -4,7 +4,7 @@ import BodyVideoInboxLibrary from './BodyVideoInboxLibrary.jsx';
 import{configureMedia,makeUploader,CosmeticImg,CosmeticUsage}from'./cosmeticMedia.jsx';
 import{ActualEntries,Realization as CosmeticRealization,Calendar as CosmeticCalendar,People as CosmeticPeople}from'./CosmeticExtras.jsx';
 import React,{useEffect,useMemo,useRef,useState}from 'react';
-import{createClient}from '@supabase/supabase-js';
+import {supabase} from '../supabase.js';
 import {videoThumb} from './BookmarkStudio.jsx';
 import StudyPracticeBookmark,{parseTimeMarkers,makeMarkers,youtubeId} from './StudyPracticeBookmark.jsx';
 import{House,Images,Brush,Package,ListChecks,ChartNoAxesColumn,Plus,Settings,ChevronRight,ChevronLeft,ChevronUp,ChevronDown,X,Trash2,Pencil,Upload,LogOut,Check,Bookmark,Camera,Search,Download,Link as LinkIcon,Heart,CalendarDays,UserRound}from'lucide-react';
