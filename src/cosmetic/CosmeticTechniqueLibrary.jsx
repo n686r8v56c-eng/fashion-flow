@@ -1,7 +1,6 @@
 import React,{useMemo,useState} from 'react';
 import {Plus,ChevronDown,ChevronRight,Search,Pencil,Bookmark,ImagePlus} from 'lucide-react';
 import {CosmeticImg} from './cosmeticMedia.jsx';
-import './CosmeticTechniqueLibrary.css';
 const fallbackCats=['베이스','눈썹','아이섀도','아이라인','속눈썹','윤곽','립','피니싱'];
 const titleOf=s=>s.name||s.en||'이름 없음';
 const imageOf=s=>s.photos?.find(p=>p.primary)?.url||s.photos?.[0]?.url||s.image||'';
