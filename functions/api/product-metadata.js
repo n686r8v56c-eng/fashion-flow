@@ -17,6 +17,27 @@ const parsePrice = v => {
   const t=v.trim().replace(/[\s,₩원]/g,'');
   return /^\d{1,10}(?:\.\d{1,2})?$/.test(t)&&Number(t)>0?Math.round(Number(t)):null;
 };
+const titleTag=html=>clean((html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||'').replace(/\s*[:|\-]\s*(?:네이버\s*)?(?:브랜드스토어|스마트스토어|NAVER).*$/i,'').slice(0,180);
+const getEmbeddedProduct = (html, expectedId) => {
+  // Naver storefronts sometimes render product state in JSON script tags.
+  // We only trust amounts inside an object explicitly carrying the linked product ID.
+  const scripts=html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi);
+  let candidate=null;
+  for(const block of scripts){
+    const body=block[1];
+    if(!body.includes(expectedId))continue;
+    const idPattern=new RegExp('"(?:productNo|productId|channelProductNo)"\\s*:\\s*"?'+expectedId+'"?','g');
+    for(const hit of body.matchAll(idPattern)){
+      const start=Math.max(0,hit.index-1200),end=Math.min(body.length,hit.index+4000);
+      const fragment=body.slice(start,end);
+      const title=(fragment.match(/"(?:productName|name)"\s*:\s*"((?:\\.|[^"\\])*)"/)||[])[1]||'';
+      const prices=[...fragment.matchAll(/"(?:salePrice|discountedSalePrice|discountedPrice|finalPrice)"\s*:\s*"?([\d,]+)"?/g)].map(m=>parsePrice(m[1])).filter(Boolean);
+      if(title||prices.length){candidate={title:clean(title),price:prices.length===1?prices[0]:null};break}
+    }
+    if(candidate)break;
+  }
+  return candidate;
+};
 const ldProducts = html => {
   const out=[];
   const blocks=html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
@@ -59,7 +80,8 @@ export async function onRequestGet({request}){
     const len=Number(response.headers.get('content-length')||0);
     if(len>800000)return new Response(JSON.stringify(fallback),{headers});
     const html=(await response.text()).slice(0,800000);
-    const title=meta(html,'og:title')||meta(html,'twitter:title');
+    const embedded=getEmbeddedProduct(html,matched[2]);
+    const title=meta(html,'og:title')||meta(html,'twitter:title')||embedded?.title||titleTag(html);
     const image=meta(html,'og:image')||meta(html,'twitter:image');
     const productData=ldProducts(html);
     const structured=productData.find(p=>String(p.name||'').trim()===title)||productData[0];
@@ -67,11 +89,11 @@ export async function onRequestGet({request}){
     // Never infer a price from arbitrary page text, which may contain unrelated prices.
     const currency=meta(html,'product:price:currency');
     const metaAmount=currency&&currency!=='KRW'?null:parsePrice(meta(html,'product:price:amount'));
-    const price=metaAmount??(structured?ldPrice(structured):null);
+    const price=metaAmount??(structured?ldPrice(structured):null)??embedded?.price??null;
     const finalTitle=title||String(structured?.name||'').trim();
     const imageCandidate=image||(Array.isArray(structured?.image)?structured.image[0]:structured?.image)||'';
     const safeImage=(()=>{try{const img=new URL(imageCandidate);return img.protocol==='https:'?img.href:''}catch{return ''}})();
-    return new Response(JSON.stringify({...fallback,ok:!!finalTitle,title:finalTitle.slice(0,180),image:safeImage,price,reason:finalTitle?'페이지 공개 정보를 가져왔어. 상품명·옵션·가격을 확인하고 저장해줘.':fallback.reason}),{headers});
+    return new Response(JSON.stringify({...fallback,ok:!!(finalTitle||price!=null||safeImage),title:finalTitle.slice(0,180),image:safeImage,price,reason:price!=null?'공개 가격을 읽었어. 옵션별 가격은 원본 페이지에서 확인해줘.':'판매가 자동 추출이 안 됐어. 상품 페이지의 실제 판매가를 확인해줘.'}),{headers});
   }catch(e){
     return new Response(JSON.stringify({ok:false,error:e.message||'조회 실패'}),{status:400,headers});
   }
