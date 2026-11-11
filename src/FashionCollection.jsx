@@ -1,0 +1,105 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil} from 'lucide-react';
+import './FashionCollection.css';
+
+const DB='fashion-collection-v1',STORE='links';
+function dbOpen(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function query(mode,fn){const db=await dbOpen();try{return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,mode);const req=fn(tx.objectStore(STORE));tx.oncomplete=()=>resolve(req?.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}finally{db.close()}}
+const read=()=>query('readonly',s=>s.getAll());
+const save=x=>query('readwrite',s=>s.put(x));
+const remove=id=>query('readwrite',s=>s.delete(id));
+const canonicalize=raw=>{try{
+ const u=new URL(raw.trim());if(u.protocol!=='https:')return null;
+ const h=u.hostname.toLowerCase().replace(/^(www\.|m\.)/,'');
+ if(h==='youtube.com'||h==='youtu.be'){
+  const id=h==='youtu.be'?u.pathname.split('/')[1]:u.pathname==='/watch'?u.searchParams.get('v'):u.pathname.match(/^\/(?:shorts|live|embed)\/([\w-]{11})/)?.[1];
+  if(!/^[\w-]{11}$/.test(id||''))return null;
+  return {platform:'youtube',url:'https://www.youtube.com/watch?v='+id,id};
+ }
+ if(h==='instagram.com'){
+  const m=u.pathname.match(/^\/(p|reel|tv)\/([a-zA-Z0-9_-]+)\/?/);
+  if(!m)return null;
+  return {platform:'instagram',url:'https://www.instagram.com/'+m[1]+'/'+m[2]+'/'};
+ }
+ return null;
+}catch{return null}};
+const thumbFor=(row)=>row.manualThumbnail||row.thumbnail||'';
+async function resize(file){
+ if(!file.type.startsWith('image/'))throw Error('사진 파일만 올릴 수 있어.');
+ if(file.size>15*1024*1024)throw Error('15MB 이하 사진을 선택해줘.');
+ const url=URL.createObjectURL(file);
+ try{
+  const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('사진을 읽지 못했어.'));img.src=url});
+  const max=750,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.73));
+  if(!blob)throw Error('사진 압축에 실패했어.');
+  return blob;
+ }finally{URL.revokeObjectURL(url)}
+}
+function CollectionCard({item,onUpdate,onDelete}){
+ const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||'');
+ const [thumbFailed,setThumbFailed]=useState(false),fileRef=useRef(null);
+ const [localUrl,setLocalUrl]=useState('');
+ useEffect(()=>{if(!item.manualThumbnail){setLocalUrl('');return}const u=URL.createObjectURL(item.manualThumbnail);setLocalUrl(u);return()=>URL.revokeObjectURL(u)},[item.manualThumbnail]);
+ useEffect(()=>{setTitle(item.title||'')},[item.title]);
+ useEffect(()=>setThumbFailed(false),[item.thumbnail,item.manualThumbnail]);
+ const thumbnail=item.manualThumbnail?localUrl:thumbFor(item);
+ async function upload(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;try{await onUpdate(item,{manualThumbnail:await resize(file)})}catch(ex){alert(ex.message)}}
+ async function changeTitle(){if(!title.trim())return;await onUpdate(item,{title:title.trim().slice(0,250)});setEdit(false)}
+ return <article className="collect-card">
+  <div className="collect-item-main">
+   <div className="collect-photo-wrap">
+    {thumbnail&&!thumbFailed?<img src={thumbnail} alt="" loading="lazy" onError={()=>setThumbFailed(true)}/>:<span className="collect-no-photo"><ImagePlus size={19}/> 사진 추가</span>}
+    {item.platform==='instagram'&&<button className="collect-photo-upload" type="button" aria-label="인스타그램 썸네일 수동 등록" onClick={()=>fileRef.current?.click()}><ImagePlus size={14}/></button>}
+    <input ref={fileRef} type="file" accept="image/*" hidden onChange={upload}/>
+   </div>
+   <div className="collect-info">
+    <small>{item.platform==='youtube'?'YouTube':'Instagram'}</small>
+    {edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>}
+    <span className="collect-url">{item.url}</span>
+    <div className="collect-actions">
+     <button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>
+     <button type="button" onClick={()=>onDelete(item)}><Trash2 size={14}/> 삭제</button>
+    </div>
+   </div>
+  </div>
+ </article>
+}
+export default function FashionCollection(){
+ const [url,setUrl]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ async function reload(){setItems((await read()||[]).sort((a,b)=>b.createdAt-a.createdAt))}
+ useEffect(()=>{reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message))},[]);
+ async function add(e){
+  e.preventDefault();setError('');setNotice('');
+  const parsed=canonicalize(url);
+  if(!parsed){setError('유튜브 영상 또는 인스타그램 게시물 링크를 입력해줘.');return}
+  if(items.some(x=>x.url===parsed.url)){setError('이미 수집한 링크야.');return}
+  setBusy(true);
+  try{
+   let info={};
+   try{const res=await fetch('/api/collect-metadata?url='+encodeURIComponent(parsed.url));if(res.ok)info=await res.json()}catch{}
+   const title=String(info.title||'').trim().slice(0,250);
+   const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
+   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,thumbnail:thumb,createdAt:Date.now()});
+   await reload();setUrl('');
+   setNotice(title?'수집했어! 제목이나 사진은 언제든 수정할 수 있어.':'링크를 수집했어. 제목은 수정 버튼으로 입력해줘.');
+  }catch(err){setError('수집 실패: '+err.message)}
+  finally{setBusy(false)}
+ }
+ async function update(item,patch){try{await save({...item,...patch,updatedAt:Date.now()});await reload()}catch(err){setError('저장 실패: '+err.message)}}
+ async function del(item){if(!confirm('이 수집 링크를 삭제할까?'))return;try{await remove(item.id);await reload()}catch(err){setError('삭제 실패: '+err.message)}}
+ return <section className="collect">
+  <div className="collect-header"><h1>수집</h1><p>유튜브 · 인스타그램 링크를 모아두는 공간</p></div>
+  <form className="collect-entry" onSubmit={add}>
+   <div><input aria-label="수집할 URL" type="url" required placeholder="유튜브 또는 인스타그램 링크 붙여넣기" value={url} onChange={e=>setUrl(e.target.value)} /><button type="submit" disabled={busy}><Plus size={17}/>{busy?'불러오는 중':'수집'}</button></div>
+  </form>
+  {error&&<p className="collect-error" role="alert">{error}</p>}
+  {notice&&<p className="collect-notice" role="status">{notice}</p>}
+  <div className="collect-counter">수집한 링크 <strong>{items.length}개</strong></div>
+  <div className="collect-list">{items.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
+  {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
+  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, Instagram은 접근 제한 시 제목·썸네일을 직접 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
+ </section>
+}
