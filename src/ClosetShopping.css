@@ -12,3 +12,22 @@
 .cs-gallery .cs-photo button{border-radius:0}
 .cs-gallery .cs-photo img{display:block;width:100%;height:100%;object-fit:cover}
 .cs-gallery .cs-photo span{height:100%}
+
+/* Compact shopping screen: keep mobile inputs at 16px to avoid iOS zoom */
+.closet-shop{display:grid;gap:10px}
+.closet-shop>h1{font-size:23px;line-height:1.25;margin:0 0 2px!important}
+.cs-search-form{display:grid;gap:7px;padding:11px;border:1px solid #e2d5ec;border-radius:12px}
+.cs-search-form>strong{font-size:15px;line-height:1.35}
+.cs-form-row{display:flex;align-items:stretch;gap:7px;min-width:0}
+.cs-form-input{flex:1;min-width:0;width:0;padding:9px 10px;border:1px solid #dacbe8;border-radius:9px;font-size:16px;min-height:42px}
+.cs-form-row>.primary{flex:none;min-height:42px;padding:8px 11px;font-size:14px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.cs-products{gap:7px}
+.cs-list .cs-product{padding:8px;gap:8px;border-radius:11px}
+.cs-list .cs-photo{width:68px;height:78px}
+.cs-list .cs-details{gap:5px}
+.cs-list .cs-name{padding:1px 0;font-size:15px}
+.cs-list .cs-price-line{gap:6px;font-size:13px}
+.cs-list .cs-price{width:100px;padding:6px 8px;font-size:16px}
+.cs-list .cs-details a{font-size:12px}
+.cs-view-toolbar{margin-top:0}
+@media(max-width:380px){.cs-list .cs-photo{width:60px;height:72px}.cs-list .cs-price{width:92px}.cs-form-row>.primary{padding:8px}}
