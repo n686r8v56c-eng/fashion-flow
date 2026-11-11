@@ -1,1 +1,14 @@
 .cs-products{display:grid;gap:10px}.cs-product{display:flex;align-items:center;gap:10px;min-width:0;padding:12px 8px;border:1px solid #e4d8ec;border-radius:13px;background:#faf7fd}.cs-photo{width:78px;height:94px;flex:none}.cs-photo button{width:100%;height:100%;border:0;border-radius:10px;background:#f4eef9;overflow:hidden;padding:0;cursor:pointer}.cs-photo img{width:100%;height:100%;object-fit:cover}.cs-photo span{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:#8667a7;font-size:11px}.cs-photo input{display:none}.cs-details{display:grid;gap:9px;flex:1;min-width:0}.cs-name{width:100%;min-width:0;border:0;background:transparent;font-size:16px;font-weight:700;color:#30283a;padding:4px 0;outline-color:#9470c1}.cs-price-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:14px;font-weight:600;color:#80599e}.cs-price{width:120px;max-width:100%;border:1px solid #dac9e7;border-radius:9px;padding:9px;font-size:16px;color:#362b42;background:#fff}.cs-details a{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#7954a3;overflow-wrap:anywhere}.cs-delete{flex:none;border:0;background:transparent;color:#917e9c;padding:6px;cursor:pointer}@media(max-width:380px){.cs-photo{width:66px;height:82px}.cs-price{width:100px}}
+/* Shopping list / gallery switch */
+.cs-error{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0;color:#b43b3b;font-size:14px}
+.cs-error button{border:0;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.cs-view-toolbar{display:flex;align-items:center;justify-content:space-between;margin-top:-4px;color:#82738d;font-size:13px}
+.cs-view-switch{display:flex;gap:4px;padding:3px;border:1px solid #e4d8ed;border-radius:9px;background:#fff}
+.cs-view-switch button{display:flex;align-items:center;justify-content:center;padding:7px;border:0;border-radius:7px;background:transparent;color:#947da6;cursor:pointer}
+.cs-view-switch button.active{background:#eee4f8;color:#7750a3}
+.cs-products.cs-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cs-gallery .cs-product{display:block;min-width:0;aspect-ratio:1/1;padding:0;overflow:hidden;border-radius:10px}
+.cs-gallery .cs-photo{width:100%;height:100%}
+.cs-gallery .cs-photo button{border-radius:0}
+.cs-gallery .cs-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.cs-gallery .cs-photo span{height:100%}
