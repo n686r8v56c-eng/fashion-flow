@@ -1,0 +1,5 @@
+const DB='script-flow-saver-cache',STORE='posts';
+const open=()=>new Promise((resolve,reject)=>{const req=indexedDB.open(DB,2);req.onupgradeneeded=()=>{const db=req.result;if(db.objectStoreNames.contains(STORE))db.deleteObjectStore(STORE);db.createObjectStore(STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const key=url=>{const u=new URL(url);return u.pathname.match(/^\/(p|reel)\/[^/]+/)?.[0]||u.pathname};
+export async function getCachedPost(url){const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(key(url));req.onsuccess=()=>{db.close();resolve(req.result||null)};req.onerror=()=>{db.close();reject(req.error)}})}
+export async function saveCachedPost(url){const db=await open();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({lastRunAt:Date.now()},key(url));tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
