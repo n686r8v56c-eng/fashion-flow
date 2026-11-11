@@ -10,3 +10,8 @@
 .collect-tags-edit button{flex-shrink:0}
 
 .collect-tag-chip{display:inline-flex;align-items:center;gap:5px}.collect-tag-chip button{padding:0 1px;border:0;background:transparent;color:#755494;font-size:16px;line-height:1;cursor:pointer}
+
+.collect-search{display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid #dac9e7;background:#fff;border-radius:11px;color:#8465a5;margin:13px 0 12px}
+.collect-search input{flex:1;min-width:0;height:45px;border:0;outline:none;background:transparent;color:#342b3d;font-size:16px}
+.collect-search button{display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:#937da6;padding:7px;cursor:pointer}
+.collect-search:focus-within{border-color:#996dbd;box-shadow:0 0 0 2px #9460d61a}
