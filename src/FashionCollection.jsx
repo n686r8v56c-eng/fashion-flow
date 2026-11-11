@@ -65,13 +65,13 @@ function CollectionCard({item,onUpdate,onDelete}){
     {item.platform==='youtube'&&(edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>)}
     {item.platform==='instagram'&&<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">인스타그램 게시물 보기 <ExternalLink size={13}/></a>}
     <span className="collect-url">{item.url}</span>
-    {item.platform==='instagram'&&(editingTags?<div className="collect-tags-edit">
-      <input aria-label="인스타그램 태그 입력" value={tagDraft} placeholder="패션, 코디, 운동화" onChange={e=>setTagDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();saveTags()}}}/>
+    {editingTags?<div className="collect-tags-edit">
+      <input aria-label="태그 입력" value={tagDraft} placeholder="패션, 코디, 운동화" onChange={e=>setTagDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();saveTags()}}}/>
       <button type="button" onClick={saveTags} aria-label="태그 저장"><Check size={16}/> 저장</button>
     </div>:<div className="collect-tags">
       {(item.tags||[]).map(tag=><span key={tag}>#{tag}</span>)}
       <button type="button" onClick={()=>{setTagDraft((item.tags||[]).join(', '));setEditingTags(true)}}><Plus size={14}/>{item.tags?.length?'태그 수정':'태그 추가'}</button>
-    </div>)}
+    </div>}
     <div className="collect-actions">
      {item.platform==='youtube'&&<button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>}
      <button type="button" onClick={()=>onDelete(item)}><Trash2 size={14}/> 삭제</button>
@@ -113,6 +113,6 @@ export default function FashionCollection(){
   <div className="collect-counter">수집한 링크 <strong>{items.length}개</strong></div>
   <div className="collect-list">{items.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
-  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, Instagram은 제목 없이 태그를 직접 붙이고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
+  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram은 제목 없이 링크와 태그만 표시하며 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
  </section>
 }
