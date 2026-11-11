@@ -10,3 +10,5 @@
 .finder-keyword-row input{flex:1;min-width:0;border:1px solid #d8cae5;border-radius:9px;background:#fff;padding:11px 12px;font-size:16px;color:#342a42}
 .finder-keyword-row button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:9px;padding:10px 13px;background:#8056b1;color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
 .finder-keyword-row input:focus-visible,.finder-keyword-row button:focus-visible{outline:2px solid #aa86ce;outline-offset:2px}
+
+.finder-keyword-search{margin-bottom:10px}
