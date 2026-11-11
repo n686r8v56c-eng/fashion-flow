@@ -38,7 +38,7 @@ function cropBlob(img,box){
   canvas.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
   return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('이미지 저장에 실패했어.')),'image/jpeg',.86));
 }
-export default function FashionFinder(){
+export default function FashionFinder({photoOnly=false}){
   const [original,setOriginal]=useState('');
   const [fileName,setFileName]=useState('');
   const [selection,setSelection]=useState({x:0,y:0,w:1,h:1});
@@ -122,6 +122,7 @@ export default function FashionFinder(){
   }
   async function erase(id){try{await remove(id);await refresh()}catch(e){setError('기록 삭제 실패: '+e.message)}}
   return <section className="finder">
+    {photoOnly ? <>
     <div className="finder-head"><h1>FASHION FINDER</h1><p>사진에서 원하는 옷을 선택해 Google Lens 또는 네이버 스마트렌즈로 찾아봐.</p></div>
     <label className="finder-upload"><ImagePlus size={21}/><span>사진 선택</span><input ref={input} type="file" accept="image/*" onChange={choose}/></label>
     {original?<div className="finder-workspace">
@@ -148,7 +149,9 @@ export default function FashionFinder(){
       <button type="button" aria-label="검색 기록 삭제" title="삭제" className="finder-delete" onClick={()=>erase(row.id)}><Trash2 size={16}/></button>
     </div>)}</div>
     {!records.length&&<p className="finder-hint">아직 저장한 검색 기록이 없어.</p>}
-    <PriceTracker/>
-    <StorageManager onPhotosChanged={refresh}/>
+    </> : <>
+      <PriceTracker/>
+      <StorageManager onPhotosChanged={refresh}/>
+    </>}
   </section>;
 }
