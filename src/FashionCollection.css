@@ -8,3 +8,5 @@
 .collect-tags-edit{display:flex;align-items:center;gap:6px;width:100%}
 .collect-tags-edit input{flex:1;min-width:0;border-radius:8px;border:1px solid #cab8df;padding:8px;font-size:16px}
 .collect-tags-edit button{flex-shrink:0}
+
+.collect-tag-chip{display:inline-flex;align-items:center;gap:5px}.collect-tag-chip button{padding:0 1px;border:0;background:transparent;color:#755494;font-size:16px;line-height:1;cursor:pointer}
