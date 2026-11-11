@@ -16,7 +16,7 @@ const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다
 ]});
 const money=n=>Number(n||0).toLocaleString('ko-KR')+'원';
 const today=()=>new Date().toISOString();
-const blankProduct=()=>({id:crypto.randomUUID(),name:'',model:'',color:'',size:'',target:180000,offers:[],createdAt:today(),updatedAt:today()});
+const blankProduct=()=>({id:crypto.randomUUID(),name:'',model:'',color:'',size:'',target:null,sourcePrice:null,offers:[],createdAt:today(),updatedAt:today()});
 const normalizeProductUrl=raw=>{try{const url=new URL(raw.trim());const match=url.pathname.match(/^\/([a-zA-Z0-9_-]+)\/products\/(\d{4,20})\/?$/);if(url.protocol!=='https:'||!['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com'].includes(url.hostname)||!match)return null;return {url:'https://'+url.hostname.replace(/^m\./,'')+'/'+match[1]+'/products/'+match[2],id:match[2],store:match[1]}}catch{return null}};
 function database(){
   return new Promise((resolve,reject)=>{
@@ -55,7 +55,7 @@ const positive=n=>Number.isFinite(Number(n))&&Number(n)>=0;
 const urlOk=url=>{try{return new URL(url).protocol==='https:'}catch{return false}};
 function normalized(row){
   if(!row||typeof row!=='object'||!Array.isArray(row.offers)||typeof row.id!=='string')return null;
-  return {...row,name:String(row.name||'').slice(0,180),model:String(row.model||'').slice(0,140),color:String(row.color||'').slice(0,100),size:String(row.size||'').slice(0,100),target:positive(row.target)?Number(row.target):180000,offers:row.offers.filter(o=>o&&typeof o.id==='string').map(o=>({...o,shop:String(o.shop||'').slice(0,120),url:urlOk(o.url)?o.url:'',price:positive(o.price)?Number(o.price):0,shipping:positive(o.shipping)?Number(o.shipping):0,history:Array.isArray(o.history)?o.history.filter(h=>h&&positive(h.price)&&positive(h.shipping)&&!Number.isNaN(Date.parse(h.at))).map(h=>({at:h.at,price:Number(h.price),shipping:Number(h.shipping)})).slice(-500):[]})).slice(0,50)};
+  return {...row,name:String(row.name||'').slice(0,180),model:String(row.model||'').slice(0,140),color:String(row.color||'').slice(0,100),size:String(row.size||'').slice(0,100),target:row.target!==null&&row.target!==''&&row.target!==undefined&&positive(row.target)?Number(row.target):null,sourcePrice:row.sourcePrice!==null&&row.sourcePrice!==''&&row.sourcePrice!==undefined&&positive(row.sourcePrice)?Number(row.sourcePrice):null,offers:row.offers.filter(o=>o&&typeof o.id==='string').map(o=>({...o,shop:String(o.shop||'').slice(0,120),url:urlOk(o.url)?o.url:'',price:positive(o.price)?Number(o.price):0,shipping:positive(o.shipping)?Number(o.shipping):0,history:Array.isArray(o.history)?o.history.filter(h=>h&&positive(h.price)&&positive(h.shipping)&&!Number.isNaN(Date.parse(h.at))).map(h=>({at:h.at,price:Number(h.price),shipping:Number(h.shipping)})).slice(-500):[]})).slice(0,50)};
 }
 function sparkline(history){
   const entries=history.slice(-20).filter(h=>positive(h.price)&&positive(h.shipping));
@@ -71,10 +71,11 @@ export default function PriceTracker(){
   const safe=async(fn)=>{setBusy(true);setError('');try{await fn()}catch(e){setError('저장 실패: '+e.message)}finally{setBusy(false)}};
   const saveProduct=e=>{e.preventDefault();safe(async()=>{
     if(!form.name.trim())throw Error('상품명을 입력해줘.');
-    if(!positive(form.target))throw Error('목표 가격을 확인해줘.');
+    if(form.target!==null&&form.target!==''&&!positive(form.target))throw Error('목표 가격을 확인해줘.');
+    if(form.sourcePrice!==null&&form.sourcePrice!==''&&!positive(form.sourcePrice))throw Error('현재 판매가를 확인해줘.');
     if(form.officialUrl&&!urlOk(form.officialUrl))throw Error('공식몰 URL은 https:// 주소여야 해.');
     if(form.imageUrl&&!urlOk(form.imageUrl))throw Error('사진 URL은 https:// 주소여야 해.');
-    const next={...form,name:form.name.trim(),target:Number(form.target),officialUrl:form.officialUrl??(form.id===FILA_ID?FILA_OFFICIAL_URL:''),updatedAt:today()};
+    const next={...form,name:form.name.trim(),target:form.target==null||form.target===''?null:Number(form.target),sourcePrice:form.sourcePrice==null||form.sourcePrice===''?null:Number(form.sourcePrice),officialUrl:form.officialUrl??(form.id===FILA_ID?FILA_OFFICIAL_URL:''),updatedAt:today()};
     await write(next);setForm(null);await reload();
   })};
   async function importLink(e){
@@ -136,9 +137,9 @@ export default function PriceTracker(){
     <p className="pt-note">가격은 직접 입력한 기록 또는 최초 참고 가격이야. 네이버 쇼핑 링크는 자동 최저가 확인이 아니라 검색 연결이며, 가격을 자동으로 읽거나 실시간 갱신하지 않아. 결제 전 링크에서 재확인해줘.</p>
     <div className="pt-products">{products.map(p=>{
       const sorted=[...p.offers].sort((a,b)=>(a.price+a.shipping)-(b.price+b.shipping));
-      const best=sorted[0],hit=best&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
+      const best=sorted[0],hit=best&&p.target!=null&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
       return <article className="pt-product" key={p.id}>
-        <div className="pt-product-row">{p.imageUrl&&<img className="pt-product-image" src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}<div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:'판매처 미등록'}</span><small>목표 {money(p.target)} {hit?'· 목표가 이하 ✓':''}</small></div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
+        <div className="pt-product-row">{p.imageUrl&&<img className="pt-product-image" src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}<div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:p.sourcePrice!=null?<>등록 당시 참고 가격 <b>{money(p.sourcePrice)}</b></>:'판매가 미등록'}</span><small>목표 {p.target==null?'미설정':money(p.target)} {hit?'· 목표가 이하 ✓':''}</small></div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
         <details className="pt-link-accordion">
           <summary>검색 바로가기 <span>네이버 · 공식몰 · 유튜브</span></summary>
           <div className="pt-link-list">
@@ -161,7 +162,7 @@ export default function PriceTracker(){
         <small>상품번호 {form.sourceProductId} · {form.sourceStore}</small>
         {form.imageUrl&&<img src={form.imageUrl} alt="상품 사진 후보" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}
         <a href={form.sourceUrl} target="_blank" rel="noopener noreferrer">원본 네이버 상품 확인 ↗</a>
-        {form.sourcePrice!=null&&<small>읽어온 참고 가격 {money(form.sourcePrice)} · 저장된 현재가 아님</small>}
+        {form.sourcePrice!=null&&<small>읽어온 참고 가격 {money(form.sourcePrice)} · 실제 판매 가격은 원본에서 재확인해줘.</small>}
         <small>원본 페이지에서 제품명·품번·색상·사이즈를 확인하고 등록해줘.</small>
       </div>}
       <label>상품 사진 URL (선택)<input type="url" placeholder="https://" value={form.imageUrl||''} onChange={e=>setForm(p=>({...p,imageUrl:e.target.value}))}/></label>
@@ -169,7 +170,8 @@ export default function PriceTracker(){
       <div className="pt-pair"><label>색상<input maxLength={100} value={form.color} onChange={e=>setForm(p=>({...p,color:e.target.value}))}/></label><label>사이즈<input maxLength={100} value={form.size} onChange={e=>setForm(p=>({...p,size:e.target.value}))}/></label></div>
       
       <label>공식몰 URL (선택)<input type="url" placeholder="https://" value={form.officialUrl??(form.id===FILA_ID?FILA_OFFICIAL_URL:'')} onChange={e=>setForm(p=>({...p,officialUrl:e.target.value}))}/></label>
-      <label>목표 가격 (원)<input type="number" min="0" step="1" required value={form.target} onChange={e=>setForm(p=>({...p,target:e.target.value}))}/></label>
+      <label>현재 판매가 / 참고 가격 (원)<input type="number" min="0" step="1" value={form.sourcePrice??''} onChange={e=>setForm(p=>({...p,sourcePrice:e.target.value}))} placeholder="상품 페이지에서 확인한 가격"/></label>
+      <label>목표 가격 (원 · 선택)<input type="number" min="0" step="1" value={form.target??''} onChange={e=>setForm(p=>({...p,target:e.target.value}))} placeholder="원하는 구매 가격을 직접 입력"/></label>
       <button className="pt-main" type="submit" disabled={busy}>상품 저장</button>
     </form></div>}
 
