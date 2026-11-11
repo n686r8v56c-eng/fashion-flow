@@ -44,3 +44,14 @@
 .closet-inbox-photo-list .closet-inbox-thumb{position:relative;touch-action:pan-y;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .closet-inbox-photo-list .closet-inbox-thumb img{-webkit-user-drag:none;pointer-events:none}
 .closet-inbox-pin-mark{position:absolute;top:5px;right:5px;display:flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;background:#8e70c6;color:white;box-shadow:0 1px 5px #0004;pointer-events:none}
+
+/* Compact Inbox photos/checklists without shrinking iPhone input text */
+.closet-inbox .heading{margin-bottom:10px}
+.closet-inbox .closet-inbox-tabs{gap:8px;margin-bottom:12px}
+.closet-inbox .closet-inbox-tabs button{padding:10px 7px}
+.closet-inbox .closet-inbox-search{margin-bottom:8px;padding:0 9px}
+.closet-inbox .closet-inbox-search input{height:40px;font-size:16px}
+.closet-inbox .closet-inbox-view-toolbar{margin-bottom:7px}
+.closet-inbox .closet-inbox-photo-list.is-gallery{gap:6px}
+.closet-inbox .closet-inbox-photo-list.is-gallery article{border-radius:8px}
+.closet-inbox .closet-inbox-floating-upload{padding:11px 15px;font-size:14px}
