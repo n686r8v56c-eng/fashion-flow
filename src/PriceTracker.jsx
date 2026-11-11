@@ -94,7 +94,7 @@ export default function PriceTracker(){
       }catch{}
       // Save immediately with whatever public title and image metadata was available.
       // Never invent a product name, picture or price when NAVER blocks extraction.
-      const extractedName=String(data.title||'').replace(/\\s*[:|]\\s*네이버.*$/,'').trim().slice(0,180);
+      const extractedName=String(data.title||'').replace(/\s*[:|]\s*네이버.*$/,'').trim().slice(0,180);
       const imageUrl=urlOk(data.image)?data.image:'';
       const row={...blankProduct(),name:extractedName||'상품명 확인 필요',needsNameReview:!extractedName,
         sourceUrl:parsed.url,officialUrl:parsed.url,sourceProductId:parsed.id,sourceStore:parsed.store,
