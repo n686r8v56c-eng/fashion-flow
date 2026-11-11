@@ -17,3 +17,20 @@
 .closet-inbox-photo-list article .closet-inbox-inline-tag{display:flex;align-items:center;gap:6px;width:100%;min-width:0}
 .closet-inbox-photo-list article .closet-inbox-inline-tag input{flex:1;min-width:0;width:0;border:1px solid #cab8df;background:#fff;border-radius:8px;padding:8px;font-size:16px}
 .closet-inbox-photo-list article .closet-inbox-inline-tag button{flex-shrink:0;border:1px solid #dfd0eb;background:#fff;border-radius:7px;color:#8058ad;font-size:12px;padding:6px 7px}
+
+/* Inbox toolbar, collection-style search and 3-column gallery */
+.closet-inbox-photo-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}
+.closet-inbox-photo-toolbar strong{font-size:16px;color:#42354c}
+.closet-inbox-photo-toolbar .closet-inbox-upload{display:inline-flex;flex:0 0 auto;align-items:center;gap:5px;padding:9px 12px;border-radius:9px;font-size:14px}
+.closet-inbox-search{display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid #dac9e7;background:#fff;border-radius:11px;color:#8465a5;margin:0 0 12px;min-width:0}
+.closet-inbox-search input{flex:1;min-width:0;height:45px;border:0;outline:0;background:transparent;color:#342b3d;font-size:16px}
+.closet-inbox-search button{border:0;background:transparent;color:#937da6;padding:7px;display:flex;align-items:center;justify-content:center}
+.closet-inbox-search:focus-within{border-color:#996dbd;box-shadow:0 0 0 2px #9460d61a}
+.closet-inbox-view-toolbar{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;color:#786c82;font-size:13px}
+.closet-inbox-view-switch{display:flex;align-items:center;gap:4px;border:1px solid #e4d8ed;border-radius:9px;padding:3px;background:#fff}
+.closet-inbox-view-switch button{display:flex;align-items:center;justify-content:center;border:0;border-radius:7px;background:transparent;color:#947da6;padding:7px;cursor:pointer}
+.closet-inbox-view-switch button.active{background:#eee4f8;color:#7750a3}
+.closet-inbox-photo-list.is-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.closet-inbox-photo-list.is-gallery article{display:block;min-width:0;padding:0;overflow:hidden;border-radius:10px;aspect-ratio:1/1}
+.closet-inbox-photo-list.is-gallery .closet-inbox-thumb{display:block;width:100%;height:100%;padding:0;border:0;border-radius:0;background:#f4eff9}
+.closet-inbox-photo-list.is-gallery .closet-inbox-thumb img{display:block;width:100%;height:100%;object-fit:cover;border-radius:0}
