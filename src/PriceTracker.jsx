@@ -179,14 +179,10 @@ export default function PriceTracker(){
     await reload();
   })};
   return <section className="pt">
-    <div className="pt-heading"><div><h2>PRICE TRACKER</h2><p>상품 링크로 등록하고 가격은 카드에서 바로 수정</p></div><button type="button" className="pt-main" onClick={()=>setForm(blankProduct())}><Plus size={17}/> 상품 추가</button></div>
     <form className="pt-link-import" onSubmit={importLink}>
       <label htmlFor="pt-import-link">상품 링크로 등록</label>
       <div><input id="pt-import-link" type="url" required inputMode="url" placeholder="네이버 상품 URL 붙여넣기" value={linkInput} onChange={e=>setLinkInput(e.target.value)}/><button type="submit" disabled={linkLoading}>{linkLoading?'조회 중…':'불러오기'}</button></div>
-      <small>브랜드스토어·스마트스토어·네이버 쇼핑 카탈로그 지원. 상품명 추출이 제한되면 수정 버튼에서 보완하고, 사진이 없으면 카드의 사진 칸을 눌러 올릴 수 있어.</small>
     </form>
-    {linkNotice&&!form&&<p className="pt-note">{linkNotice}</p>}
-    <p className="pt-note">가격은 직접 입력해 저장해. 쇼핑몰 가격과 자동 연동되지 않으며 실제 구매 전 확인이 필요해.</p>
     <div className="pt-products">{products.map(p=>{
       const sorted=[...p.offers].sort((a,b)=>(a.price+a.shipping)-(b.price+b.shipping));
       const best=sorted[0],hit=best&&p.target!=null&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
@@ -211,14 +207,14 @@ export default function PriceTracker(){
             <a href={naverSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 네이버에서 상품명 검색</a>
             {officialLink(p)&&<a href={officialLink(p)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> {p.sourceUrl?'원본 상품 페이지':'공식몰'}</a>}
             <a href={youtubeSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 유튜브에서 상품명 검색</a>
-            {!officialLink(p)&&<small>공식몰 링크는 상품 수정에서 등록할 수 있어.</small>}
+            
           </div>
         </details>
       </article>
     })}</div>
-    {products.length===0&&<p className="pt-empty">아직 관심 상품이 없어. 찾은 제품의 이름과 품번을 등록해봐!</p>}
+    
     <div className="pt-backup"><button type="button" onClick={exportJson} disabled={busy}><Download size={16}/> JSON 백업</button><label><Upload size={16}/> 백업 복원<input type="file" accept=".json,application/json" onChange={importJson}/></label></div>
-    <p className="pt-note">현재 저장 위치: 이 기기의 IndexedDB. 직접 올린 사진은 압축해서 함께 저장되고 JSON 백업에 포함돼. 앱 데이터 삭제·기기 교체에 대비해 JSON 백업을 보관해줘. 다른 기기와 자동 동기화하려면 Supabase 전용 테이블 설정이 추가로 필요해.</p>
+
     {error&&<p className="pt-error" role="alert">{error}</p>}
     {form&&<div className="pt-overlay" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setForm(null)}}><form className="pt-modal" onSubmit={saveProduct}>
       <div className="pt-form-head"><h3>{products.some(p=>p.id===form.id)?'상품 수정':'관심 상품 등록'}</h3><button type="button" onClick={()=>setForm(null)}>닫기</button></div>
