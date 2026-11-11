@@ -25,3 +25,7 @@
 .pt-batch-error,.pt-batch-notice{margin:0;font-size:13px;line-height:1.5}
 .pt-batch-error{color:#aa3553}.pt-batch-notice{color:#66498a}
 @media(max-width:420px){.pt-batch-result-head{flex-wrap:wrap}.pt-batch-result-head a{margin-left:auto}}
+
+.pt-batch-apply{background:#f5eefe;border:1px solid #bca2d8;color:#67448d;border-radius:9px;padding:10px 12px;font-size:14px;font-weight:700;cursor:pointer}
+.pt-batch-result>label{font-size:14px;font-weight:700;color:#63477f}
+.pt-batch-result textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid #d7c8e4;border-radius:9px;padding:11px;font-size:16px;min-height:105px;color:#342a42;resize:vertical}
