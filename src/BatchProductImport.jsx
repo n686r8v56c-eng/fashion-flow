@@ -56,8 +56,9 @@ export default function BatchProductImport({onSave}){
       const token=data.session.access_token;
       const first=await lookup(preview[0],token);
       found[0]=first;setEntries([...found]);
-      if(first.code==='NAVER_KEYS_MISSING'){
-        setEntries(preview.map(q=>emptyResult(q,'네이버 쇼핑 자동 검색 설정이 필요해.')));
+      if(first.code==='NAVER_KEYS_MISSING'||first.code==='NAVER_UPSTREAM_ERROR'){
+        // Don't waste API calls or display the same error ten times when upstream fails.
+        setEntries(preview.map(q=>emptyResult(q,first.error)));
         setError(first.error);
         return;
       }
