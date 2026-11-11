@@ -2,11 +2,11 @@ import React,{useEffect,useState} from 'react';
 import {Plus,X,Pencil,Trash2,Camera,Check,Layers,ImagePlus} from 'lucide-react';
 import {supabase,uploadPhoto,photoUrl} from './supabase';
 const seasons=['사계절','봄','여름','가을','겨울'];const uid=()=>crypto.randomUUID();
-export default function Realization({userId,items,outfits,onOpenStudio,startNew=false}){
+export default function Realization({userId,items,outfits,onOpenStudio,startNew=false,dataKey='looks'}){
  const [looks,setLooks]=useState([]),[pics,setPics]=useState({}),[edit,setEdit]=useState(null),[filter,setFilter]=useState('전체'),[season,setSeason]=useState('전체'),[tpo,setTpo]=useState('전체'),[color,setColor]=useState('전체'),[file,setFile]=useState(null),[proof,setProof]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
- useEffect(()=>{let alive=true;supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!alive)return;if(error)setError('Supabase에서 supabase-fashion-realization.sql을 실행해 줘.');else{setLooks(Array.isArray(data?.payload?.looks)?data.payload.looks:[]);setError('')}});return()=>{alive=false}},[userId]);
+ useEffect(()=>{let alive=true;supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle().then(({data,error})=>{if(!alive)return;if(error)setError('Supabase에서 supabase-fashion-realization.sql을 실행해 줘.');else{setLooks(Array.isArray(data?.payload?.[dataKey])?data.payload[dataKey]:[]);setError('')}});return()=>{alive=false}},[userId,dataKey]);
  useEffect(()=>{let alive=true;Promise.all(looks.flatMap(l=>[['ref',l.reference_path],['proof',l.proof_path]].filter(x=>x[1]).map(async ([type,path])=>[l.id+'-'+type,await photoUrl(path)]))).then(a=>{if(alive)setPics(Object.fromEntries(a))});return()=>{alive=false}},[looks]);
- const saveAll=async next=>{const{error}=await supabase.from('fashion_realization_data').upsert({user_id:userId,payload:{looks:next},updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;setLooks(next)};
+ const saveAll=async next=>{const {data:existing,error:readError}=await supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle();if(readError)throw readError;const{error}=await supabase.from('fashion_realization_data').upsert({user_id:userId,payload:{...(existing?.payload||{}),[dataKey]:next},updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;setLooks(next)};
  const open=l=>{setEdit(l?structuredClone(l):{id:uid(),title:'',season:'사계절',occasion:'',color:'',reference_path:'',proof_path:'',required:[],missingItems:[],outfitId:'',completed:false,createdAt:new Date().toISOString(),createdDate:new Date().toLocaleDateString('sv-SE')});setFile(null);setProof(null)};
  useEffect(()=>{if(startNew)open(null)},[startNew]);
  const patch=(key,value)=>setEdit(e=>({...e,[key]:value}));
