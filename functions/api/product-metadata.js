@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: restricted metadata lookup for NAVER product pages.
 // Returns optional public OG metadata; never accesses arbitrary user-provided hosts.
-const allowed = new Set(['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com']);
+const allowed = new Set(['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com','search.shopping.naver.com']);
 const clean = value => String(value||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 const meta = (html,key) => {
   const tags = html.match(/<meta\b[^>]*>/gi)||[];
@@ -66,21 +66,26 @@ export async function onRequestGet({request}){
     const raw=new URL(request.url).searchParams.get('url')||'';
     if(raw.length>2048)throw Error('주소가 너무 길어.');
     const u=new URL(raw);
-    const matched=u.pathname.match(/^\/([a-zA-Z0-9_-]+)\/products\/(\d{4,20})\/?$/);
+    const isCatalog=u.hostname==='search.shopping.naver.com';
+    const matched=isCatalog?u.pathname.match(/^\/catalog\/(\d{4,20})\/?$/):u.pathname.match(/^\/([a-zA-Z0-9_-]+)\/products\/(\d{4,20})\/?$/);
     if(u.protocol!=='https:'||!allowed.has(u.hostname)||!matched||u.username||u.password)throw Error('지원하는 네이버 상품 링크를 입력해줘.');
-    const canonical='https://'+(u.hostname.startsWith('m.')?u.hostname.slice(2):u.hostname)+'/'+matched[1]+'/products/'+matched[2];
-    const fallback={ok:false,url:canonical,productId:matched[2],store:matched[1],title:'',image:'',price:null,reason:'상품 정보 자동 조회가 제한되어 링크만 가져왔어. 상품명을 확인해 입력해줘.'};
+    const productId=isCatalog?matched[1]:matched[2];
+    const store=isCatalog?'네이버 쇼핑 카탈로그':matched[1];
+    const canonical=isCatalog?'https://search.shopping.naver.com/catalog/'+productId:'https://'+(u.hostname.startsWith('m.')?u.hostname.slice(2):u.hostname)+'/'+matched[1]+'/products/'+productId;
+    const fallback={ok:false,url:canonical,productId,store,title:'',image:'',price:null,reason:'상품 정보 자동 조회가 제한되어 링크만 가져왔어. 상품명을 확인해 입력해줘.'};
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),7000);
     let response;
     try{
       response=await fetch(canonical,{redirect:'manual',signal:controller.signal,headers:{'Accept':'text/html','User-Agent':'Mozilla/5.0 (compatible; FashionFlow/1.0)'}});
+    }catch{
+      return new Response(JSON.stringify(fallback),{headers});
     }finally{clearTimeout(timeout)}
     if(!response.ok||!String(response.headers.get('content-type')||'').includes('text/html'))return new Response(JSON.stringify(fallback),{headers});
     const len=Number(response.headers.get('content-length')||0);
     if(len>800000)return new Response(JSON.stringify(fallback),{headers});
     const html=(await response.text()).slice(0,800000);
-    const embedded=getEmbeddedProduct(html,matched[2]);
+    const embedded=getEmbeddedProduct(html,productId);
     const title=meta(html,'og:title')||meta(html,'twitter:title')||embedded?.title||titleTag(html);
     const image=meta(html,'og:image')||meta(html,'twitter:image');
     const productData=ldProducts(html);
