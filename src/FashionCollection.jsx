@@ -48,7 +48,7 @@ function CollectionCard({item,onUpdate,onDelete}){
  useEffect(()=>setThumbFailed(false),[item.thumbnail,item.manualThumbnail]);
  const thumbnail=item.manualThumbnail?localUrl:thumbFor(item);
  async function upload(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;try{await onUpdate(item,{manualThumbnail:await resize(file)})}catch(ex){alert(ex.message)}}
- async function changeTitle(){if(!title.trim())return;await onUpdate(item,{title:title.trim().slice(0,250)});setEdit(false)}
+ async function changeTitle(){if(item.platform==='youtube'&&!title.trim())return;await onUpdate(item,{title:title.trim().slice(0,250)});setEdit(false)}
  async function addTags(){
   const next=parseTags(tagDraft);
   if(!next.length){setEditingTags(false);return}
@@ -71,8 +71,7 @@ function CollectionCard({item,onUpdate,onDelete}){
    </div>
    <div className="collect-info">
     <small>{item.platform==='youtube'?'YouTube':'Instagram'}</small>
-    {item.platform==='youtube'&&(edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>)}
-    {item.platform==='instagram'&&<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">인스타그램 게시물 보기 <ExternalLink size={13}/></a>}
+    {edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} placeholder={item.platform==='instagram'?'인스타그램 제목 직접 입력':'영상 제목'} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()};if(e.key==='Escape'){setEdit(false);setTitle(item.title||'')}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||(item.platform==='instagram'?'인스타그램 게시물 보기':'제목 입력 필요')} <ExternalLink size={13}/></a>}
     <span className="collect-url">{item.url}</span>
     <div className="collect-tags">
       {(item.tags||[]).map(tag=><span className="collect-tag-chip" key={tag}>#{tag}<button type="button" aria-label={tag+' 태그 삭제'} onClick={()=>deleteTag(tag)}>×</button></span>)}
@@ -84,7 +83,7 @@ function CollectionCard({item,onUpdate,onDelete}){
       <button type="button" onClick={()=>{setEditingTags(false);setTagDraft('')}} aria-label="태그 추가 취소">취소</button>
     </div>}
     <div className="collect-actions">
-     {item.platform==='youtube'&&<button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>}
+     <button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>
      <button type="button" onClick={()=>onDelete(item)}><Trash2 size={14}/> 삭제</button>
     </div>
    </div>
@@ -108,7 +107,7 @@ export default function FashionCollection(){
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
    await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,createdAt:Date.now()});
    await reload();setUrl('');
-   setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 태그를 추가해줘.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
+   setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 제목과 태그를 추가할 수 있어.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
   finally{setBusy(false)}
  }
@@ -124,6 +123,6 @@ export default function FashionCollection(){
   <div className="collect-counter">수집한 링크 <strong>{items.length}개</strong></div>
   <div className="collect-list">{items.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
-  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram은 제목 없이 링크와 태그만 표시하며 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
+  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram도 제목을 직접 입력할 수 있고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
  </section>
 }
