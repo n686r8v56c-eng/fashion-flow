@@ -98,8 +98,8 @@ export default function FashionFinder(){
     const tab=window.open('about:blank','_blank');
     const ok=await prepare(true);
     if(ok){
-      if(tab)tab.location.replace('https://lens.google.com/');
-      else window.location.assign('https://lens.google.com/');
+      if(tab)tab.location.replace('https://www.google.com/');
+      else window.location.assign('https://www.google.com/');
     }else if(tab)tab.close();
   }
   async function naverLens(){
@@ -138,7 +138,7 @@ export default function FashionFinder(){
         <button type="button" className="finder-primary finder-naver" disabled={busy} onClick={naverLens}><ScanSearch size={18}/>{busy?'준비 중…':'네이버 스마트렌즈'}<ExternalLink size={15}/></button>
       </div>
       <button type="button" className="finder-secondary finder-download" disabled={busy} onClick={()=>prepare(false)}><Download size={16}/> 선택 영역만 저장</button>
-      <p className="finder-explain">선택한 사진을 먼저 기기에 저장해줘. Google Lens에서는 사진을 업로드하면 돼. 네이버 버튼은 네이버 앱을 열고, 검색창 옆 카메라 아이콘(스마트렌즈)을 눌러 저장한 사진을 선택해줘. 네이버 앱 미설치·브라우저 환경에 따라 앱 열기가 제한될 수 있어. 사진 자동 전달과 검색 결과 앱 내부 표시는 지원하지 않아.</p>
+      <p className="finder-explain">선택한 사진을 먼저 기기에 저장해줘. Google 검색창의 카메라(Lens) 아이콘을 누르고 저장된 사진을 선택해줘. iPhone에서는 Google 앱 또는 지원 브라우저가 필요할 수 있어. 네이버 버튼은 네이버 앱을 열고, 검색창 옆 카메라 아이콘(스마트렌즈)을 눌러 저장한 사진을 선택해줘. 네이버 앱 미설치·브라우저 환경에 따라 앱 열기가 제한될 수 있어. 사진 자동 전달과 검색 결과 앱 내부 표시는 지원하지 않아.</p>
     </div>:<div className="finder-empty">먼저 인스타그램·쇼핑몰·코디 사진을 선택해줘.</div>}
     {error&&<p role="alert" className="finder-error">{error}</p>}
     <div className="finder-record-title"><h2>검색 기록</h2><small>{records.length}개 · 이 기기에만 저장</small></div>
