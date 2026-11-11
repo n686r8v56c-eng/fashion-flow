@@ -1,5 +1,5 @@
-import React,{useEffect,useState} from 'react';
-import {Plus,Trash2,ExternalLink,Download,Upload,Pencil} from 'lucide-react';
+import React,{useEffect,useRef,useState} from 'react';
+import {Plus,Trash2,ExternalLink,Download,Upload,Pencil,ImagePlus} from 'lucide-react';
 import './PriceTracker.css';
 
 const DB='fashion-price-tracker-v1',STORE='products',META='meta';
@@ -75,6 +75,33 @@ function sparkline(history){
   const pts=vals.map((v,i)=>((i/(vals.length-1)*100).toFixed(2))+','+(max===min?25:(46-(v-min)/(max-min)*40)).toFixed(2)).join(' ');
   return <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-label="저장된 가격 기록 그래프" className="price-spark"><polyline points={pts} fill="none" stroke="#9268bb" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg>;
 }
+async function compactProductImage(file){
+  if(!file.type.startsWith('image/'))throw Error('이미지 파일만 올릴 수 있어.');
+  if(file.size>15*1024*1024)throw Error('15MB 이하 사진을 선택해줘.');
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('사진을 열지 못했어.'));img.src=url});
+    const scale=Math.min(1,520/Math.max(img.naturalWidth,img.naturalHeight));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+    canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',.72);
+  }finally{URL.revokeObjectURL(url)}
+}
+function ProductThumbnail({product,onUpload,disabled}){
+  const picker=useRef(null),[failed,setFailed]=useState(false);
+  const src=product.manualImageDataUrl||product.imageUrl||'';
+  useEffect(()=>setFailed(false),[src]);
+  const visible=!!src&&!failed;
+  return <div className="pt-photo-picker">
+    <button type="button" className="pt-photo-button" aria-label={product.name+' 상품 사진 '+(visible?'변경':'추가')} title="사진을 눌러 직접 등록·변경" disabled={disabled} onClick={()=>picker.current?.click()}>
+      {visible?<img className="pt-product-image" src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>:<span className="pt-image-missing"><ImagePlus size={19}/>사진 추가</span>}
+    </button>
+    <input ref={picker} className="pt-photo-file" type="file" accept="image/*" aria-label={product.name+' 사진 파일 선택'} onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)onUpload(product,file)}}/>
+  </div>;
+}
 export default function PriceTracker(){
   const [products,setProducts]=useState([]),[form,setForm]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[linkInput,setLinkInput]=useState(''),[linkLoading,setLinkLoading]=useState(false),[linkNotice,setLinkNotice]=useState('');
   const reload=async()=>{const rows=await all();setProducts((rows||[]).map(normalized).filter(Boolean).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))))};
@@ -120,6 +147,13 @@ export default function PriceTracker(){
     finally{setLinkLoading(false)}
   }
   const removeProduct=p=>{if(!confirm('이 상품과 가격 기록을 삭제할까?'))return;safe(async()=>{await del(p.id);await reload()})};
+  async function uploadProductImage(product,file){
+    await safe(async()=>{
+      const manualImageDataUrl=await compactProductImage(file);
+      await write({...product,manualImageDataUrl,updatedAt:today()});
+      await reload();
+    });
+  }
   async function saveInlinePrice(product,raw){
     const value=raw.trim();
     if(value!==''&&(!positive(value)||Number(value)>999999999)) {setError('가격은 0원 이상 숫자로 입력해줘.');return}
@@ -149,7 +183,7 @@ export default function PriceTracker(){
     <form className="pt-link-import" onSubmit={importLink}>
       <label htmlFor="pt-import-link">상품 링크로 등록</label>
       <div><input id="pt-import-link" type="url" required inputMode="url" placeholder="네이버 상품 URL 붙여넣기" value={linkInput} onChange={e=>setLinkInput(e.target.value)}/><button type="submit" disabled={linkLoading}>{linkLoading?'조회 중…':'불러오기'}</button></div>
-      <small>브랜드스토어·스마트스토어·네이버 쇼핑 카탈로그 지원. 상품명·사진 추출이 제한되면 수정 버튼에서 보완할 수 있어.</small>
+      <small>브랜드스토어·스마트스토어·네이버 쇼핑 카탈로그 지원. 상품명 추출이 제한되면 수정 버튼에서 보완하고, 사진이 없으면 카드의 사진 칸을 눌러 올릴 수 있어.</small>
     </form>
     {linkNotice&&!form&&<p className="pt-note">{linkNotice}</p>}
     <p className="pt-note">가격은 직접 입력해 저장해. 쇼핑몰 가격과 자동 연동되지 않으며 실제 구매 전 확인이 필요해.</p>
@@ -158,7 +192,7 @@ export default function PriceTracker(){
       const best=sorted[0],hit=best&&p.target!=null&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
       return <article className="pt-product" key={p.id}>
         <div className="pt-product-row">
-          {p.imageUrl?<img className="pt-product-image" src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>:<div className="pt-image-missing">사진 없음</div>}
+          <ProductThumbnail product={p} disabled={busy} onUpload={uploadProductImage}/>
           <div className="pt-product-select">
             <span className="pt-title">{p.name}</span>
             {p.model&&<small>{p.model}</small>}
@@ -184,7 +218,7 @@ export default function PriceTracker(){
     })}</div>
     {products.length===0&&<p className="pt-empty">아직 관심 상품이 없어. 찾은 제품의 이름과 품번을 등록해봐!</p>}
     <div className="pt-backup"><button type="button" onClick={exportJson} disabled={busy}><Download size={16}/> JSON 백업</button><label><Upload size={16}/> 백업 복원<input type="file" accept=".json,application/json" onChange={importJson}/></label></div>
-    <p className="pt-note">현재 저장 위치: 이 기기의 IndexedDB. 앱 데이터 삭제·기기 교체에 대비해 JSON 백업을 보관해줘. 다른 기기와 자동 동기화하려면 Supabase 전용 테이블 설정이 추가로 필요해.</p>
+    <p className="pt-note">현재 저장 위치: 이 기기의 IndexedDB. 직접 올린 사진은 압축해서 함께 저장되고 JSON 백업에 포함돼. 앱 데이터 삭제·기기 교체에 대비해 JSON 백업을 보관해줘. 다른 기기와 자동 동기화하려면 Supabase 전용 테이블 설정이 추가로 필요해.</p>
     {error&&<p className="pt-error" role="alert">{error}</p>}
     {form&&<div className="pt-overlay" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setForm(null)}}><form className="pt-modal" onSubmit={saveProduct}>
       <div className="pt-form-head"><h3>{products.some(p=>p.id===form.id)?'상품 수정':'관심 상품 등록'}</h3><button type="button" onClick={()=>setForm(null)}>닫기</button></div>
