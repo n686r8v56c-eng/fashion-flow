@@ -150,6 +150,13 @@ export default function FashionFinder({photoOnly=false}){
     </div>)}</div>
     {!records.length&&<p className="finder-hint">아직 저장한 검색 기록이 없어.</p>}
     </> : <>
+      <form className="finder-keyword-search" action="https://search.shopping.naver.com/search/all" method="get" target="_blank" role="search">
+        <label htmlFor="finder-keyword">네이버 쇼핑 검색</label>
+        <div className="finder-keyword-row">
+          <input id="finder-keyword" name="query" type="search" required placeholder="예: 경량패딩" autoComplete="off" aria-label="네이버 쇼핑 상품 검색어"/>
+          <button type="submit"><ScanSearch size={17}/> 검색</button>
+        </div>
+      </form>
       <PriceTracker/>
       <StorageManager onPhotosChanged={refresh}/>
     </>}
