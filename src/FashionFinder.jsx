@@ -94,8 +94,13 @@ export default function FashionFinder(){
     finally{setBusy(false)}
   }
   async function lens(){
+    // Open immediately during the tap: iOS Safari blocks popups opened after an await.
+    const tab=window.open('about:blank','_blank');
     const ok=await prepare(true);
-    if(ok)window.open('https://lens.google.com/','_blank','noopener,noreferrer');
+    if(ok){
+      if(tab)tab.location.replace('https://lens.google.com/');
+      else window.location.assign('https://lens.google.com/');
+    }else if(tab)tab.close();
   }
   async function reuse(row){
     if(selectedImage)URL.revokeObjectURL(selectedImage);
