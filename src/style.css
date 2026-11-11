@@ -856,3 +856,25 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
  .fashion-shopping-item{padding:10px}
  .fashion-shopping-item-name strong{font-size:14px}
 }
+
+/* Closet-only compact density; keep Fashion and other genres unchanged */
+.closet-compact .main{padding-top:16px}
+.closet-compact .heading{margin-bottom:10px;gap:8px}
+.closet-compact .heading h1{font-size:22px}
+.closet-compact .heading .muted{margin:2px 0;font-size:13px}
+.closet-compact .heading .primary{padding:9px 12px}
+.closet-compact .filters{gap:7px;margin-bottom:10px}
+.closet-compact .filters select{padding:8px 9px}
+.closet-compact .item-grid{gap:7px}
+.closet-compact .item-card,.closet-compact .outfit-card{border-radius:10px}
+.closet-compact .item-info{padding:7px}
+.closet-compact .studio-outfit-row{min-height:60px;padding:7px 9px;gap:8px}
+.closet-compact .studio-outfit-thumb{flex-basis:46px}
+.closet-compact .studio-outfit-list{border-radius:10px}
+.closet-compact .closet-outfit-subtabs{gap:7px!important;margin-bottom:10px!important}
+.closet-compact .closet-outfit-subtabs button{padding:9px 6px!important;font-size:14px}
+.closet-compact .real-grid,.closet-compact .worn-grid{gap:8px}
+.closet-compact .real-card,.closet-compact .worn-card{border-radius:11px}
+.closet-compact .worn-filter-row{margin-bottom:9px;gap:7px}
+.closet-compact .realization>.heading,.closet-compact .worn-looks>.heading{margin-bottom:10px}
+@media(max-width:600px){.closet-compact .main{padding:14px 12px 90px}}
