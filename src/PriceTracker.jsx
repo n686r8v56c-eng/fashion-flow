@@ -1,12 +1,13 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Plus,Trash2,ExternalLink,Download,Upload,Pencil,ImagePlus} from 'lucide-react';
 import './PriceTracker.css';
+import BatchProductImport from './BatchProductImport.jsx';
 
 const DB='fashion-price-tracker-v1',STORE='products',META='meta';
 const FILA_ID='fila-airflow-fs264dj01x012091-20261111';
 const FILA_DATE='2026-11-11T12:00:00+09:00';
 const FILA_OFFICIAL_URL='https://www.fila.co.kr/products/1100fs264dj01x012091';
-const officialLink=p=>p.officialUrl||(p.id===FILA_ID?FILA_OFFICIAL_URL:'');
+const officialLink=p=>p.sourceUrl||p.officialUrl||(p.id===FILA_ID?FILA_OFFICIAL_URL:'');
 const naverSearch=(name)=>'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(name||'');
 const youtubeSearch=(name)=>'https://www.youtube.com/results?search_query='+encodeURIComponent(name||'');
 const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,officialUrl:FILA_OFFICIAL_URL,createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
@@ -61,6 +62,7 @@ async function seedFilaOnce(){
 }
 const all=()=>dbAction('readonly',s=>s.getAll());
 const write=p=>dbAction('readwrite',s=>s.put(p));
+const writeBatch=rows=>dbAction('readwrite',store=>{let req;for(const row of rows)req=store.put(row);return req});
 const del=id=>dbAction('readwrite',s=>s.delete(id));
 const positive=n=>Number.isFinite(Number(n))&&Number(n)>=0;
 const urlOk=url=>{try{return new URL(url).protocol==='https:'}catch{return false}};
@@ -107,6 +109,32 @@ export default function PriceTracker(){
   const reload=async()=>{const rows=await all();setProducts((rows||[]).map(normalized).filter(Boolean).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))))};
   useEffect(()=>{seedFilaOnce().then(reload).catch(e=>setError('저장소를 열지 못했어: '+e.message))},[]);
   const safe=async(fn)=>{setBusy(true);setError('');try{await fn()}catch(e){setError('저장 실패: '+e.message)}finally{setBusy(false)}};
+  async function saveBatchProducts(entries){
+    setBusy(true);setError('');
+    try{
+      const existing=(await all()||[]).map(normalized).filter(Boolean);
+      const seen=new Set(existing.map(p=>p.sourceUrl).filter(Boolean));
+      const rows=[];let skipped=0;
+      for(const entry of entries){
+        const url=String(entry.url||'').trim();
+        if(!urlOk(url))continue;
+        if(seen.has(url)){skipped++;continue}
+        seen.add(url);
+        rows.push({
+          ...blankProduct(),name:String(entry.name||entry.query||'상품명 확인 필요').trim().slice(0,180),
+          sourceUrl:url,sourceStore:String(entry.shop||'').slice(0,100),
+          sourceProductId:String(entry.productId||'').slice(0,80),
+          imageUrl:urlOk(entry.image)?entry.image:'',
+          searchListedPrice:Number.isFinite(Number(entry.price))&&entry.price!=null&&Number(entry.price)>0?Number(entry.price):null,
+          sourcePrice:null,officialUrl:'',needsNameReview:false,searchQuery:String(entry.query||'').slice(0,100)
+        });
+      }
+      if(rows.length)await writeBatch(rows);
+      await reload();
+      return {added:rows.length,skipped};
+    }catch(e){setError('일괄 등록 실패: '+e.message);throw e}
+    finally{setBusy(false)}
+  }
   const saveProduct=e=>{e.preventDefault();safe(async()=>{
     if(!form.name.trim())throw Error('상품명을 입력해줘.');
     if(form.target!==null&&form.target!==''&&!positive(form.target))throw Error('목표 가격을 확인해줘.');
@@ -179,6 +207,7 @@ export default function PriceTracker(){
     await reload();
   })};
   return <section className="pt">
+    <BatchProductImport onSave={saveBatchProducts}/>
     <form className="pt-link-import" onSubmit={importLink}>
       <label htmlFor="pt-import-link">상품 링크로 등록</label>
       <div><input id="pt-import-link" type="url" required inputMode="url" placeholder="네이버 상품 URL 붙여넣기" value={linkInput} onChange={e=>setLinkInput(e.target.value)}/><button type="submit" disabled={linkLoading}>{linkLoading?'조회 중…':'불러오기'}</button></div>
@@ -196,6 +225,7 @@ export default function PriceTracker(){
               가격 (원)
               <input key={p.id+'-'+p.updatedAt} aria-label={p.name+' 가격 수정'} type="number" min="0" step="1" inputMode="numeric" placeholder="가격 입력" defaultValue={p.sourcePrice??''} onBlur={e=>saveInlinePrice(p,e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}}}/>
             </label>
+            {p.searchListedPrice!=null&&<small>검색 표시 최저가 {money(p.searchListedPrice)} · 실제 가격 확인 필요</small>}
             {p.target!=null&&<small>목표 {money(p.target)}</small>}
           </div>
           <button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button>
