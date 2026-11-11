@@ -11,3 +11,17 @@
 .pt-link-list a{display:flex;align-items:center;gap:8px;color:#6d4c91;text-decoration:none;background:#f8f4fc;border-radius:8px;padding:11px 12px;font-size:13px}
 .pt-link-list a:focus-visible,.pt-link-accordion summary:focus-visible{outline:2px solid #9066ba;outline-offset:2px}
 .pt-link-list small{font-size:12px;color:#8b8093;padding:6px 3px}
+
+.pt-link-import{border:1px solid #e2d6eb;border-radius:12px;padding:12px;margin:14px 0;background:#fbf9ff}
+.pt-link-import label{display:block;font-size:14px;font-weight:700;color:#63477f;margin-bottom:8px}
+.pt-link-import>div{display:flex;gap:8px}
+.pt-link-import input{flex:1;min-width:0;border:1px solid #d7c9e5;border-radius:9px;padding:10px;font-size:16px}
+.pt-link-import button{border:0;border-radius:9px;background:#8058ae;color:white;padding:10px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.pt-link-import button:disabled{opacity:.55}
+.pt-link-import small{display:block;font-size:12px;color:#85798e;line-height:1.5;margin-top:8px}
+.pt-product-image{width:70px;height:88px;object-fit:contain;border-radius:8px;background:#f7f3fb;flex-shrink:0}
+.pt-import-preview{border-radius:10px;background:#f7f3fb;padding:10px;display:flex;flex-direction:column;gap:6px}
+.pt-import-preview img{max-width:115px;max-height:140px;object-fit:contain;border-radius:8px;align-self:flex-start}
+.pt-import-preview small{font-size:12px;color:#756a81;line-height:1.5}
+.pt-import-preview a{font-size:13px;color:#694b91}
+@media(max-width:420px){.pt-product-image{width:54px;height:74px}.pt-link-import button{padding:9px}.pt-product-row{gap:0}}
