@@ -40,3 +40,9 @@
 .pt-photo-button .pt-image-missing{width:100%;height:100%;display:flex;flex-direction:column;gap:5px}
 .pt-photo-file{display:none}
 @media(max-width:420px){.pt-photo-picker{width:54px;height:74px}.pt-photo-button .pt-image-missing{font-size:10px}}
+
+/* Compact FINDER: keep only two search/import cards and the product list. */
+.finder .pt{border-top:0;margin-top:0;padding-top:0}
+.finder .pt-link-import{margin:0 0 14px}
+.finder .pt-products{margin-top:0}
+.finder .pt-link-accordion summary span{display:none}
