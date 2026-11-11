@@ -5,8 +5,8 @@ import './PriceTracker.css';
 const DB='fashion-price-tracker-v1',STORE='products',META='meta';
 const FILA_ID='fila-airflow-fs264dj01x012091-20261111';
 const FILA_DATE='2026-11-11T12:00:00+09:00';
-const FILA_URL='https://www.fila.co.kr/products/1100fs264dj01x012091';
-const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,officialUrl:FILA_URL,createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
+const coupangSearch=(query)=>'https://www.coupang.com/np/search?q='+encodeURIComponent(query||'');
+const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,shoppingUrl:'',createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
   {id:'fila-official',shop:'휠라 공식몰',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
   {id:'fila-ssg',shop:'SSG 신세계백화점 (219,000원부터)',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
   {id:'fila-eql',shop:'한섬 EQL',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]}
@@ -68,8 +68,8 @@ export default function PriceTracker(){
   const saveProduct=e=>{e.preventDefault();safe(async()=>{
     if(!form.name.trim())throw Error('상품명을 입력해줘.');
     if(!positive(form.target))throw Error('목표 가격을 확인해줘.');
-    if(form.officialUrl&&!urlOk(form.officialUrl))throw Error('공식 쇼핑몰 링크는 https:// 주소여야 해.');
-    const next={...form,name:form.name.trim(),target:Number(form.target),officialUrl:form.officialUrl|| (form.model==='FS264DJ01X012091'?FILA_URL:''),updatedAt:today()};
+    if(form.shoppingUrl&&!urlOk(form.shoppingUrl))throw Error('쿠팡 상품 링크는 https:// 주소여야 해.');
+    const next={...form,name:form.name.trim(),target:Number(form.target),shoppingUrl:form.shoppingUrl||'',updatedAt:today()};
     await write(next);setForm(null);await reload();
   })};
   const removeProduct=p=>{if(!confirm('이 상품과 가격 기록을 삭제할까?'))return;safe(async()=>{await del(p.id);await reload()})};
@@ -102,13 +102,13 @@ export default function PriceTracker(){
     await reload();
   })};
   return <section className="pt">
-    <div className="pt-heading"><div><h2>PRICE TRACKER</h2><p>품번·색상·사이즈별 관심 상품과 판매처 가격 비교</p></div><button type="button" className="pt-main" onClick={()=>setForm(blankProduct())}><Plus size={17}/> 상품 추가</button></div>
-    <p className="pt-note">가격은 직접 입력한 기록 또는 최초 참고 가격이야. 실제 쇼핑몰 가격을 자동으로 읽거나 실시간 갱신하지 않아. 결제 전 링크에서 재확인해줘.</p>
+    <div className="pt-heading"><div><h2>PRICE TRACKER</h2><p>품번·색상·사이즈별 관심 상품과 쿠팡 검색</p></div><button type="button" className="pt-main" onClick={()=>setForm(blankProduct())}><Plus size={17}/> 상품 추가</button></div>
+    <p className="pt-note">가격은 직접 입력한 기록 또는 최초 참고 가격이야. 쿠팡 링크는 자동 최저가 확인이 아니라 검색 연결이며, 가격을 자동으로 읽거나 실시간 갱신하지 않아. 결제 전 링크에서 재확인해줘.</p>
     <div className="pt-products">{products.map(p=>{
       const sorted=[...p.offers].sort((a,b)=>(a.price+a.shipping)-(b.price+b.shipping));
       const best=sorted[0],hit=best&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
       return <article className="pt-product" key={p.id}>
-        <div className="pt-product-row"><div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:'판매처 미등록'}</span><small>목표 {money(p.target)} {hit?'· 목표가 이하 ✓':''}</small>{(p.officialUrl||p.model=== 'FS264DJ01X012091'&&FILA_URL)&&<a className="pt-official-link" href={p.officialUrl||FILA_URL} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}><ExternalLink size={14}/> 공식 쇼핑몰</a>}</div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
+        <div className="pt-product-row"><div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:'판매처 미등록'}</span><small>목표 {money(p.target)} {hit?'· 목표가 이하 ✓':''}</small>{(p.model||p.name)&&<a className="pt-official-link" href={p.shoppingUrl||coupangSearch(p.model||p.name)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}><ExternalLink size={14}/> {p.shoppingUrl?'쿠팡 상품 보기':'쿠팡에서 품번 검색'}</a>}</div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
       </article>
     })}</div>
     {products.length===0&&<p className="pt-empty">아직 관심 상품이 없어. 찾은 제품의 이름과 품번을 등록해봐!</p>}
@@ -120,7 +120,7 @@ export default function PriceTracker(){
       <label>상품명 *<input required maxLength={180} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="예: 휠라 에어플로우 후드 경량 다운"/></label>
       <label>품번 / 모델 코드<input maxLength={140} value={form.model} onChange={e=>setForm(p=>({...p,model:e.target.value}))} placeholder="정확한 품번"/></label>
       <div className="pt-pair"><label>색상<input maxLength={100} value={form.color} onChange={e=>setForm(p=>({...p,color:e.target.value}))}/></label><label>사이즈<input maxLength={100} value={form.size} onChange={e=>setForm(p=>({...p,size:e.target.value}))}/></label></div>
-      <label>공식 쇼핑몰 링크<input type="url" placeholder="https://" value={form.officialUrl|| (form.model==='FS264DJ01X012091'?FILA_URL:'')} onChange={e=>setForm(p=>({...p,officialUrl:e.target.value}))}/></label>
+      <label>쿠팡 상품 URL (선택)<input type="url" placeholder="https://www.coupang.com/vp/products/..." value={form.shoppingUrl||''} onChange={e=>setForm(p=>({...p,shoppingUrl:e.target.value}))}/><small>비워두면 품번으로 쿠팡 검색 결과를 열어줘. 확인된 상품 URL만 직접 넣어줘.</small></label>
       <label>목표 가격 (원)<input type="number" min="0" step="1" required value={form.target} onChange={e=>setForm(p=>({...p,target:e.target.value}))}/></label>
       <button className="pt-main" type="submit" disabled={busy}>상품 저장</button>
     </form></div>}
