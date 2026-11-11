@@ -11,6 +11,34 @@ const meta = (html,key) => {
   }
   return '';
 };
+const parsePrice = v => {
+  if(typeof v==='number')return Number.isFinite(v)&&v>0&&v<1000000000?Math.round(v):null;
+  if(typeof v!=='string')return null;
+  const t=v.trim().replace(/[\s,₩원]/g,'');
+  return /^\d{1,10}(?:\.\d{1,2})?$/.test(t)&&Number(t)>0?Math.round(Number(t)):null;
+};
+const ldProducts = html => {
+  const out=[];
+  const blocks=html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  const visit=(v,depth=0)=>{
+    if(!v||depth>5)return;
+    if(Array.isArray(v)){v.forEach(x=>visit(x,depth+1));return}
+    if(typeof v!=='object')return;
+    if(String(v['@type']||'').toLowerCase().includes('product'))out.push(v);
+    for(const k of ['@graph','mainEntity','itemListElement'])if(v[k])visit(v[k],depth+1);
+  };
+  for(const b of blocks){try{visit(JSON.parse(b[1]))}catch{}}
+  return out;
+};
+const ldPrice = p => {
+  const offers=Array.isArray(p.offers)?p.offers:[p.offers];
+  for(const offer of offers){
+    if(!offer||typeof offer!=='object')continue;
+    const price=parsePrice(offer.price)||parsePrice(offer.lowPrice)||parsePrice(offer.priceSpecification?.price);
+    if(price&&(!offer.priceCurrency||offer.priceCurrency==='KRW'))return price;
+  }
+  return null;
+};
 export async function onRequestGet({request}){
   const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
   try{
@@ -33,10 +61,17 @@ export async function onRequestGet({request}){
     const html=(await response.text()).slice(0,800000);
     const title=meta(html,'og:title')||meta(html,'twitter:title');
     const image=meta(html,'og:image')||meta(html,'twitter:image');
-    const priceText=meta(html,'product:price:amount');
-    const price=/^\d{1,10}(?:\.\d{1,2})?$/.test(priceText)?Math.round(Number(priceText)):null;
-    const safeImage=(()=>{try{const img=new URL(image);return img.protocol==='https:'?img.href:''}catch{return ''}})();
-    return new Response(JSON.stringify({...fallback,ok:!!title,title:title.slice(0,180),image:safeImage,price,reason:title?'페이지 공개 정보를 가져왔어. 상품명·옵션·가격을 확인하고 저장해줘.':fallback.reason}),{headers});
+    const productData=ldProducts(html);
+    const structured=productData.find(p=>String(p.name||'').trim()===title)||productData[0];
+    // Only accept an explicit product price from OG metadata or JSON-LD product offers.
+    // Never infer a price from arbitrary page text, which may contain unrelated prices.
+    const currency=meta(html,'product:price:currency');
+    const metaAmount=currency&&currency!=='KRW'?null:parsePrice(meta(html,'product:price:amount'));
+    const price=metaAmount??(structured?ldPrice(structured):null);
+    const finalTitle=title||String(structured?.name||'').trim();
+    const imageCandidate=image||(Array.isArray(structured?.image)?structured.image[0]:structured?.image)||'';
+    const safeImage=(()=>{try{const img=new URL(imageCandidate);return img.protocol==='https:'?img.href:''}catch{return ''}})();
+    return new Response(JSON.stringify({...fallback,ok:!!finalTitle,title:finalTitle.slice(0,180),image:safeImage,price,reason:finalTitle?'페이지 공개 정보를 가져왔어. 상품명·옵션·가격을 확인하고 저장해줘.':fallback.reason}),{headers});
   }catch(e){
     return new Response(JSON.stringify({ok:false,error:e.message||'조회 실패'}),{status:400,headers});
   }
