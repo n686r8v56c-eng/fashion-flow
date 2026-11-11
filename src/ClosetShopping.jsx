@@ -1,6 +1,6 @@
 import './ClosetShopping.css';
 import React,{useEffect,useState,useRef} from 'react';
-import {Search,Plus,ExternalLink,Trash2,ImagePlus} from 'lucide-react';
+import {Search,Plus,ExternalLink,Trash2,ImagePlus,LayoutGrid,List} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 
 const searchUrl=q=>'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(q);
@@ -10,12 +10,12 @@ function InlineField({row,field,onSave}){const initial=String(row[field]??'');co
 const validUrl=raw=>{try{const u=new URL(raw.trim());return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
 export default function ClosetShopping(){
  const {read,write,remove,subscribe}=useLocalCollection('closet-shopping');
- const [rows,setRows]=useState([]),[query,setQuery]=useState(''),[url,setUrl]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const [rows,setRows]=useState([]),[query,setQuery]=useState(''),[url,setUrl]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[view,setView]=useState('list');
  const reload=async()=>setRows((await read()).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))));
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError(e.message));refresh();return subscribe(refresh)},[read,subscribe]);
  const search=e=>{e.preventDefault();if(query.trim())window.open(searchUrl(query.trim()),'_blank','noopener,noreferrer')};
  async function add(e){e.preventDefault();const link=validUrl(url);if(!link){setError('https:// 상품 링크를 입력해 줘.');return}if(rows.some(r=>r.url===link)){setError('이미 저장한 링크야.');return}setBusy(true);setError('');try{await write({id:crypto.randomUUID(),url:link,name:'상품명 확인 필요',price:'',createdAt:new Date().toISOString()});setUrl('');await reload()}catch(e){setError('등록 실패: '+e.message)}finally{setBusy(false)}}
- async function updateField(row,field,value){if(field==='price'&&value!==''&&(!/^\\d+$/.test(value)||Number(value)>999999999)){setError('가격은 0원 이상 숫자로 입력해 줘.');return}setError('');try{await write({...row,[field]:field==='name'?(value||'상품명 확인 필요'):value,updatedAt:new Date().toISOString()});await reload()}catch(e){setError('수정 실패: '+e.message);await reload()}}
+ async function updateField(row,field,value){if(field==='price'&&value!==''&&(!/^[0-9]+$/.test(value)||Number(value)>999999999)){setError('가격은 0원 이상 숫자로 입력해 줘.');return}setError('');try{await write({...row,[field]:field==='name'?(value||'상품명 확인 필요'):value,updatedAt:new Date().toISOString()});await reload()}catch(e){setError('수정 실패: '+e.message);await reload()}}
  async function upload(row,file){setBusy(true);setError('');try{const manualImageDataUrl=await compressPhoto(file);await write({...row,manualImageDataUrl,updatedAt:new Date().toISOString()});await reload()}catch(e){setError('사진 저장 실패: '+e.message)}finally{setBusy(false)}}
  async function erase(row){if(!confirm('상품을 삭제할까?'))return;try{await remove(row.id);await reload()}catch(e){setError(e.message)}}
  return <section className="closet-shop" style={{display:'grid',gap:16}}>
@@ -24,7 +24,8 @@ export default function ClosetShopping(){
  <strong>네이버 쇼핑 검색</strong><div style={{display:'flex',gap:8}}><input aria-label="네이버 쇼핑 키워드" style={{flex:1,minWidth:0,fontSize:16,padding:12,border:'1px solid #dacbe8',borderRadius:10}} placeholder="예: 경량패딩" value={query} onChange={e=>setQuery(e.target.value)}/><button className="primary" type="submit"><Search size={17}/> 검색</button></div></form>
  <form onSubmit={add} style={{border:'1px solid #e2d5ec',borderRadius:14,padding:14,display:'grid',gap:10}}>
  <strong>상품 링크로 등록</strong><div style={{display:'flex',gap:8}}><input aria-label="상품 링크" style={{flex:1,minWidth:0,fontSize:16,padding:12,border:'1px solid #dacbe8',borderRadius:10}} type="url" required placeholder="상품 URL 붙여넣기" value={url} onChange={e=>setUrl(e.target.value)}/><button className="primary" disabled={busy} type="submit"><Plus size={17}/> 등록</button></div></form>
- {error&&<p role="alert" style={{color:'#a33'}}>{error}</p>}
- <div className="cs-products">{rows.map(row=><article className="cs-product" key={row.id}><ShoppingPhoto row={row} disabled={busy} onUpload={upload}/><div className="cs-details"><InlineField row={row} field="name" onSave={updateField}/><label className="cs-price-line">가격 (원) <InlineField row={row} field="price" onSave={updateField}/></label><a href={row.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> 상품 페이지</a></div><button type="button" className="cs-delete" aria-label={row.name+' 삭제'} onClick={()=>erase(row)}><Trash2 size={18}/></button></article>)}</div>
+ {error&&<p role="alert" className="cs-error">{error}<button type="button" aria-label="오류 메시지 닫기" onClick={()=>setError('')}>×</button></p>}
+ <div className="cs-view-toolbar"><span>{rows.length}개</span><div className="cs-view-switch" role="group" aria-label="상품 보기 방식"><button type="button" className={view==='gallery'?'active':''} aria-label="갤러리뷰" aria-pressed={view==='gallery'} onClick={()=>setView('gallery')}><LayoutGrid size={19}/></button><button type="button" className={view==='list'?'active':''} aria-label="목록뷰" aria-pressed={view==='list'} onClick={()=>setView('list')}><List size={19}/></button></div></div>
+ <div className={"cs-products "+(view==='gallery'?'cs-gallery':'cs-list')}>{rows.map(row=><article className="cs-product" key={row.id}><ShoppingPhoto row={row} disabled={busy} onUpload={upload}/>{view==='list'&&<div className="cs-details"><InlineField row={row} field="name" onSave={updateField}/><label className="cs-price-line">가격 (원) <InlineField row={row} field="price" onSave={updateField}/></label><a href={row.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> 상품 페이지</a></div>}{view==='list'&&<button type="button" className="cs-delete" aria-label={row.name+' 삭제'} onClick={()=>erase(row)}><Trash2 size={18}/></button>}</article>)}</div>
  </section>
 }
