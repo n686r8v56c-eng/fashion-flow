@@ -90,9 +90,9 @@ function CollectionCard({item,onUpdate,onDelete}){
   </div>
  </article>
 }
-export default function FashionCollection(){
+export default function FashionCollection({genre='fashion'}){
  const [url,setUrl]=useState(''),[search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- async function reload(){setItems((await read()||[]).sort((a,b)=>b.createdAt-a.createdAt))}
+ async function reload(){setItems((await read()||[]).filter(x=>(x.genre||'fashion')===genre).sort((a,b)=>b.createdAt-a.createdAt))}
  useEffect(()=>{reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message))},[]);
  async function add(e){
   e.preventDefault();setError('');setNotice('');
@@ -105,7 +105,7 @@ export default function FashionCollection(){
    try{const res=await fetch('/api/collect-metadata?url='+encodeURIComponent(parsed.url));if(res.ok)info=await res.json()}catch{}
    const title=parsed.platform==='youtube'?String(info.title||'').trim().slice(0,250):'';
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
-   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,createdAt:Date.now()});
+   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,createdAt:Date.now()});
    await reload();setUrl('');
    setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 제목과 태그를 추가할 수 있어.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
