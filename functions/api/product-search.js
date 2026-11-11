@@ -23,7 +23,18 @@ export async function onRequestGet({request,env}){
   let res;
   try{res=await fetch(endpoint,{headers:{'X-Naver-Client-Id':id,'X-Naver-Client-Secret':secret,Accept:'application/json'},signal:AbortSignal.timeout(9000)})}
   catch{return json({error:'네이버 쇼핑 연결이 원활하지 않아. 다시 시도해줘.'},502)}
-  if(!res.ok)return json({error:'네이버 쇼핑 검색에 실패했어. API 설정과 이용 한도를 확인해줘.'},502);
+  if(!res.ok){
+    let code='';
+    try{const detail=await res.json();code=String(detail.errorCode||'').slice(0,32)}catch{}
+    const status=res.status;
+    const reason=status===401?'네이버 API 인증 실패: Client ID·Secret이 같은 애플리케이션의 값인지 확인해줘.'
+      :status===403?'네이버 API 권한 없음: 개발자센터에서 해당 앱의 검색 API 이용 권한을 확인해줘.'
+      :status===429?'네이버 검색 API 호출 한도 초과: 호출량을 확인하고 나중에 다시 검색해줘.'
+      :status===400?'네이버가 검색 요청을 거절했어. 요청 파라미터 또는 검색어를 확인해줘.'
+      :status>=500?'네이버 검색 API 서버 오류야. 잠시 후 다시 시도해줘.'
+      :'네이버 쇼핑 검색 요청에 실패했어.';
+    return json({code:'NAVER_UPSTREAM_ERROR',upstreamStatus:status,naverCode:code,error:reason+' (HTTP '+status+(code?', 코드 '+code:'')+')'},502);
+  }
   try{
     const data=await res.json();
     const items=(Array.isArray(data.items)?data.items:[]).slice(0,8).map(item=>({
