@@ -93,7 +93,7 @@ export default function PriceTracker(){
       }catch{}
       const name=String(data.title||'').replace(/\s*[:|]\s*네이버.*$/,'').trim().slice(0,180);
       setForm({...blankProduct(),name,sourceUrl:parsed.url,officialUrl:parsed.url,sourceProductId:parsed.id,sourceStore:parsed.store,imageUrl:/^https:\/\//.test(data.image||'')?data.image:'',sourcePrice:data.price??null,sourcePriceCheckedAt:data.price!=null?today():null});
-      setLinkNotice(data.ok?'상품 정보를 가져왔어. 저장 전에 상품명과 옵션을 확인해줘.':'네이버에서 상품 정보 읽기가 제한됐어. 상품 링크와 번호는 가져왔으니 상품명만 입력하면 저장할 수 있어.');
+      setLinkNotice(data.price!=null?'판매가를 자동으로 가져왔어. 상품 옵션에 따른 금액 변동은 확인해줘.':data.ok?'상품 정보 일부만 가져왔어. 판매가는 네이버 페이지에서 확인해줘.':'네이버에서 상품명·가격 추출을 제한했어. 링크와 상품번호는 저장되니, 원본 상품 페이지를 확인해줘.');
       setLinkInput('');
     }finally{setLinkLoading(false)}
   }
@@ -158,11 +158,12 @@ export default function PriceTracker(){
     {form&&<div className="pt-overlay" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setForm(null)}}><form className="pt-modal" onSubmit={saveProduct}>
       <div className="pt-form-head"><h3>{products.some(p=>p.id===form.id)?'상품 수정':'관심 상품 등록'}</h3><button type="button" onClick={()=>setForm(null)}>닫기</button></div>
       <label>상품명 *<input required maxLength={180} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="예: 휠라 에어플로우 후드 경량 다운"/></label>
+      {form.sourceUrl&&linkNotice&&<p className="pt-note" role="status">{linkNotice}</p>}
       {form.sourceUrl&&<div className="pt-import-preview">
         <small>상품번호 {form.sourceProductId} · {form.sourceStore}</small>
         {form.imageUrl&&<img src={form.imageUrl} alt="상품 사진 후보" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}
         <a href={form.sourceUrl} target="_blank" rel="noopener noreferrer">원본 네이버 상품 확인 ↗</a>
-        {form.sourcePrice!=null&&<small>읽어온 참고 가격 {money(form.sourcePrice)} · 실제 판매 가격은 원본에서 재확인해줘.</small>}
+        {form.sourcePrice!=null?<small>자동 추출 판매가 {money(form.sourcePrice)} · 옵션별 가격은 원본에서 재확인해줘.</small>:<small>판매가 정보가 없어서 자동 입력하지 않았어.</small>}
         <small>원본 페이지에서 제품명·품번·색상·사이즈를 확인하고 등록해줘.</small>
       </div>}
       <label>상품 사진 URL (선택)<input type="url" placeholder="https://" value={form.imageUrl||''} onChange={e=>setForm(p=>({...p,imageUrl:e.target.value}))}/></label>
