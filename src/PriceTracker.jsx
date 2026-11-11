@@ -8,6 +8,7 @@ const FILA_DATE='2026-11-11T12:00:00+09:00';
 const FILA_OFFICIAL_URL='https://www.fila.co.kr/products/1100fs264dj01x012091';
 const officialLink=p=>p.officialUrl||(p.id===FILA_ID?FILA_OFFICIAL_URL:'');
 const naverSearch=(name)=>'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(name||'');
+const youtubeSearch=(name)=>'https://www.youtube.com/results?search_query='+encodeURIComponent(name||'');
 const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,officialUrl:FILA_OFFICIAL_URL,createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
   {id:'fila-official',shop:'휠라 공식몰',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
   {id:'fila-ssg',shop:'SSG 신세계백화점 (219,000원부터)',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
@@ -110,7 +111,16 @@ export default function PriceTracker(){
       const sorted=[...p.offers].sort((a,b)=>(a.price+a.shipping)-(b.price+b.shipping));
       const best=sorted[0],hit=best&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
       return <article className="pt-product" key={p.id}>
-        <div className="pt-product-row"><div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:'판매처 미등록'}</span><small>목표 {money(p.target)} {hit?'· 목표가 이하 ✓':''}</small>{p.name&&<a className="pt-official-link" href={naverSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> 네이버에서 상품명 검색</a>}{officialLink(p)&&<a className="pt-official-link" href={officialLink(p)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> 공식몰</a>}</div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
+        <div className="pt-product-row"><div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:'판매처 미등록'}</span><small>목표 {money(p.target)} {hit?'· 목표가 이하 ✓':''}</small></div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
+        <details className="pt-link-accordion">
+          <summary>검색 바로가기 <span>네이버 · 공식몰 · 유튜브</span></summary>
+          <div className="pt-link-list">
+            <a href={naverSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 네이버에서 상품명 검색</a>
+            {officialLink(p)&&<a href={officialLink(p)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 공식몰</a>}
+            <a href={youtubeSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 유튜브에서 상품명 검색</a>
+            {!officialLink(p)&&<small>공식몰 링크는 상품 수정에서 등록할 수 있어.</small>}
+          </div>
+        </details>
       </article>
     })}</div>
     {products.length===0&&<p className="pt-empty">아직 관심 상품이 없어. 찾은 제품의 이름과 품번을 등록해봐!</p>}
