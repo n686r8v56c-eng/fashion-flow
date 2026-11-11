@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {ImagePlus,ScanSearch,Download,ExternalLink,Bookmark,Trash2,RotateCcw,Check} from 'lucide-react';
 import './FashionFinder.css';
 import PriceTracker from './PriceTracker.jsx';
+import StorageManager from './StorageManager.jsx';
 
 const DB='fashion-finder-local-v1';
 const STORE='searches';
@@ -148,5 +149,6 @@ export default function FashionFinder(){
     </div>)}</div>
     {!records.length&&<p className="finder-hint">아직 저장한 검색 기록이 없어.</p>}
     <PriceTracker/>
+    <StorageManager onPhotosChanged={refresh}/>
   </section>;
 }
