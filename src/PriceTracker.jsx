@@ -2,18 +2,12 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Plus,Trash2,ExternalLink,Download,Upload,Pencil,ImagePlus} from 'lucide-react';
 import './PriceTracker.css';
 import BatchProductImport from './BatchProductImport.jsx';
+import {useLocalCollection} from './sync/LocalSync.jsx';
 
-const DB='fashion-price-tracker-v1',STORE='products',META='meta';
 const FILA_ID='fila-airflow-fs264dj01x012091-20261111';
-const FILA_DATE='2026-11-11T12:00:00+09:00';
 const FILA_OFFICIAL_URL='https://www.fila.co.kr/products/1100fs264dj01x012091';
 const naverSearch=(name)=>'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(name||'');
 const youtubeSearch=(name)=>'https://www.youtube.com/results?search_query='+encodeURIComponent(name||'');
-const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,officialUrl:FILA_OFFICIAL_URL,createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
-  {id:'fila-official',shop:'휠라 공식몰',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
-  {id:'fila-ssg',shop:'SSG 신세계백화점 (219,000원부터)',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]},
-  {id:'fila-eql',shop:'한섬 EQL',url:'',price:219000,shipping:0,shippingUnknown:true,referenceOnly:true,history:[{at:FILA_DATE,price:219000,shipping:0}]}
-]});
 const money=n=>Number(n||0).toLocaleString('ko-KR')+'원';
 const today=()=>new Date().toISOString();
 const blankProduct=()=>({id:crypto.randomUUID(),name:'',model:'',color:'',size:'',target:null,sourcePrice:null,offers:[],createdAt:today(),updatedAt:today()});
@@ -29,40 +23,6 @@ const normalizeProductUrl=raw=>{try{
   if(!['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com'].includes(url.hostname)||!match)return null;
   return {url:'https://'+url.hostname.replace(/^m\./,'')+'/'+match[1]+'/products/'+match[2],id:match[2],store:match[1],hint:''};
 }catch{return null}};
-function database(){
-  return new Promise((resolve,reject)=>{
-    const r=indexedDB.open(DB,2);
-    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'});if(!r.result.objectStoreNames.contains(META))r.result.createObjectStore(META)};
-    r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
-  });
-}
-async function dbAction(mode,cb){
-  const db=await database();
-  try{return await new Promise((resolve,reject)=>{
-    const tx=db.transaction(STORE,mode),req=cb(tx.objectStore(STORE));
-    tx.oncomplete=()=>resolve(req?.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
-  })}finally{db.close()}
-}
-async function seedFilaOnce(){
-  const db=await database();
-  try{
-    await new Promise((resolve,reject)=>{
-      const tx=db.transaction([STORE,META],'readwrite');
-      const flag=tx.objectStore(META).get('fila-example-seeded-v1');
-      flag.onsuccess=()=>{
-        if(flag.result)return;
-        const store=tx.objectStore(STORE);
-        const found=store.get(FILA_ID);
-        found.onsuccess=()=>{if(!found.result)store.put(filaSample());tx.objectStore(META).put(true,'fila-example-seeded-v1')};
-      };
-      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
-    });
-  }finally{db.close()}
-}
-const all=()=>dbAction('readonly',s=>s.getAll());
-const write=p=>dbAction('readwrite',s=>s.put(p));
-const writeBatch=rows=>dbAction('readwrite',store=>{let req;for(const row of rows)req=store.put(row);return req});
-const del=id=>dbAction('readwrite',s=>s.delete(id));
 const positive=n=>Number.isFinite(Number(n))&&Number(n)>=0;
 const urlOk=url=>{try{return new URL(url).protocol==='https:'}catch{return false}};
 function normalized(row){
@@ -104,9 +64,10 @@ function ProductThumbnail({product,onUpload,disabled}){
   </div>;
 }
 export default function PriceTracker(){
+  const {read:all,write,writeBatch,remove:del,subscribe}=useLocalCollection('products');
   const [products,setProducts]=useState([]),[form,setForm]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[linkInput,setLinkInput]=useState(''),[linkLoading,setLinkLoading]=useState(false),[linkNotice,setLinkNotice]=useState('');
   const reload=async()=>{const rows=await all();setProducts((rows||[]).map(normalized).filter(Boolean).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))))};
-  useEffect(()=>{seedFilaOnce().then(reload).catch(e=>setError('저장소를 열지 못했어: '+e.message))},[]);
+  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장소를 열지 못했어: '+e.message));refresh();return subscribe(refresh)},[all,subscribe]);
   const safe=async(fn)=>{setBusy(true);setError('');try{await fn()}catch(e){setError('저장 실패: '+e.message)}finally{setBusy(false)}};
   async function saveBatchProducts(entries){
     setBusy(true);setError('');

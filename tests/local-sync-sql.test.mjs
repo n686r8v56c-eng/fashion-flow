@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+const owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
+test('migration, RPC idempotency/conflict checks and RLS work in PostgreSQL',async()=>{
+ const db=new PGlite();
+ await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${owner}'),('${other}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+ const sql=await readFile(new URL('../supabase/local-sync.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+ await db.exec(`set role authenticated;set request.jwt.claim.sub='${owner}'`);
+ const change={collection:'products',item_id:'p',payload:{name:'상품'},deleted:false,base_seq:0,mutation_id:crypto.randomUUID()};
+ const push=async value=>(await db.query('select public.fashion_sync_push($1::jsonb) as result',[JSON.stringify([value])])).rows[0].result[0];
+ const first=await push(change);assert.equal(first.status,'ok');assert.equal((await push(change)).seq,first.seq);
+ const conflict=await push({...change,mutation_id:crypto.randomUUID()});assert.equal(conflict.status,'conflict');assert.equal(conflict.event.payload.name,'상품');
+ const updated=await push({...change,base_seq:first.seq,mutation_id:crypto.randomUUID(),payload:{name:'수정'}});assert.equal(updated.status,'ok');
+ assert.equal((await db.query('select count(*)::int as n from public.fashion_sync_events')).rows[0].n,2);
+ await db.exec(`set request.jwt.claim.sub='${other}'`);assert.equal((await db.query('select count(*)::int as n from public.fashion_sync_events')).rows[0].n,0);
+ await assert.rejects(db.query('insert into public.fashion_sync_events(user_id,collection,item_id,mutation_id) values($1,$2,$3,$4)',[owner,'products','illegal',crypto.randomUUID()]),/row-level security/);
+ await assert.rejects(db.exec('delete from public.fashion_sync_events'),/permission denied/);
+ await db.exec('set role anon');await assert.rejects(db.exec('select * from public.fashion_sync_events'),/permission denied/);
+ await db.close();
+});

@@ -1,13 +1,8 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X} from 'lucide-react';
 import './FashionCollection.css';
+import {useLocalCollection} from './sync/LocalSync.jsx';
 
-const DB='fashion-collection-v1',STORE='links';
-function dbOpen(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-async function query(mode,fn){const db=await dbOpen();try{return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,mode);const req=fn(tx.objectStore(STORE));tx.oncomplete=()=>resolve(req?.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}finally{db.close()}}
-const read=()=>query('readonly',s=>s.getAll());
-const save=x=>query('readwrite',s=>s.put(x));
-const remove=id=>query('readwrite',s=>s.delete(id));
 const canonicalize=raw=>{try{
  const u=new URL(raw.trim());if(u.protocol!=='https:')return null;
  const h=u.hostname.toLowerCase().replace(/^(www\.|m\.)/,'');
@@ -91,9 +86,10 @@ function CollectionCard({item,onUpdate,onDelete}){
  </article>
 }
 export default function FashionCollection({genre='fashion'}){
+ const {read,write:save,remove,subscribe}=useLocalCollection('collection');
  const [url,setUrl]=useState(''),[search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function reload(){setItems((await read()||[]).filter(x=>(x.genre||'fashion')===genre).sort((a,b)=>b.createdAt-a.createdAt))}
- useEffect(()=>{reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message))},[]);
+ useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
  async function add(e){
   e.preventDefault();setError('');setNotice('');
   const parsed=canonicalize(url);
@@ -127,6 +123,6 @@ export default function FashionCollection({genre='fashion'}){
   <div className="collect-list">{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
   {items.length>0&&filtered.length===0&&<p className="collect-empty">검색 결과가 없어.</p>}
-  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram도 제목을 직접 입력할 수 있고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
+  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram도 제목을 직접 입력할 수 있고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 기기에 먼저 저장되고 변경분만 동기화돼.</p>
  </section>
 }
