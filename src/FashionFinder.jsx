@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {ImagePlus,ScanSearch,Download,ExternalLink,Bookmark,Trash2,RotateCcw,Check} from 'lucide-react';
 import './FashionFinder.css';
+import PriceTracker from './PriceTracker.jsx';
 
 const DB='fashion-finder-local-v1';
 const STORE='searches';
@@ -146,5 +147,6 @@ export default function FashionFinder(){
       <button type="button" aria-label="검색 기록 삭제" title="삭제" className="finder-delete" onClick={()=>erase(row.id)}><Trash2 size={16}/></button>
     </div>)}</div>
     {!records.length&&<p className="finder-hint">아직 저장한 검색 기록이 없어.</p>}
+    <PriceTracker/>
   </section>;
 }
