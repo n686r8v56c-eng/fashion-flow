@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil} from 'lucide-react';
+import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X} from 'lucide-react';
 import './FashionCollection.css';
 
 const DB='fashion-collection-v1',STORE='links';
@@ -91,7 +91,7 @@ function CollectionCard({item,onUpdate,onDelete}){
  </article>
 }
 export default function FashionCollection(){
- const [url,setUrl]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [url,setUrl]=useState(''),[search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function reload(){setItems((await read()||[]).sort((a,b)=>b.createdAt-a.createdAt))}
  useEffect(()=>{reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message))},[]);
  async function add(e){
@@ -113,16 +113,20 @@ export default function FashionCollection(){
  }
  async function update(item,patch){try{await save({...item,...patch,updatedAt:Date.now()});await reload()}catch(err){setError('저장 실패: '+err.message)}}
  async function del(item){if(!confirm('이 수집 링크를 삭제할까?'))return;try{await remove(item.id);await reload()}catch(err){setError('삭제 실패: '+err.message)}}
+ const keyword=search.trim().replace(/^#/,'').toLocaleLowerCase();
+ const filtered=keyword?items.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):items;
  return <section className="collect">
   <div className="collect-header"><h1>수집</h1><p>유튜브 · 인스타그램 링크를 모아두는 공간</p></div>
+  <div className="collect-search"><Search size={18}/><input type="search" aria-label="수집 목록 검색" placeholder="제목 · 태그 · 링크 검색" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" aria-label="검색어 지우기" onClick={()=>setSearch('')}><X size={17}/></button>}</div>
   <form className="collect-entry" onSubmit={add}>
    <div><input aria-label="수집할 URL" type="url" required placeholder="유튜브 또는 인스타그램 링크 붙여넣기" value={url} onChange={e=>setUrl(e.target.value)} /><button type="submit" disabled={busy}><Plus size={17}/>{busy?'불러오는 중':'수집'}</button></div>
   </form>
   {error&&<p className="collect-error" role="alert">{error}</p>}
   {notice&&<p className="collect-notice" role="status">{notice}</p>}
-  <div className="collect-counter">수집한 링크 <strong>{items.length}개</strong></div>
-  <div className="collect-list">{items.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
+  <div className="collect-counter">수집한 링크 <strong>{keyword?filtered.length+' / '+items.length:items.length}개</strong></div>
+  <div className="collect-list">{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
+  {items.length>0&&filtered.length===0&&<p className="collect-empty">검색 결과가 없어.</p>}
   <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram도 제목을 직접 입력할 수 있고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
  </section>
 }
