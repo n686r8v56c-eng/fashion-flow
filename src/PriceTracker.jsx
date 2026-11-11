@@ -17,7 +17,18 @@ const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다
 const money=n=>Number(n||0).toLocaleString('ko-KR')+'원';
 const today=()=>new Date().toISOString();
 const blankProduct=()=>({id:crypto.randomUUID(),name:'',model:'',color:'',size:'',target:null,sourcePrice:null,offers:[],createdAt:today(),updatedAt:today()});
-const normalizeProductUrl=raw=>{try{const url=new URL(raw.trim());const match=url.pathname.match(/^\/([a-zA-Z0-9_-]+)\/products\/(\d{4,20})\/?$/);if(url.protocol!=='https:'||!['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com'].includes(url.hostname)||!match)return null;return {url:'https://'+url.hostname.replace(/^m\./,'')+'/'+match[1]+'/products/'+match[2],id:match[2],store:match[1]}}catch{return null}};
+const normalizeProductUrl=raw=>{try{
+  const url=new URL(raw.trim());
+  if(url.protocol!=='https:'||url.username||url.password)return null;
+  if(url.hostname==='search.shopping.naver.com'){
+    const catalog=url.pathname.match(/^\/catalog\/(\d{4,20})\/?$/);
+    if(!catalog)return null;
+    return {url:'https://search.shopping.naver.com/catalog/'+catalog[1],id:catalog[1],store:'네이버 쇼핑 카탈로그',hint:(url.searchParams.get('query')||'').trim().slice(0,180)};
+  }
+  const match=url.pathname.match(/^\/([a-zA-Z0-9_-]+)\/products\/(\d{4,20})\/?$/);
+  if(!['brand.naver.com','m.brand.naver.com','smartstore.naver.com','m.smartstore.naver.com'].includes(url.hostname)||!match)return null;
+  return {url:'https://'+url.hostname.replace(/^m\./,'')+'/'+match[1]+'/products/'+match[2],id:match[2],store:match[1],hint:''};
+}catch{return null}};
 function database(){
   return new Promise((resolve,reject)=>{
     const r=indexedDB.open(DB,2);
@@ -81,7 +92,7 @@ export default function PriceTracker(){
   async function importLink(e){
     e.preventDefault();setError('');setLinkNotice('');
     const parsed=normalizeProductUrl(linkInput);
-    if(!parsed){setError('현재 네이버 브랜드스토어·스마트스토어 상품 링크만 지원해.');return}
+    if(!parsed){setError('네이버 브랜드스토어·스마트스토어·쇼핑 카탈로그 상품 링크만 지원해.');return}
     if(products.some(p=>p.sourceUrl===parsed.url)){
       setError('이 상품 링크는 이미 등록되어 있어.');return;
     }
@@ -95,15 +106,16 @@ export default function PriceTracker(){
       // Save immediately with whatever public title and image metadata was available.
       // Never invent a product name, picture or price when NAVER blocks extraction.
       const extractedName=String(data.title||'').replace(/\s*[:|]\s*네이버.*$/,'').trim().slice(0,180);
+      const suggestedName=extractedName||(parsed.hint||'');
       const imageUrl=urlOk(data.image)?data.image:'';
-      const row={...blankProduct(),name:extractedName||'상품명 확인 필요',needsNameReview:!extractedName,
+      const row={...blankProduct(),name:suggestedName||'상품명 확인 필요',needsNameReview:!extractedName,
         sourceUrl:parsed.url,officialUrl:parsed.url,sourceProductId:parsed.id,sourceStore:parsed.store,
         imageUrl,sourcePrice:null,target:null};
       await write(row);
       await reload();
       setLinkInput('');
       setLinkNotice(extractedName&&imageUrl?'상품명과 사진을 가져와 바로 등록했어. 카드에서 가격을 입력해줘.':
-        '상품 링크는 등록했어. 네이버에서 제공하지 않은 '+[!extractedName?'상품명':'',!imageUrl?'사진':''].filter(Boolean).join('·')+'은 상품 수정에서 직접 확인해줘.');
+        '상품 링크는 등록했어. '+(parsed.hint&&!extractedName?'검색어를 임시 상품명으로 사용했어. 실제 상품명을 확인해줘. ':'')+'정보를 못 읽은 항목('+[!extractedName?'상품명':'',!imageUrl?'사진':''].filter(Boolean).join('·')+')은 상품 수정에서 보완할 수 있어.');
     }catch(err){setError('상품 등록 실패: '+err.message)}
     finally{setLinkLoading(false)}
   }
@@ -137,7 +149,7 @@ export default function PriceTracker(){
     <form className="pt-link-import" onSubmit={importLink}>
       <label htmlFor="pt-import-link">상품 링크로 등록</label>
       <div><input id="pt-import-link" type="url" required inputMode="url" placeholder="네이버 상품 URL 붙여넣기" value={linkInput} onChange={e=>setLinkInput(e.target.value)}/><button type="submit" disabled={linkLoading}>{linkLoading?'조회 중…':'불러오기'}</button></div>
-      <small>상품명·사진만 추출해 바로 등록해. 네이버가 정보를 제공하지 않으면 수정 버튼에서 보완할 수 있어.</small>
+      <small>브랜드스토어·스마트스토어·네이버 쇼핑 카탈로그 지원. 상품명·사진 추출이 제한되면 수정 버튼에서 보완할 수 있어.</small>
     </form>
     {linkNotice&&!form&&<p className="pt-note">{linkNotice}</p>}
     <p className="pt-note">가격은 직접 입력해 저장해. 쇼핑몰 가격과 자동 연동되지 않으며 실제 구매 전 확인이 필요해.</p>
