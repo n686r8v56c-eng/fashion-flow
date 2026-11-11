@@ -3,3 +3,10 @@
 .finder-lens-buttons .finder-primary{min-width:0;padding:12px 5px;gap:5px;font-size:14px}
 .finder-naver{background:#03a95c;border-color:#03a95c}
 @media(max-width:355px){.finder-lens-buttons{grid-template-columns:1fr}}
+
+.finder-keyword-search{border:1px solid #e3d8ec;background:#fbf8ff;border-radius:13px;padding:13px;margin:6px 0 18px}
+.finder-keyword-search label{display:block;color:#6c4d8d;font-size:14px;font-weight:700;margin-bottom:8px}
+.finder-keyword-row{display:flex;gap:8px;align-items:stretch}
+.finder-keyword-row input{flex:1;min-width:0;border:1px solid #d8cae5;border-radius:9px;background:#fff;padding:11px 12px;font-size:16px;color:#342a42}
+.finder-keyword-row button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:9px;padding:10px 13px;background:#8056b1;color:#fff;font-size:13px;font-weight:700;white-space:nowrap}
+.finder-keyword-row input:focus-visible,.finder-keyword-row button:focus-visible{outline:2px solid #aa86ce;outline-offset:2px}
