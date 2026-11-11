@@ -102,6 +102,17 @@ export default function FashionFinder(){
       else window.location.assign('https://lens.google.com/');
     }else if(tab)tab.close();
   }
+  async function naverLens(){
+    // Official NAVER app relay launches the app, but does not promise a direct Smart Lens view.
+    // Open synchronously on tap so popup blockers on iOS do not block the handoff.
+    const tab=window.open('about:blank','_blank');
+    const ok=await prepare(true);
+    if(ok){
+      const destination='https://naverapp.naver.com/default/?version=1';
+      if(tab)tab.location.replace(destination);
+      else window.location.assign(destination);
+    }else if(tab)tab.close();
+  }
   async function reuse(row){
     if(selectedImage)URL.revokeObjectURL(selectedImage);
     const url=URL.createObjectURL(row.blob);setSelectedImage(url);
@@ -110,7 +121,7 @@ export default function FashionFinder(){
   }
   async function erase(id){try{await remove(id);await refresh()}catch(e){setError('기록 삭제 실패: '+e.message)}}
   return <section className="finder">
-    <div className="finder-head"><h1>FASHION FINDER</h1><p>사진에서 원하는 옷을 선택해 Google Lens로 찾아봐.</p></div>
+    <div className="finder-head"><h1>FASHION FINDER</h1><p>사진에서 원하는 옷을 선택해 Google Lens 또는 네이버 스마트렌즈로 찾아봐.</p></div>
     <label className="finder-upload"><ImagePlus size={21}/><span>사진 선택</span><input ref={input} type="file" accept="image/*" onChange={choose}/></label>
     {original?<div className="finder-workspace">
       <p className="finder-hint">사진에서 찾고 싶은 옷을 손가락으로 드래그해 선택해. 전체 사진을 쓰려면 그대로 진행하면 돼.</p>
@@ -122,9 +133,12 @@ export default function FashionFinder(){
         <button type="button" className="finder-secondary" onClick={()=>setSelection({x:0,y:0,w:1,h:1})}><RotateCcw size={16}/> 전체 선택</button>
         <input aria-label="검색 기록 이름" value={title} onChange={e=>setTitle(e.target.value)} placeholder="이 옷 이름"/>
       </div>
-      <button type="button" className="finder-primary" disabled={busy} onClick={lens}><ScanSearch size={18}/>{busy?'사진 준비 중…':'사진 저장 + Google Lens 열기'}<ExternalLink size={15}/></button>
+      <div className="finder-lens-buttons">
+        <button type="button" className="finder-primary" disabled={busy} onClick={lens}><ScanSearch size={18}/>{busy?'준비 중…':'Google Lens'}<ExternalLink size={15}/></button>
+        <button type="button" className="finder-primary finder-naver" disabled={busy} onClick={naverLens}><ScanSearch size={18}/>{busy?'준비 중…':'네이버 스마트렌즈'}<ExternalLink size={15}/></button>
+      </div>
       <button type="button" className="finder-secondary finder-download" disabled={busy} onClick={()=>prepare(false)}><Download size={16}/> 선택 영역만 저장</button>
-      <p className="finder-explain">사진 파일이 기기에 저장되면 Lens 화면에서 업로드해줘. Google Lens에 자동 업로드하거나 검색 결과를 앱으로 가져오지는 않아.</p>
+      <p className="finder-explain">선택한 사진을 먼저 기기에 저장해줘. Google Lens에서는 사진을 업로드하면 돼. 네이버 버튼은 네이버 앱을 열고, 검색창 옆 카메라 아이콘(스마트렌즈)을 눌러 저장한 사진을 선택해줘. 네이버 앱 미설치·브라우저 환경에 따라 앱 열기가 제한될 수 있어. 사진 자동 전달과 검색 결과 앱 내부 표시는 지원하지 않아.</p>
     </div>:<div className="finder-empty">먼저 인스타그램·쇼핑몰·코디 사진을 선택해줘.</div>}
     {error&&<p role="alert" className="finder-error">{error}</p>}
     <div className="finder-record-title"><h2>검색 기록</h2><small>{records.length}개 · 이 기기에만 저장</small></div>
