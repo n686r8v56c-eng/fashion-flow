@@ -2,7 +2,6 @@ import React,{useEffect,useRef,useState} from 'react';
 import {ImagePlus,ScanSearch,Download,ExternalLink,Bookmark,Trash2,RotateCcw,Check} from 'lucide-react';
 import './FashionFinder.css';
 import PriceTracker from './PriceTracker.jsx';
-import StorageManager from './StorageManager.jsx';
 
 const DB='fashion-finder-local-v1';
 const STORE='searches';
@@ -158,7 +157,6 @@ export default function FashionFinder({photoOnly=false}){
         </div>
       </form>
       <PriceTracker/>
-      <StorageManager onPhotosChanged={refresh}/>
     </>}
   </section>;
 }
