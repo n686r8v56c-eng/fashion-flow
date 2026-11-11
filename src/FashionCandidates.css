@@ -1,0 +1,25 @@
+.fashion-candidates{max-width:960px;margin:auto;font-size:16px;color:#29243b}
+.fashion-candidates .candidate-storage,.fashion-candidates .hint,.fashion-candidates .sub{color:#7a718b;font-size:14px;line-height:1.6}
+.fashion-candidates .panel{padding:20px;background:white;border:1px solid #e7e0f0;border-radius:20px;margin:16px 0;min-width:0}
+.fashion-candidates .sectionHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.fashion-candidates h3{font-size:18px;margin:0}
+.fashion-candidates .field{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.fashion-candidates input,.fashion-candidates textarea{box-sizing:border-box;width:100%;min-width:0;border:1px solid #ded5ed;border-radius:12px;background:#fcfaff;color:#29243b;padding:14px;font:inherit;font-size:16px;line-height:1.6}
+.fashion-candidates textarea{resize:vertical;min-height:120px}
+.fashion-candidates button{cursor:pointer;font:inherit;min-height:40px}
+.fashion-candidates .primary{background:#8d6ac6;color:white;border:0;border-radius:12px;padding:12px 20px;font-weight:700}
+.fashion-candidates button:disabled{opacity:.55;cursor:default}
+.fashion-candidates .light{color:#7550ae;background:#f3edf9;border:0;border-radius:10px;padding:8px 12px}
+.fashion-candidates .small{font-size:14px}
+.fashion-candidates .quickTagRow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fashion-candidates .chip,.fashion-candidates .quickTagPreview{display:inline-flex;align-items:center;gap:5px;max-width:100%;overflow-wrap:anywhere;border-radius:20px;padding:8px 12px;border:1px solid #e7dff2;background:#faf7fe;color:#73529d;font-size:14px}
+.fashion-candidates .chip.selected{background:#8d6ac6;color:white;border-color:#8d6ac6}
+.fashion-candidates .quickTagPreview{padding:4px 9px}
+.fashion-candidates .quickPreviewNumber{color:#7a718b;font-size:13px;align-self:center}
+.fashion-candidates .quickNoteTitle{font-size:18px;display:block;overflow-wrap:anywhere;line-height:1.6}
+.fashion-candidates .tagUnverified{background:#f3edf9;color:#806898;padding:5px 10px;border-radius:9px;font-size:13px}
+.fashion-candidates time{display:block;margin-top:14px}
+.fashion-candidates .error{color:#b73659;line-height:1.6}
+.fashion-candidates .empty{text-align:center;padding:24px;line-height:1.8;color:#7a718b}
+.fashion-candidates .srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:600px){.fashion-candidates .panel{padding:16px}.fashion-candidates .primary{width:100%}}
