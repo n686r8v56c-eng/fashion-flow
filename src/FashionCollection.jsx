@@ -24,6 +24,7 @@ const canonicalize=raw=>{try{
  return null;
 }catch{return null}};
 const thumbFor=(row)=>row.manualThumbnail||row.thumbnail||'';
+const parseTags=text=>[...new Set(String(text||'').split(/[,\n#]+/).map(t=>t.trim().replace(/^#+/,'').slice(0,40)).filter(Boolean))].slice(0,20);
 async function resize(file){
  if(!file.type.startsWith('image/'))throw Error('사진 파일만 올릴 수 있어.');
  if(file.size>15*1024*1024)throw Error('15MB 이하 사진을 선택해줘.');
@@ -39,15 +40,17 @@ async function resize(file){
  }finally{URL.revokeObjectURL(url)}
 }
 function CollectionCard({item,onUpdate,onDelete}){
- const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||'');
+ const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||''),[editingTags,setEditingTags]=useState(false),[tagDraft,setTagDraft]=useState((item.tags||[]).join(', '));
  const [thumbFailed,setThumbFailed]=useState(false),fileRef=useRef(null);
  const [localUrl,setLocalUrl]=useState('');
  useEffect(()=>{if(!item.manualThumbnail){setLocalUrl('');return}const u=URL.createObjectURL(item.manualThumbnail);setLocalUrl(u);return()=>URL.revokeObjectURL(u)},[item.manualThumbnail]);
  useEffect(()=>{setTitle(item.title||'')},[item.title]);
+ useEffect(()=>{if(!editingTags)setTagDraft((item.tags||[]).join(', '))},[item.tags,editingTags]);
  useEffect(()=>setThumbFailed(false),[item.thumbnail,item.manualThumbnail]);
  const thumbnail=item.manualThumbnail?localUrl:thumbFor(item);
  async function upload(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;try{await onUpdate(item,{manualThumbnail:await resize(file)})}catch(ex){alert(ex.message)}}
  async function changeTitle(){if(!title.trim())return;await onUpdate(item,{title:title.trim().slice(0,250)});setEdit(false)}
+ async function saveTags(){await onUpdate(item,{tags:parseTags(tagDraft)});setEditingTags(false)}
  return <article className="collect-card">
   <div className="collect-item-main">
    <div className="collect-photo-wrap">
@@ -59,10 +62,18 @@ function CollectionCard({item,onUpdate,onDelete}){
    </div>
    <div className="collect-info">
     <small>{item.platform==='youtube'?'YouTube':'Instagram'}</small>
-    {edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>}
+    {item.platform==='youtube'&&(edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>)}
+    {item.platform==='instagram'&&<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">인스타그램 게시물 보기 <ExternalLink size={13}/></a>}
     <span className="collect-url">{item.url}</span>
+    {item.platform==='instagram'&&(editingTags?<div className="collect-tags-edit">
+      <input aria-label="인스타그램 태그 입력" value={tagDraft} placeholder="패션, 코디, 운동화" onChange={e=>setTagDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();saveTags()}}}/>
+      <button type="button" onClick={saveTags} aria-label="태그 저장"><Check size={16}/> 저장</button>
+    </div>:<div className="collect-tags">
+      {(item.tags||[]).map(tag=><span key={tag}>#{tag}</span>)}
+      <button type="button" onClick={()=>{setTagDraft((item.tags||[]).join(', '));setEditingTags(true)}}><Plus size={14}/>{item.tags?.length?'태그 수정':'태그 추가'}</button>
+    </div>)}
     <div className="collect-actions">
-     <button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>
+     {item.platform==='youtube'&&<button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>}
      <button type="button" onClick={()=>onDelete(item)}><Trash2 size={14}/> 삭제</button>
     </div>
    </div>
@@ -82,11 +93,11 @@ export default function FashionCollection(){
   try{
    let info={};
    try{const res=await fetch('/api/collect-metadata?url='+encodeURIComponent(parsed.url));if(res.ok)info=await res.json()}catch{}
-   const title=String(info.title||'').trim().slice(0,250);
+   const title=parsed.platform==='youtube'?String(info.title||'').trim().slice(0,250):'';
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
-   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,thumbnail:thumb,createdAt:Date.now()});
+   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,createdAt:Date.now()});
    await reload();setUrl('');
-   setNotice(title?'수집했어! 제목이나 사진은 언제든 수정할 수 있어.':'링크를 수집했어. 제목은 수정 버튼으로 입력해줘.');
+   setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 태그를 추가해줘.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
   finally{setBusy(false)}
  }
@@ -102,6 +113,6 @@ export default function FashionCollection(){
   <div className="collect-counter">수집한 링크 <strong>{items.length}개</strong></div>
   <div className="collect-list">{items.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
-  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, Instagram은 접근 제한 시 제목·썸네일을 직접 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
+  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, Instagram은 제목 없이 태그를 직접 붙이고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 이 기기의 IndexedDB에 저장돼.</p>
  </section>
 }
