@@ -51,8 +51,10 @@ function CollectionCard({item,onUpdate,onDelete}){
  return <article className="collect-card">
   <div className="collect-item-main">
    <div className="collect-photo-wrap">
-    {thumbnail&&!thumbFailed?<img src={thumbnail} alt="" loading="lazy" onError={()=>setThumbFailed(true)}/>:<span className="collect-no-photo"><ImagePlus size={19}/> 사진 추가</span>}
-    {item.platform==='instagram'&&<button className="collect-photo-upload" type="button" aria-label="인스타그램 썸네일 수동 등록" onClick={()=>fileRef.current?.click()}><ImagePlus size={14}/></button>}
+    {item.platform==='instagram'?<button className="collect-photo-trigger" type="button" aria-label="인스타그램 썸네일 사진 선택" onClick={()=>fileRef.current?.click()}>
+      {thumbnail&&!thumbFailed?<img src={thumbnail} alt="" loading="lazy" onError={()=>setThumbFailed(true)}/>:<span className="collect-no-photo"><ImagePlus size={19}/> 사진 추가</span>}
+      <span className="collect-photo-upload"><ImagePlus size={14}/></span>
+    </button>:thumbnail&&!thumbFailed?<img src={thumbnail} alt="" loading="lazy" onError={()=>setThumbFailed(true)}/>:<span className="collect-no-photo"><ImagePlus size={19}/> 사진 없음</span>}
     <input ref={fileRef} type="file" accept="image/*" hidden onChange={upload}/>
    </div>
    <div className="collect-info">
