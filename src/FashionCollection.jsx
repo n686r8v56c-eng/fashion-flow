@@ -40,17 +40,26 @@ async function resize(file){
  }finally{URL.revokeObjectURL(url)}
 }
 function CollectionCard({item,onUpdate,onDelete}){
- const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||''),[editingTags,setEditingTags]=useState(false),[tagDraft,setTagDraft]=useState((item.tags||[]).join(', '));
+ const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||''),[editingTags,setEditingTags]=useState(false),[tagDraft,setTagDraft]=useState('');
  const [thumbFailed,setThumbFailed]=useState(false),fileRef=useRef(null);
  const [localUrl,setLocalUrl]=useState('');
  useEffect(()=>{if(!item.manualThumbnail){setLocalUrl('');return}const u=URL.createObjectURL(item.manualThumbnail);setLocalUrl(u);return()=>URL.revokeObjectURL(u)},[item.manualThumbnail]);
  useEffect(()=>{setTitle(item.title||'')},[item.title]);
- useEffect(()=>{if(!editingTags)setTagDraft((item.tags||[]).join(', '))},[item.tags,editingTags]);
  useEffect(()=>setThumbFailed(false),[item.thumbnail,item.manualThumbnail]);
  const thumbnail=item.manualThumbnail?localUrl:thumbFor(item);
  async function upload(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;try{await onUpdate(item,{manualThumbnail:await resize(file)})}catch(ex){alert(ex.message)}}
  async function changeTitle(){if(!title.trim())return;await onUpdate(item,{title:title.trim().slice(0,250)});setEdit(false)}
- async function saveTags(){await onUpdate(item,{tags:parseTags(tagDraft)});setEditingTags(false)}
+ async function addTags(){
+  const next=parseTags(tagDraft);
+  if(!next.length){setEditingTags(false);return}
+  const existing=Array.isArray(item.tags)?item.tags:[];
+  const merged=[...new Set([...existing,...next])].slice(0,20);
+  await onUpdate(item,{tags:merged});
+  setTagDraft('');setEditingTags(false);
+ }
+ async function deleteTag(tag){
+  await onUpdate(item,{tags:(item.tags||[]).filter(x=>x!==tag)});
+ }
  return <article className="collect-card">
   <div className="collect-item-main">
    <div className="collect-photo-wrap">
@@ -65,12 +74,14 @@ function CollectionCard({item,onUpdate,onDelete}){
     {item.platform==='youtube'&&(edit?<div className="collect-title-edit"><input aria-label="수집 제목 수정" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();changeTitle()}}} autoFocus/><button type="button" aria-label="제목 저장" onClick={changeTitle}><Check size={17}/></button></div>:<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">{item.title||'제목 입력 필요'} <ExternalLink size={13}/></a>)}
     {item.platform==='instagram'&&<a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-title">인스타그램 게시물 보기 <ExternalLink size={13}/></a>}
     <span className="collect-url">{item.url}</span>
-    {editingTags?<div className="collect-tags-edit">
-      <input aria-label="태그 입력" value={tagDraft} placeholder="패션, 코디, 운동화" onChange={e=>setTagDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();saveTags()}}}/>
-      <button type="button" onClick={saveTags} aria-label="태그 저장"><Check size={16}/> 저장</button>
-    </div>:<div className="collect-tags">
-      {(item.tags||[]).map(tag=><span key={tag}>#{tag}</span>)}
-      <button type="button" onClick={()=>{setTagDraft((item.tags||[]).join(', '));setEditingTags(true)}}><Plus size={14}/>{item.tags?.length?'태그 수정':'태그 추가'}</button>
+    <div className="collect-tags">
+      {(item.tags||[]).map(tag=><span className="collect-tag-chip" key={tag}>#{tag}<button type="button" aria-label={tag+' 태그 삭제'} onClick={()=>deleteTag(tag)}>×</button></span>)}
+      {!editingTags&&<button type="button" onClick={()=>{setTagDraft('');setEditingTags(true)}}><Plus size={14}/> 태그 추가</button>}
+    </div>
+    {editingTags&&<div className="collect-tags-edit">
+      <input aria-label="태그 입력" value={tagDraft} placeholder="태그 입력 · 쉼표로 여러 개 가능" onChange={e=>setTagDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addTags()};if(e.key==='Escape'){setEditingTags(false);setTagDraft('')}}} autoFocus/>
+      <button type="button" onClick={addTags} aria-label="태그 추가 저장"><Check size={16}/> 추가</button>
+      <button type="button" onClick={()=>{setEditingTags(false);setTagDraft('')}} aria-label="태그 추가 취소">취소</button>
     </div>}
     <div className="collect-actions">
      {item.platform==='youtube'&&<button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>}
