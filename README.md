@@ -35,3 +35,20 @@ React + Vite + Supabase + Cloudflare Pages. 한국어 의류 인벤토리 & 코�
 - 로컬 개발용 `.env`도 포함되어 있지만 `.gitignore`에 의해 Git에는 올라가지 않습니다.
 - Cloudflare Pages 환경변수에 동일한 두 값을 등록할 수도 있습니다.
 - Supabase SQL (`supabase/schema.sql`)은 별도로 SQL Editor에서 실행해야 합니다. 프로젝트 파일에 값을 넣는 것만으로 테이블이 만들어지지는 않습니다.
+
+## Fashion Finder 상품명 일괄 검색·저장
+
+- FASHION → FINDER → **상품명 일괄 검색 · 등록**을 펼쳐서 사용
+- 예: `잔스포츠 노스페이스 휠라 경량패딩` → 세 브랜드의 경량패딩을 각각 검색
+- 정확한 상품명 10개를 줄바꿈해서 넣고 각각의 NAVER 쇼핑 상품 후보를 조회한 후 상품을 확인하고 **한꺼번에 저장**
+- 기존 Price Tracker 상품 목록(IndexedDB)에 저장하며 중복 URL은 건너뜀. 검색 표시 최저가는 실제 판매가로 저장하지 않음.
+- 자동 검색을 사용하려면 [NAVER 개발자센터](https://developers.naver.com/)에서 애플리케이션을 만들고 **검색 API**를 활성화할 것.
+- Cloudflare Pages → Settings → Variables and Secrets에서 다음 변수를 **서버 측 런타임 환경변수**로 설정하고 재배포:
+  - `NAVER_CLIENT_ID`
+  - `NAVER_CLIENT_SECRET` (**Secret으로 설정, VITE_ 접두사 금지**)
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+- 로그인한 사용자의 Supabase 인증을 확인한 후 네이버 검색 API를 호출하며 검색 키는 브라우저로 전송하지 않음.
+- 네이버 API 키 설정 전에는 검색어별 네이버 쇼핑 직접 검색·URL 직접 입력으로 대신 등록 가능.
+- 현재 Price Tracker 저장소는 **이 기기 IndexedDB**이므로 다른 기기 자동 동기화는 되지 않음. JSON 백업을 권장.
+
