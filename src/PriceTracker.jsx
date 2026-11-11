@@ -7,7 +7,6 @@ const DB='fashion-price-tracker-v1',STORE='products',META='meta';
 const FILA_ID='fila-airflow-fs264dj01x012091-20261111';
 const FILA_DATE='2026-11-11T12:00:00+09:00';
 const FILA_OFFICIAL_URL='https://www.fila.co.kr/products/1100fs264dj01x012091';
-const officialLink=p=>p.sourceUrl||p.officialUrl||(p.id===FILA_ID?FILA_OFFICIAL_URL:'');
 const naverSearch=(name)=>'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(name||'');
 const youtubeSearch=(name)=>'https://www.youtube.com/results?search_query='+encodeURIComponent(name||'');
 const filaSample=()=>({id:FILA_ID,name:'휠라 에어플로우 후드 경량 다운',model:'FS264DJ01X012091',color:'GRAY / SILVER',size:'미선택',target:180000,officialUrl:FILA_OFFICIAL_URL,createdAt:FILA_DATE,updatedAt:FILA_DATE,offers:[
@@ -232,10 +231,9 @@ export default function PriceTracker(){
           <button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button>
         </div>
         <details className="pt-link-accordion">
-          <summary>검색 바로가기 <span>네이버 · 상품 페이지 · 유튜브</span></summary>
+          <summary>검색 바로가기 <span>네이버 · 유튜브</span></summary>
           <div className="pt-link-list">
             <a href={naverSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 네이버에서 상품명 검색</a>
-            {officialLink(p)&&<a href={officialLink(p)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> {p.sourceUrl?'원본 상품 페이지':'공식몰'}</a>}
             <a href={youtubeSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 유튜브에서 상품명 검색</a>
             
           </div>
@@ -253,9 +251,7 @@ export default function PriceTracker(){
       {form.sourceUrl&&<div className="pt-import-preview">
         <small>상품번호 {form.sourceProductId} · {form.sourceStore}</small>
         {form.imageUrl&&<img src={form.imageUrl} alt="상품 사진 후보" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}
-        <a href={form.sourceUrl} target="_blank" rel="noopener noreferrer">원본 네이버 상품 확인 ↗</a>
         
-        <small>원본 상품 페이지에서 이름과 사진을 확인해줘.</small>
       </div>}
       <label>상품 사진 URL (선택)<input type="url" placeholder="https://" value={form.imageUrl||''} onChange={e=>setForm(p=>({...p,imageUrl:e.target.value}))}/></label>
       <label>품번 / 모델 코드<input maxLength={140} value={form.model} onChange={e=>setForm(p=>({...p,model:e.target.value}))} placeholder="정확한 품번"/></label>
