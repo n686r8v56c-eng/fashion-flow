@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {Plus,Trash2,ExternalLink,Download,Upload,Copy,Check,Search,Pencil,TrendingDown} from 'lucide-react';
+import {Plus,Trash2,ExternalLink,Download,Upload,Pencil} from 'lucide-react';
 import './PriceTracker.css';
 
 const DB='fashion-price-tracker-v1',STORE='products',META='meta';
@@ -65,7 +65,7 @@ function sparkline(history){
   return <svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-label="저장된 가격 기록 그래프" className="price-spark"><polyline points={pts} fill="none" stroke="#9268bb" strokeWidth="2" vectorEffect="non-scaling-stroke"/></svg>;
 }
 export default function PriceTracker(){
-  const [products,setProducts]=useState([]),[form,setForm]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[copied,setCopied]=useState(''),[linkInput,setLinkInput]=useState(''),[linkLoading,setLinkLoading]=useState(false),[linkNotice,setLinkNotice]=useState('');
+  const [products,setProducts]=useState([]),[form,setForm]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[linkInput,setLinkInput]=useState(''),[linkLoading,setLinkLoading]=useState(false),[linkNotice,setLinkNotice]=useState('');
   const reload=async()=>{const rows=await all();setProducts((rows||[]).map(normalized).filter(Boolean).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))))};
   useEffect(()=>{seedFilaOnce().then(reload).catch(e=>setError('저장소를 열지 못했어: '+e.message))},[]);
   const safe=async(fn)=>{setBusy(true);setError('');try{await fn()}catch(e){setError('저장 실패: '+e.message)}finally{setBusy(false)}};
@@ -75,15 +75,16 @@ export default function PriceTracker(){
     if(form.sourcePrice!==null&&form.sourcePrice!==''&&!positive(form.sourcePrice))throw Error('현재 판매가를 확인해줘.');
     if(form.officialUrl&&!urlOk(form.officialUrl))throw Error('공식몰 URL은 https:// 주소여야 해.');
     if(form.imageUrl&&!urlOk(form.imageUrl))throw Error('사진 URL은 https:// 주소여야 해.');
-    const next={...form,name:form.name.trim(),target:form.target==null||form.target===''?null:Number(form.target),sourcePrice:form.sourcePrice==null||form.sourcePrice===''?null:Number(form.sourcePrice),officialUrl:form.officialUrl??(form.id===FILA_ID?FILA_OFFICIAL_URL:''),updatedAt:today()};
+    const next={...form,name:form.name.trim(),needsNameReview:false,target:form.target==null||form.target===''?null:Number(form.target),sourcePrice:form.sourcePrice==null||form.sourcePrice===''?null:Number(form.sourcePrice),officialUrl:form.officialUrl??(form.id===FILA_ID?FILA_OFFICIAL_URL:''),updatedAt:today()};
     await write(next);setForm(null);await reload();
   })};
   async function importLink(e){
     e.preventDefault();setError('');setLinkNotice('');
     const parsed=normalizeProductUrl(linkInput);
     if(!parsed){setError('현재 네이버 브랜드스토어·스마트스토어 상품 링크만 지원해.');return}
-    const duplicate=products.find(p=>p.sourceUrl===parsed.url);
-    if(duplicate&&!window.confirm('이미 같은 상품 링크가 등록되어 있어. 새 상품으로 추가할까?'))return;
+    if(products.some(p=>p.sourceUrl===parsed.url)){
+      setError('이 상품 링크는 이미 등록되어 있어.');return;
+    }
     setLinkLoading(true);
     try{
       let data={};
@@ -91,26 +92,31 @@ export default function PriceTracker(){
         const response=await fetch('/api/product-metadata?url='+encodeURIComponent(parsed.url),{headers:{Accept:'application/json'}});
         if(response.ok)data=await response.json();
       }catch{}
-      const name=String(data.title||'').replace(/\s*[:|]\s*네이버.*$/,'').trim().slice(0,180);
-      setForm({...blankProduct(),name,sourceUrl:parsed.url,officialUrl:parsed.url,sourceProductId:parsed.id,sourceStore:parsed.store,imageUrl:/^https:\/\//.test(data.image||'')?data.image:'',sourcePrice:data.price??null,sourcePriceCheckedAt:data.price!=null?today():null});
-      setLinkNotice(data.price!=null?'판매가를 자동으로 가져왔어. 상품 옵션에 따른 금액 변동은 확인해줘.':data.ok?'상품 정보 일부만 가져왔어. 판매가는 네이버 페이지에서 확인해줘.':'네이버에서 상품명·가격 추출을 제한했어. 링크와 상품번호는 저장되니, 원본 상품 페이지를 확인해줘.');
+      // Save immediately with whatever public title and image metadata was available.
+      // Never invent a product name, picture or price when NAVER blocks extraction.
+      const extractedName=String(data.title||'').replace(/\\s*[:|]\\s*네이버.*$/,'').trim().slice(0,180);
+      const imageUrl=urlOk(data.image)?data.image:'';
+      const row={...blankProduct(),name:extractedName||'상품명 확인 필요',needsNameReview:!extractedName,
+        sourceUrl:parsed.url,officialUrl:parsed.url,sourceProductId:parsed.id,sourceStore:parsed.store,
+        imageUrl,sourcePrice:null,target:null};
+      await write(row);
+      await reload();
       setLinkInput('');
-    }finally{setLinkLoading(false)}
+      setLinkNotice(extractedName&&imageUrl?'상품명과 사진을 가져와 바로 등록했어. 카드에서 가격을 입력해줘.':
+        '상품 링크는 등록했어. 네이버에서 제공하지 않은 '+[!extractedName?'상품명':'',!imageUrl?'사진':''].filter(Boolean).join('·')+'은 상품 수정에서 직접 확인해줘.');
+    }catch(err){setError('상품 등록 실패: '+err.message)}
+    finally{setLinkLoading(false)}
   }
   const removeProduct=p=>{if(!confirm('이 상품과 가격 기록을 삭제할까?'))return;safe(async()=>{await del(p.id);await reload()})};
-  async function copyModel(model){
-    if(!model){setError('복사할 품번이 없어. 상품 수정에서 품번을 입력해줘.');return}
-    try{
-      if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(model);
-      else{
-        const input=document.createElement('textarea');
-        input.value=model;input.style.position='fixed';input.style.opacity='0';
-        document.body.appendChild(input);input.select();
-        const ok=document.execCommand('copy');input.remove();
-        if(!ok)throw new Error('복사 권한 없음');
-      }
-      setCopied(model);setError('');
-    }catch(e){setError('품번 복사에 실패했어. 브라우저의 클립보드 권한을 확인해줘.')}
+  async function saveInlinePrice(product,raw){
+    const value=raw.trim();
+    if(value!==''&&(!positive(value)||Number(value)>999999999)) {setError('가격은 0원 이상 숫자로 입력해줘.');return}
+    const price=value===''?null:Number(value);
+    if(price===product.sourcePrice)return;
+    await safe(async()=>{
+      await write({...product,sourcePrice:price,updatedAt:today()});
+      await reload();
+    });
   }
   async function exportJson(){await safe(async()=>{
     const data=await all(),blob=new Blob([JSON.stringify({version:1,exportedAt:today(),products:data},null,2)],{type:'application/json'});
@@ -127,21 +133,34 @@ export default function PriceTracker(){
     await reload();
   })};
   return <section className="pt">
-    <div className="pt-heading"><div><h2>PRICE TRACKER</h2><p>상품명으로 네이버 쇼핑 검색</p></div><button type="button" className="pt-main" onClick={()=>setForm(blankProduct())}><Plus size={17}/> 상품 추가</button></div>
+    <div className="pt-heading"><div><h2>PRICE TRACKER</h2><p>상품 링크로 등록하고 가격은 카드에서 바로 수정</p></div><button type="button" className="pt-main" onClick={()=>setForm(blankProduct())}><Plus size={17}/> 상품 추가</button></div>
     <form className="pt-link-import" onSubmit={importLink}>
       <label htmlFor="pt-import-link">상품 링크로 등록</label>
       <div><input id="pt-import-link" type="url" required inputMode="url" placeholder="네이버 상품 URL 붙여넣기" value={linkInput} onChange={e=>setLinkInput(e.target.value)}/><button type="submit" disabled={linkLoading}>{linkLoading?'조회 중…':'불러오기'}</button></div>
-      <small>광고 추적 문구는 제거하고 상품 주소만 저장해. 상품 정보가 안 읽히면 직접 확인해 등록할 수 있어.</small>
+      <small>상품명·사진만 추출해 바로 등록해. 네이버가 정보를 제공하지 않으면 수정 버튼에서 보완할 수 있어.</small>
     </form>
     {linkNotice&&!form&&<p className="pt-note">{linkNotice}</p>}
-    <p className="pt-note">가격은 직접 입력한 기록 또는 최초 참고 가격이야. 네이버 쇼핑 링크는 자동 최저가 확인이 아니라 검색 연결이며, 가격을 자동으로 읽거나 실시간 갱신하지 않아. 결제 전 링크에서 재확인해줘.</p>
+    <p className="pt-note">가격은 직접 입력해 저장해. 쇼핑몰 가격과 자동 연동되지 않으며 실제 구매 전 확인이 필요해.</p>
     <div className="pt-products">{products.map(p=>{
       const sorted=[...p.offers].sort((a,b)=>(a.price+a.shipping)-(b.price+b.shipping));
       const best=sorted[0],hit=best&&p.target!=null&&!best.shippingUnknown&&(best.price+best.shipping)<=p.target;
       return <article className="pt-product" key={p.id}>
-        <div className="pt-product-row">{p.imageUrl&&<img className="pt-product-image" src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}<div className="pt-product-select"><span className="pt-title">{p.name}</span><small>{[p.model,p.color,p.size].filter(Boolean).join(' · ')||'품번·색상·사이즈 미입력'}</small><span className="pt-price-line">{best?<>{best.shippingUnknown?'참고 상품가':'기록된 최저가'} <b>{money(best.price+best.shipping)}</b> · {best.shop}</>:p.sourcePrice!=null?<>등록 당시 참고 가격 <b>{money(p.sourcePrice)}</b></>:'판매가 미등록'}</span><small>목표 {p.target==null?'미설정':money(p.target)} {hit?'· 목표가 이하 ✓':''}</small></div><button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button><button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button><button type="button" className="pt-icon" aria-label="품번 복사" title={copied===p.model?'복사됨':'품번 복사'} onClick={()=>copyModel(p.model)}>{copied===p.model?<Check size={16}/>:<Copy size={16}/>}</button></div>
+        <div className="pt-product-row">
+          {p.imageUrl?<img className="pt-product-image" src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>:<div className="pt-image-missing">사진 없음</div>}
+          <div className="pt-product-select">
+            <span className="pt-title">{p.name}</span>
+            {p.model&&<small>{p.model}</small>}
+            <label className="pt-inline-price">
+              가격 (원)
+              <input key={p.id+'-'+p.updatedAt} aria-label={p.name+' 가격 수정'} type="number" min="0" step="1" inputMode="numeric" placeholder="가격 입력" defaultValue={p.sourcePrice??''} onBlur={e=>saveInlinePrice(p,e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();e.currentTarget.blur()}}}/>
+            </label>
+            {p.target!=null&&<small>목표 {money(p.target)}</small>}
+          </div>
+          <button type="button" className="pt-icon" aria-label="상품 수정" onClick={()=>setForm({...p})}><Pencil size={16}/></button>
+          <button type="button" className="pt-icon" aria-label="상품 삭제" onClick={()=>removeProduct(p)}><Trash2 size={16}/></button>
+        </div>
         <details className="pt-link-accordion">
-          <summary>검색 바로가기 <span>네이버 · 공식몰 · 유튜브</span></summary>
+          <summary>검색 바로가기 <span>네이버 · 상품 페이지 · 유튜브</span></summary>
           <div className="pt-link-list">
             <a href={naverSearch(p.name)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> 네이버에서 상품명 검색</a>
             {officialLink(p)&&<a href={officialLink(p)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> {p.sourceUrl?'원본 상품 페이지':'공식몰'}</a>}
@@ -158,13 +177,13 @@ export default function PriceTracker(){
     {form&&<div className="pt-overlay" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setForm(null)}}><form className="pt-modal" onSubmit={saveProduct}>
       <div className="pt-form-head"><h3>{products.some(p=>p.id===form.id)?'상품 수정':'관심 상품 등록'}</h3><button type="button" onClick={()=>setForm(null)}>닫기</button></div>
       <label>상품명 *<input required maxLength={180} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="예: 휠라 에어플로우 후드 경량 다운"/></label>
-      {form.sourceUrl&&linkNotice&&<p className="pt-note" role="status">{linkNotice}</p>}
+      
       {form.sourceUrl&&<div className="pt-import-preview">
         <small>상품번호 {form.sourceProductId} · {form.sourceStore}</small>
         {form.imageUrl&&<img src={form.imageUrl} alt="상품 사진 후보" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>}
         <a href={form.sourceUrl} target="_blank" rel="noopener noreferrer">원본 네이버 상품 확인 ↗</a>
-        {form.sourcePrice!=null?<small>자동 추출 판매가 {money(form.sourcePrice)} · 옵션별 가격은 원본에서 재확인해줘.</small>:<small>판매가 정보가 없어서 자동 입력하지 않았어.</small>}
-        <small>원본 페이지에서 제품명·품번·색상·사이즈를 확인하고 등록해줘.</small>
+        
+        <small>원본 상품 페이지에서 이름과 사진을 확인해줘.</small>
       </div>}
       <label>상품 사진 URL (선택)<input type="url" placeholder="https://" value={form.imageUrl||''} onChange={e=>setForm(p=>({...p,imageUrl:e.target.value}))}/></label>
       <label>품번 / 모델 코드<input maxLength={140} value={form.model} onChange={e=>setForm(p=>({...p,model:e.target.value}))} placeholder="정확한 품번"/></label>
