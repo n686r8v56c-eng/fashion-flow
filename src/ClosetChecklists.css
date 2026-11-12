@@ -34,3 +34,6 @@
 .closet-checklist-gallery-nav{display:flex;align-items:center;gap:14px;color:white;font-size:15px}
 .closet-checklist-gallery-nav button,.closet-checklist-gallery-cover{background:white;color:#7653a2;border:0;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:700}
 .closet-checklist-gallery-nav button:disabled,.closet-checklist-gallery-cover:disabled{opacity:.55}
+
+/* Center the empty photo placeholder plus sign */
+.closet-checklist-photo-picker>span:not(.closet-checklist-photo-count){position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:24px;font-weight:400;line-height:1;pointer-events:none}
