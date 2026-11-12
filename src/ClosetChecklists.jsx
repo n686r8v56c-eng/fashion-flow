@@ -5,10 +5,11 @@ import {useLocalCollection} from './sync/LocalSync.jsx';
 import './ClosetChecklists.css';
 const parseLine=line=>{
  const text=line.trim();
- // iOS smart punctuation: em dash is a subtask; spaced hyphens are separate markers.
- const match=text.match(/^((?:[-–—−]\s*){1,3})(\S.*)$/u);
+ // Support iOS smart dashes, mixed/spaced markers, and all five depths.
+ // Read the complete marker prefix before the actual task text.
+ const match=text.match(/^((?:[-–—−][ \\t]*)+)([^–—−\\-\\s].*)$/u);
  if(!match)return null;
- const marks=[...match[1]].filter(c=>c==='-'||c==='–'||c==='—'||c==='−');
+ const marks=[...match[1]].filter(c=>'-–—−'.includes(c));
  const level=Math.min(5,marks.reduce((n,c)=>n+(c==='—'?2:1),0));
  return {text:match[2].trim(),level};
 };
