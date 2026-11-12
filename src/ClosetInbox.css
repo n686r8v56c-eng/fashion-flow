@@ -55,3 +55,11 @@
 .closet-inbox .closet-inbox-photo-list.is-gallery{gap:6px}
 .closet-inbox .closet-inbox-photo-list.is-gallery article{border-radius:8px}
 .closet-inbox .closet-inbox-floating-upload{padding:11px 15px;font-size:14px}
+
+/* Multi-photo group cover and viewer */
+.closet-inbox-count{position:absolute;left:5px;top:5px;border-radius:6px;background:#292032bb;color:#fff;font-size:11px;font-weight:700;padding:3px 6px;pointer-events:none}
+.closet-inbox-group-preview{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:min(94vw,680px);max-height:90vh;overflow:auto}
+.closet-inbox-lightbox .closet-inbox-group-preview img{max-width:100%;max-height:70vh;width:auto;height:auto;object-fit:contain}
+.closet-inbox-group-actions{display:flex;align-items:center;justify-content:center;gap:14px;color:#fff;font-size:14px}
+.closet-inbox-group-actions button,.closet-inbox-cover-btn{border:1px solid #e9dff1;border-radius:9px;background:#fff;color:#68458d;padding:9px 12px;font-size:14px;font-weight:650;cursor:pointer}
+.closet-inbox-cover-btn:disabled{opacity:.7;cursor:default}
