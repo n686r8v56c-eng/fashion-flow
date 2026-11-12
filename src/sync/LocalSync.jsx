@@ -36,7 +36,7 @@ async function inspectStorage(){
  const rows=await Promise.all(unique.map(name=>new Promise(resolve=>{let created=false;const request=indexedDB.open(name);request.onupgradeneeded=()=>{created=true;request.transaction.abort()};request.onerror=()=>resolve(null);request.onsuccess=()=>{const db=request.result;if(created){db.close();resolve(null);return}const stores=Array.from(db.objectStoreNames);if(!stores.length){db.close();resolve(null);return}const tx=db.transaction(stores,'readonly');let count=0;stores.forEach(store=>{const req=tx.objectStore(store).count();req.onsuccess=()=>{count+=req.result}});tx.oncomplete=()=>{db.close();resolve({name,count})};tx.onerror=()=>{db.close();resolve(null)}}})));
  return {estimate,rows:rows.filter(Boolean)};
 }
-function SyncStatus({compact=false,onLogout}){
+export function SyncStatus({compact=false,onLogout}){
  const engine=useContext(Context),[status,setStatus]=useState(engine.getStatus()),[details,setDetails]=useState(false),[notice,setNotice]=useState(''),[storageOpen,setStorageOpen]=useState(false),[storage,setStorage]=useState(null),[storageBusy,setStorageBusy]=useState(false);
  async function refreshStorage(){setStorageBusy(true);try{setStorage(await inspectStorage());setNotice('')}catch(e){setNotice('저장공간 조회 실패: '+e.message)}finally{setStorageBusy(false)}}
  useEffect(()=>engine.subscribe(()=>setStatus(engine.getStatus())),[engine]);
