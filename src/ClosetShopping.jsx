@@ -11,11 +11,9 @@ const parseSharedProduct=raw=>{const match=raw.match(/https:\/\/[^\s<>"']+/i);co
 const validUrl=raw=>{try{const u=new URL(raw.trim());return u.protocol==='https:'&&!u.username&&!u.password?u.href:null}catch{return null}};
 export default function ClosetShopping(){
  const {read,write,remove,subscribe}=useLocalCollection('closet-shopping');
- const [lensPhoto,setLensPhoto]=useState(null),[rows,setRows]=useState([]),[query,setQuery]=useState(''),[url,setUrl]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[view,setView]=useState('list'),[selected,setSelected]=useState([]),[showArchived,setShowArchived]=useState(false),[orderOpen,setOrderOpen]=useState(false);
+ const [rows,setRows]=useState([]),[query,setQuery]=useState(''),[url,setUrl]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[view,setView]=useState('list'),[selected,setSelected]=useState([]),[showArchived,setShowArchived]=useState(false),[orderOpen,setOrderOpen]=useState(false);
  const reload=async()=>setRows((await read()).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))));
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError(e.message));refresh();return subscribe(refresh)},[read,subscribe]);
- useEffect(()=>()=>{if(lensPhoto?.preview)URL.revokeObjectURL(lensPhoto.preview)},[lensPhoto]);
- const selectLensPhoto=file=>{if(!file)return;if(!file.type.startsWith('image/')){setError('이미지 파일을 선택해 줘.');return}setError('');setLensPhoto({name:file.name,preview:URL.createObjectURL(file)});};
  const search=site=>{if(query.trim())window.open(searchUrl(query.trim(),site),'_blank','noopener,noreferrer')};
  async function add(e){e.preventDefault();const parsed=parseSharedProduct(url);const link=validUrl(parsed.link);if(!link){setError('https:// 상품 링크를 입력해 줘.');return}if(rows.some(r=>r.url===link)){setError('이미 저장한 링크야.');return}setBusy(true);setError('');try{await write({id:crypto.randomUUID(),url:link,name:parsed.name||'상품명 확인 필요',price:'',createdAt:new Date().toISOString()});setUrl('');await reload()}catch(e){setError('등록 실패: '+e.message)}finally{setBusy(false)}}
  async function updateField(row,field,value){if(field==='price'&&value!==''&&(!/^[0-9]+$/.test(value)||Number(value)>999999999)){setError('가격은 0원 이상 숫자로 입력해 줘.');return}setError('');try{await write({...row,[field]:field==='name'?(value||'상품명 확인 필요'):value,updatedAt:new Date().toISOString()});await reload()}catch(e){setError('수정 실패: '+e.message);await reload()}}
@@ -31,17 +29,13 @@ export default function ClosetShopping(){
  <h1 style={{margin:0}}>검색</h1>
  <div className="cs-search-form">
  <strong>키워드 검색</strong><div className="cs-form-row"><input aria-label="검색 키워드" className="cs-form-input" placeholder="예: 경량패딩" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();search("naver")}}}/></div><div className="cs-form-row" style={{marginTop:8}}><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("naver")}><Search size={17}/> 네이버</button><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("youtube")}><ExternalLink size={17}/> 유튜브</button><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("shopping")}><Search size={17}/> 쇼핑</button></div></div>
- <div className="cs-search-form" aria-label="사진 검색">
- <strong>사진으로 검색</strong>
- <div className="cs-form-row" style={{alignItems:'center',flexWrap:'wrap'}}>
- <label className="primary" style={{display:'inline-flex',alignItems:'center',gap:6,cursor:'pointer',padding:'10px 14px',borderRadius:10}}><ImagePlus size={17}/> 사진 선택<input type="file" accept="image/*" style={{display:'none'}} aria-label="검색할 사진 선택" onChange={e=>{selectLensPhoto(e.target.files?.[0]);e.target.value=''}}/></label>
- {lensPhoto&&<><img src={lensPhoto.preview} alt="선택한 검색 사진" style={{width:66,height:66,objectFit:'cover',borderRadius:9}}/><span style={{fontSize:13,overflowWrap:'anywhere'}}>{lensPhoto.name}</span></>}
+ <div className="cs-search-form" aria-label="이미지 검색 바로가기">
+ <strong>이미지 검색 바로가기</strong>
+ <div className="cs-form-row" style={{flexWrap:'wrap'}}>
+ <a className="primary" href="https://www.google.com/" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> Google Lens</a>
+ <a className="primary" href="https://naverapp.naver.com/default/?version=1" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> 네이버 스마트렌즈</a>
  </div>
- <div className="cs-form-row" style={{marginTop:8,flexWrap:'wrap'}}>
- <a className="primary" href="https://lens.google.com/" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> Google Lens</a>
- <a className="primary" href="https://m.naver.com/" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> 네이버 스마트렌즈</a>
- </div>
- <small className="cs-share-hint">선택한 사진은 이 화면에서 미리보기만 해요. 검색 버튼을 누른 뒤 구글 렌즈 또는 네이버 앱의 렌즈에서 사진을 다시 선택해 주세요. 사진은 서버에 업로드하거나 상품 목록에 저장하지 않아요.</small>
+ <small className="cs-share-hint">Google은 검색창의 카메라 아이콘을, 네이버 앱은 검색창의 렌즈 아이콘을 눌러 사진을 선택해 주세요. 모바일 브라우저에서 렌즈 화면으로 직접 연결하는 공식 링크는 제공되지 않아요.</small>
  </div>
  <form onSubmit={add} className="cs-search-form">
  <strong>상품 링크로 등록</strong><div className="cs-form-row"><textarea aria-label="상품 링크 또는 쿠팡 공유 문구" className="cs-form-input cs-share-input" required rows={3} placeholder={"상품 URL 또는 쿠팡 공유 문구 전체 붙여넣기"} value={url} onChange={e=>setUrl(e.target.value)}/><button className="primary" disabled={busy} type="submit"><Plus size={17}/> 등록</button></div><small className="cs-share-hint">쿠팡 공유 문구를 통째로 붙여넣으면 상품명과 링크를 자동 입력해요. 사진은 상품 카드에서 추가할 수 있어요.</small></form>
