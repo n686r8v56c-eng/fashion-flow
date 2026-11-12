@@ -28,14 +28,6 @@ export default function ClosetShopping(){
  <h1 style={{margin:0}}>검색</h1>
  <div className="cs-search-form">
  <strong>키워드 검색</strong><div className="cs-form-row"><input aria-label="검색 키워드" className="cs-form-input" placeholder="예: 경량패딩" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();search("naver")}}}/></div><div className="cs-form-row" style={{marginTop:8}}><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("naver")}><Search size={17}/> 네이버</button><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("youtube")}><ExternalLink size={17}/> 유튜브</button><button className="primary" type="button" disabled={!query.trim()} onClick={()=>search("shopping")}><Search size={17}/> 쇼핑</button></div></div>
- <div className="cs-search-form" aria-label="이미지 검색 바로가기">
- <strong>이미지 검색 바로가기</strong>
- <div className="cs-form-row" style={{flexWrap:'wrap'}}>
- <a className="primary" href="https://www.google.com/" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> Google Lens</a>
- <a className="primary" href="https://naverapp.naver.com/default/?version=1" target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,textDecoration:'none',padding:'10px 14px',borderRadius:10}}><ExternalLink size={17}/> 네이버 스마트렌즈</a>
- </div>
- <small className="cs-share-hint">Google은 검색창의 카메라 아이콘을, 네이버 앱은 검색창의 렌즈 아이콘을 눌러 사진을 선택해 주세요. 모바일 브라우저에서 렌즈 화면으로 직접 연결하는 공식 링크는 제공되지 않아요.</small>
- </div>
  <form onSubmit={add} className="cs-search-form">
  <strong>상품 링크로 등록</strong><div className="cs-form-row"><textarea aria-label="상품 링크 또는 공유 문구" className="cs-form-input cs-share-input" required rows={3} placeholder={"어떤 사이트든 링크 또는 공유 문구 붙여넣기"} value={url} onChange={e=>setUrl(e.target.value)}/><button className="primary" disabled={busy} type="submit"><Plus size={17}/> 등록</button></div><small className="cs-share-hint">일반·단축·앱 링크와 공유 문구를 등록할 수 있어요. 상품명과 사진은 저장 후 추가·수정할 수 있어요.</small></form>
  {error&&<p role="alert" className="cs-error">{error}<button type="button" aria-label="오류 메시지 닫기" onClick={()=>setError('')}>×</button></p>}
