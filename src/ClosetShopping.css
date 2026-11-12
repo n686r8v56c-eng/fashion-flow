@@ -31,3 +31,6 @@
 .cs-list .cs-details a{font-size:12px}
 .cs-view-toolbar{margin-top:0}
 @media(max-width:380px){.cs-list .cs-photo{width:60px;height:72px}.cs-list .cs-price{width:92px}.cs-form-row>.primary{padding:8px}}
+
+.cs-share-input{resize:vertical;min-height:76px;line-height:1.45;font-family:inherit}
+.cs-share-hint{color:#82738d;font-size:12px;line-height:1.45}
