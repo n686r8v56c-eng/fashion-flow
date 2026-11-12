@@ -878,3 +878,22 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .closet-compact .worn-filter-row{margin-bottom:9px;gap:7px}
 .closet-compact .realization>.heading,.closet-compact .worn-looks>.heading{margin-bottom:10px}
 @media(max-width:600px){.closet-compact .main{padding:14px 12px 90px}}
+
+/* Closet: align visual density and heading scale with Beauty Care */
+.closet-compact{background:#fff}
+.closet-compact .main{max-width:850px;padding:14px 14px 28px}
+.closet-compact .heading{margin-bottom:13px;gap:8px}
+.closet-compact .heading h1,.closet-compact .heading h2{font-size:19px;line-height:1.35;letter-spacing:-.5px}
+.closet-compact .heading .muted{font-size:11px;margin:3px 0}
+.closet-compact .closet-inbox-tabs{margin-bottom:13px;gap:2px;padding:3px;background:#eee8f6;border-radius:9px}
+.closet-compact .closet-inbox-tabs button{min-height:33px;padding:7px 6px;border-radius:7px;font-size:12px}
+.closet-compact .closet-inbox-search{border-radius:9px}
+.closet-compact .closet-inbox-search input{height:38px;font-size:16px}
+.closet-compact .closet-inbox-view-toolbar{font-size:11px;margin-bottom:7px}
+.closet-compact .closet-inbox-view-switch{padding:2px}
+.closet-compact .closet-inbox-view-switch button{padding:5px}
+.closet-compact .closet-inbox-photo-list.is-gallery{gap:7px}
+.closet-compact .closet-inbox-floating-upload{padding:10px 14px;font-size:13px}
+.closet-compact .bottom-nav{box-shadow:none}
+.closet-compact .bottom-nav button{padding:8px 3px 7px;gap:3px;font-size:11px}
+@media(max-width:600px){.closet-compact .main{padding:14px 14px 90px}}
