@@ -71,3 +71,10 @@
 .closet-inbox-preview-tags .closet-inbox-inline-tag{display:flex;gap:6px}
 .closet-inbox-preview-tags input{min-width:0;max-width:180px;padding:7px;border-radius:7px;font-size:16px}
 .closet-inbox-tag-notice{font-size:13px;color:#76539b;margin:4px 0 8px}
+
+.closet-inbox-upload-actions{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(92px + env(safe-area-inset-bottom));z-index:80;display:flex;gap:7px;align-items:center}
+.closet-inbox-upload-choice{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:11px 12px;border-radius:999px;border:1px solid #d9c6e9;background:#fff;color:#7754a3;box-shadow:0 5px 18px #4b326033;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.closet-inbox-upload-choice.primary-choice{background:#8e70c6;border-color:#8e70c6;color:#fff}
+.closet-inbox-upload-choice input{display:none}
+.closet-inbox-upload-choice:has(input:disabled){opacity:.6;pointer-events:none}
+@media(max-width:360px){.closet-inbox-upload-choice{padding:10px 9px;font-size:12px}}
