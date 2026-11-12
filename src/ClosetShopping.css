@@ -34,3 +34,33 @@
 
 .cs-share-input{resize:vertical;min-height:76px;line-height:1.45;font-family:inherit}
 .cs-share-hint{color:#82738d;font-size:12px;line-height:1.45}
+
+.cs-selection-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cs-selection-toolbar>button,.cs-archive-switch button{border:1px solid #e3d6ee;background:#fff;color:#7956a0;border-radius:9px;padding:8px 10px;font-size:13px}
+.cs-archive-switch{display:flex;gap:4px}.cs-archive-switch button.active{background:#eee4f8;font-weight:700}
+.cs-selection-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px;border:1px solid #dac9e7;border-radius:12px;background:#faf6fd}
+.cs-selection-summary span{display:grid;gap:3px;font-size:14px}.cs-selection-summary small{font-size:12px;color:#7e6e8b}
+.cs-selection-summary .primary{display:flex;align-items:center;gap:5px;white-space:nowrap;padding:9px}
+.cs-product{position:relative}.cs-product.cs-selected{outline:2px solid #9471c2}
+.cs-product-actions{display:flex;flex-direction:column;gap:5px;align-items:center;flex:none}
+.cs-product-actions button{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:#f5eefb;color:#8a67aa}
+.cs-select-label{display:grid;place-items:center;width:30px;height:30px}
+.cs-select-label input{width:20px;height:20px;accent-color:#8c66ba}
+.cs-gallery .cs-product-actions{position:absolute;top:4px;right:4px;z-index:2;background:#ffffffdf;border-radius:8px;padding:3px}
+.cs-gallery .cs-product-actions button{width:25px;height:25px}
+.cs-gallery .cs-select-label{width:25px;height:25px}
+.cs-order-overlay{position:fixed;inset:0;z-index:1200;background:#21182c88;display:flex;justify-content:center;align-items:flex-end}
+.cs-order-sheet{width:min(100%,620px);max-height:92dvh;overflow-y:auto;background:#fff;border-radius:22px 22px 0 0;padding:20px 16px 32px;color:#34273f}
+.cs-order-header{display:flex;align-items:center;gap:14px}.cs-order-header h2{font-size:21px;margin:0}
+.cs-order-header button{border:0;background:#f5eefb;color:#8057aa;padding:9px;border-radius:9px;display:flex;align-items:center;gap:5px}
+.cs-order-sheet>p{font-size:13px;color:#82728e;line-height:1.5}
+.cs-order-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #eee5f4}
+.cs-order-item img{width:58px;height:70px;object-fit:cover;border-radius:8px}
+.cs-order-item>div{display:grid;gap:6px;flex:1;min-width:0}
+.cs-order-item strong{font-size:15px;overflow-wrap:anywhere}.cs-order-item span{font-size:15px;color:#7956a0;font-weight:700}
+.cs-order-item a{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#8057aa}
+.cs-order-item>button{border:0;background:transparent;color:#876c9b;font-size:24px}
+.cs-order-total{display:flex;align-items:center;justify-content:space-between;padding:16px 0;font-size:17px}
+.cs-order-total strong{color:#7956a0;font-size:23px}
+.cs-order-sheet .cs-order-warning{color:#ae5563}
+.cs-order-done{width:100%;padding:12px}
