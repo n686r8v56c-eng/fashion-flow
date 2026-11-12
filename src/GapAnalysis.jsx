@@ -1,12 +1,12 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 import {Plus,ImagePlus,Trash2,ExternalLink,Link2,X,Pencil,Copy,ChevronDown,ChevronRight} from 'lucide-react';
 import {supabase,uploadPhoto,photoUrl} from './supabase';
 import {cachedRead,invalidateRead} from './dataCache.js';
 const CATEGORIES=['아우터','상의','하의','원피스','신발','가방','모자','목도리','액세서리','기타'];
 const STATES=['미보유','구매 검토','보유·활용 부족','구매 완료','제외'];
-const normalize=x=>({...x,category:x.category||'기타',links:Array.isArray(x.links)?x.links:(x.url?[{id:x.id+'-original',url:x.url}]:[])});
+const normalize=x=>({...x,preferredLinkIds:Array.isArray(x.preferredLinkIds)?x.preferredLinkIds:[],category:x.category||'기타',links:Array.isArray(x.links)?x.links:(x.url?[{id:x.id+'-original',url:x.url}]:[])});
 export default function GapAnalysis({userId}){
- const [expanded,setExpanded]=useState({}),[editing,setEditing]=useState(null),[selected,setSelected]=useState({}),[items,setItems]=useState([]),[category,setCategory]=useState('전체'),[filter,setFilter]=useState('전체'),[modal,setModal]=useState(false),[name,setName]=useState(''),[newCategory,setNewCategory]=useState('상의'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[linkFor,setLinkFor]=useState(null),[newLink,setNewLink]=useState('');
+ const pressTimer=useRef(null),pressFired=useRef(false);const [expanded,setExpanded]=useState({}),[editing,setEditing]=useState(null),[selected,setSelected]=useState({}),[items,setItems]=useState([]),[category,setCategory]=useState('전체'),[filter,setFilter]=useState('전체'),[modal,setModal]=useState(false),[name,setName]=useState(''),[newCategory,setNewCategory]=useState('상의'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[linkFor,setLinkFor]=useState(null),[newLink,setNewLink]=useState('');
  useEffect(()=>{let live=true;cachedRead(userId,'realizations',async()=>supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle()).then(({data,error})=>{if(!live)return;if(error)throw error;setItems((data?.payload?.trendGaps||[]).map(normalize))}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[userId]);
  useEffect(()=>{let live=true;Promise.all(items.filter(x=>x.photo_path).map(async x=>[x.id,await photoUrl(x.photo_path)])).then(a=>{if(live)setPhotos(Object.fromEntries(a))}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[items]);
  async function save(next){setBusy(true);setError('');try{const {data,error}=await supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle();if(error)throw error;const result=await supabase.from('fashion_realization_data').upsert({user_id:userId,payload:{...(data?.payload||{}),trendGaps:next},updated_at:new Date().toISOString()},{onConflict:'user_id'});if(result.error)throw result.error;await invalidateRead(userId,'realizations');setItems(next);return true}catch(e){setError('저장 실패: '+e.message);return false}finally{setBusy(false)}}
@@ -14,6 +14,9 @@ export default function GapAnalysis({userId}){
  const add=async()=>{if(!name.trim())return;const ok=await save([{id:crypto.randomUUID(),title:name.trim(),category:newCategory,status:'미보유',links:[],photo_path:'',createdAt:new Date().toISOString()},...items]);if(ok){setName('');setModal(false)}};
  const editItem=async()=>{if(!editing?.title.trim())return;const ok=await patch(editing.id,{title:editing.title.trim(),category:editing.category});if(ok)setEditing(null)};
  const addLink=async()=>{const url=newLink.trim();if(!url||!linkFor)return;const item=items.find(x=>x.id===linkFor);if(!item)return;const ok=await patch(linkFor,{links:[...(item.links||[]),{id:crypto.randomUUID(),url}]});if(ok){setNewLink('');setLinkFor(null)}};
+ const stopPress=()=>{if(pressTimer.current){clearTimeout(pressTimer.current);pressTimer.current=null}};
+ useEffect(()=>()=>stopPress(),[]);
+ const startPress=(e,item,link)=>{if(e.pointerType==='mouse'&&e.button!==0)return;stopPress();pressFired.current=false;pressTimer.current=setTimeout(()=>{pressTimer.current=null;pressFired.current=true;const old=item.preferredLinkIds||[];patch(item.id,{preferredLinkIds:old.includes(link.id)?old.filter(id=>id!==link.id):[...old,link.id]})},550)};
  const upload=async(id,file)=>{if(!file)return;setBusy(true);try{const path=await uploadPhoto(file,userId);await patch(id,{photo_path:path})}catch(e){setError(e.message)}finally{setBusy(false)}};
  const fieldStyle={border:'1px solid #e4d5f0',borderRadius:11,padding:'10px 8px',fontSize:16,minWidth:0,background:'#fff'};
  return <section style={{padding:'12px 0'}}><div className="heading"><h1>트렌드 갭분석</h1><span>{items.length}개</span></div>
@@ -31,7 +34,7 @@ export default function GapAnalysis({userId}){
  <button type="button" title="아이템 수정" aria-label="아이템 수정" onClick={()=>setEditing({id:x.id,title:x.title,category:x.category})} style={{border:0,background:'#f0eafa',color:'#7959a9',borderRadius:9,padding:7,flexShrink:0}}><Pencil size={16}/></button><button type="button" aria-label={expanded[x.id]?'접기':'펼치기'} onClick={()=>setExpanded(p=>({...p,[x.id]:!p[x.id]}))} style={{border:0,background:'transparent',color:'#9278b1',padding:3,flexShrink:0}}>{expanded[x.id]?<ChevronDown size={18}/>:<ChevronRight size={18}/>}</button>
  </div></div></div>
  {expanded[x.id]&&<div style={{margin:'7px 0 0 67px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
- {(x.links||[]).map((l,i)=><button key={l.id} type="button" onClick={()=>setSelected(p=>({...p,[x.id]:p[x.id]===l.id?null:l.id}))} style={{border:'1px solid #e4d5f0',borderRadius:9,padding:'8px 11px',background:selected[x.id]===l.id?'#e5d8f6':'#f6f2fa',color:'#7959a9',fontSize:13}}>상품 {i+1}</button>)}
+ {(x.links||[]).map((l,i)=><button key={l.id} type="button" onPointerDown={e=>startPress(e,x,l)} onPointerUp={stopPress} onPointerLeave={stopPress} onPointerCancel={stopPress} onContextMenu={e=>e.preventDefault()} onClick={()=>{if(pressFired.current){pressFired.current=false;return}setSelected(p=>({...p,[x.id]:p[x.id]===l.id?null:l.id}))}} style={{border:'1px solid #e4d5f0',borderRadius:9,padding:'8px 11px',background:(x.preferredLinkIds||[]).includes(l.id)?'#9271c4':selected[x.id]===l.id?'#e5d8f6':'#f6f2fa',color:(x.preferredLinkIds||[]).includes(l.id)?'#fff':'#7959a9',fontSize:13}}>상품 {i+1}</button>)}
  <button type="button" title="상품 링크 추가" aria-label="상품 링크 추가" disabled={busy} onClick={()=>{setLinkFor(x.id);setNewLink('')}} style={{border:0,background:'#f0eafa',color:'#7959a9',borderRadius:9,padding:8}}><Link2 size={18}/></button>
  </div>}
  {expanded[x.id]&&x.links?.some(l=>l.id===selected[x.id])&&(()=>{const l=x.links.find(l=>l.id===selected[x.id]);return <div style={{margin:'7px 0 0 67px',display:'flex',gap:5,flexWrap:'wrap',alignItems:'center'}}>
