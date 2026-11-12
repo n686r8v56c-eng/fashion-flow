@@ -9,7 +9,7 @@ const copy=x=>structuredClone(x);
 function server(){
  const events=[];let fail=false,afterPush=null,pushes=0;
  const client={from(){let owner,cursor=0;return {select(){return this},eq(_,v){owner=v;return this},gt(_,v){cursor=v;return this},order(){return this},async limit(n){if(fail)return {error:{code:'NETWORK',message:'offline'}};return {data:copy(events.filter(x=>x.user_id===owner&&x.seq>cursor).slice(0,n))}}}},async rpc(_, {changes}){
-  if(fail)return {error:{code:'NETWORK',message:'offline'}};pushes++;const results=[];
+  if(fail)return {error:{code:'NETWORK',message:'offline'}};if(changes.some(c=>!['candidates','collection','products'].includes(c.collection)))return {error:{code:'23514',message:'fashion_sync_events_collection_check'}};pushes++;const results=[];
   for(const c of changes){const existing=events.find(x=>x.user_id===OWNER&&x.mutation_id===c.mutation_id);if(existing){results.push({status:'ok',mutation_id:c.mutation_id,seq:existing.seq});continue}
    const latest=events.findLast(x=>x.user_id===OWNER&&x.collection===c.collection&&x.item_id===c.item_id);
    if((latest?.seq||0)!==c.base_seq){results.push({status:'conflict',mutation_id:c.mutation_id,event:copy(latest)});continue}
@@ -57,4 +57,30 @@ test('photos are uploaded once by content hash and fetched once on the second de
  const codec=createAssetCodec(client,OWNER),db=await openLocalDatabase('assets-a'),db2=await openLocalDatabase('assets-b');
  const original={id:'photo',manualThumbnail:new Blob(['hello'],{type:'image/jpeg'})},packed=await codec.pack(original,db);await codec.pack({...original,title:'수정'},db);assert.equal(uploads,1);assert.ok(!JSON.stringify(packed).includes('hello'));
  const restored=await codec.unpack(packed,db2);assert.equal(await restored.manualThumbnail.text(),'hello');await codec.unpack(packed,db2);assert.equal(downloads,1);db.close();db2.close();
+});
+
+test('closet queue survives old server constraints and restores separated collections on a new device',async()=>{
+ const srv=server(),a=await device(srv,'closet-wire-a');
+ const names=['closet-inbox','closet-checklists','closet-inventory-outfits'];
+ for(const name of names)await a.save(name,{id:'same-id',userId:OWNER,title:name,path:OWNER+'/inbox/photo.jpg',tags:['보라']});
+ srv.setFail(true);await a.sync();assert.equal(a.getStatus().pending,3);a.close();
+ const resumed=await device(srv,'closet-wire-a');srv.setFail(false);await resumed.sync();
+ assert.equal(resumed.getStatus().phase,'synced');assert.equal(resumed.getStatus().pending,0);
+ assert.ok(srv.events.every(e=>e.collection==='collection'&&e.item_id.length<=100));
+ const b=await device(srv,'closet-wire-b');await b.sync();
+ for(const name of names){assert.equal((await b.list(name))[0].title,name);assert.deepEqual((await b.list(name))[0].tags,['보라'])}
+ assert.deepEqual(await b.list('collection'),[]);
+ await resumed.save(names[2],{id:'same-id',title:'수정'});await resumed.sync();await b.sync();
+ assert.equal((await b.list(names[2]))[0].title,'수정');
+ await b.remove(names[2],'same-id');await b.sync();await resumed.sync();
+ assert.deepEqual(await resumed.list(names[2]),[]);assert.equal((await resumed.list(names[0])).length,1);
+ resumed.close();b.close();
+});
+test('closet conflict events decode back into the logical collection',async()=>{
+ const srv=server(),a=await device(srv,'closet-conflict-a'),b=await device(srv,'closet-conflict-b'),collection='closet-inventory-outfits';
+ await a.save(collection,{id:'look',title:'초안'});await a.sync();await b.sync();
+ await a.save(collection,{id:'look',title:'기기A'});await b.save(collection,{id:'look',title:'기기B'});
+ await a.sync();await b.sync();assert.equal(b.getStatus().conflicts,1);
+ await b.resolveConflicts();await a.sync();assert.equal((await a.list(collection)).length,2);
+ assert.deepEqual(await a.list('collection'),[]);a.close();b.close();
 });

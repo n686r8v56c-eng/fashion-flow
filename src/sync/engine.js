@@ -1,5 +1,17 @@
 import {openLocalDatabase,transaction,readLegacy} from './localDatabase.js';
 const TABLE='fashion_sync_events';
+// Closet collections share the existing server collection without changing local keys.
+const CLOSET_COLLECTIONS=['closet-inbox','closet-checklists','closet-inventory-outfits'];
+const WIRE_PREFIX='~fashion-closet-v1~';
+function wireKey(collection,id){
+ return CLOSET_COLLECTIONS.includes(collection)?{collection:'collection',item_id:WIRE_PREFIX+collection+'~'+id}:{collection,item_id:id};
+}
+function localEvent(event){
+ if(event?.collection!=='collection'||!event.item_id?.startsWith(WIRE_PREFIX))return event;
+ const rest=event.item_id.slice(WIRE_PREFIX.length),separator=rest.indexOf('~'),collection=rest.slice(0,separator);
+ return separator>0&&CLOSET_COLLECTIONS.includes(collection)?{...event,collection,item_id:rest.slice(separator+1)}:event;
+}
+
 const keyFor=(owner,collection,id)=>JSON.stringify([owner,collection,id]);
 const uid=()=>crypto.randomUUID();
 const clone=value=>structuredClone(value);
@@ -45,7 +57,7 @@ export async function createSyncEngine({client,userId,dbName='fashion-local-sync
   const cursorKey='cursor:'+userId;let cursor=await metaGet(cursorKey)||0;
   while(!stopped){
    const {data,error}=await client.from(TABLE).select('seq,collection,item_id,payload,deleted,mutation_id').eq('user_id',userId).gt('seq',cursor).order('seq').limit(100);if(error)throw error;
-   for(const event of data||[]){if(stopped)return;const payload=event.deleted?{}:await unpack(event.payload,db);await merge(event,payload);cursor=event.seq;await metaPut(cursorKey,cursor)}
+   for(const event of data||[]){if(stopped)return;const payload=event.deleted?{}:await unpack(event.payload,db);await merge(localEvent(event),payload);cursor=event.seq;await metaPut(cursorKey,cursor)}
    if((data||[]).length<100)break;
   }
  }
@@ -53,11 +65,11 @@ export async function createSyncEngine({client,userId,dbName='fashion-local-sync
   const pending=(await all()).filter(row=>row.dirty&&!row.conflict);
   for(let offset=0;offset<pending.length&&!stopped;offset+=20){
    const batch=pending.slice(offset,offset+20),changes=[];
-   for(const row of batch)changes.push({collection:row.collection,item_id:row.id,payload:row.deleted?{}:await pack(row.payload,db),deleted:row.deleted,base_seq:row.seq,mutation_id:row.mutationId});
+   for(const row of batch)changes.push({...wireKey(row.collection,row.id),payload:row.deleted?{}:await pack(row.payload,db),deleted:row.deleted,base_seq:row.seq,mutation_id:row.mutationId});
    if(stopped)return;
    const {data,error}=await client.rpc('fashion_sync_push',{changes});if(error)throw error;
    for(const result of data||[]){const original=batch.find(row=>row.mutationId===result.mutation_id);if(!original)continue;
-    if(result.status==='conflict'){const event=result.event;await merge(event,event.deleted?{}:await unpack(event.payload,db));continue}
+    if(result.status==='conflict'){const event=localEvent(result.event);await merge(event,event.deleted?{}:await unpack(event.payload,db));continue}
     await transaction(db,['records'],'readwrite',tx=>{const store=tx.objectStore('records'),r=store.get(original.key);r.onsuccess=()=>{const current=r.result;if(!current)return;if(current.mutationId===original.mutationId)store.put({...current,seq:result.seq,dirty:false,conflict:undefined});else if(!current.conflict)store.put({...current,seq:result.seq})}});
    }
   }
