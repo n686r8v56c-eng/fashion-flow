@@ -7,6 +7,8 @@ import CosmeticApp from './cosmetic/App.jsx';
 import './CosmeticGenre.css';
 import Realization from './Realization.jsx';
 import GapAnalysis from './GapAnalysis.jsx';
+import ClosetChecklists from './ClosetChecklists.jsx';
+import './ClosetInbox.css';
 import WornLooks from './WornLooks.jsx';
 import FashionCalendar from './FashionCalendar.jsx';
 import FashionWeather from './FashionWeather.jsx';
@@ -20,6 +22,7 @@ import ClosetInbox from './ClosetInbox.jsx';
 import ClosetShopping from './ClosetShopping.jsx';
 import {cachedRead,cacheValue,invalidateRead} from './dataCache.js';
 import {downloadOutfitPng} from './outfitExport.js';
+function ClosetGapTabs({userId}){const [sub,setSub]=useState('gap');return <><div className="closet-inbox-tabs" style={{marginBottom:18}}><button className={sub==='gap'?'active':''} onClick={()=>setSub('gap')}>갭분석</button><button className={sub==='checklist'?'active':''} onClick={()=>setSub('checklist')}>체크리스트</button></div>{sub==='gap'?<GapAnalysis userId={userId}/>:<ClosetChecklists userId={userId}/>}</>}
 const CATEGORIES=['아우터','상의','하의','원피스','신발','가방','모자','목도리','액세서리','기타'];
 const EMPTY={title:'',category:'상의',subcategory:'',color:'',season:'사계절',style:'',brand:'',notes:''};
 const makeElement=(item,offset=0)=>({eid:crypto.randomUUID(),item_id:item.id,x:15+(offset%3)*24,y:8+Math.floor(offset/3)*25,w:30,rot:0,z:offset+1});
@@ -163,7 +166,7 @@ return <LocalSyncProvider key={uid} userId={uid} client={supabase}><div classNam
 {genre!=='closet'&&tab==='finder'&&<FashionFinder key={genre}/> }
 {tab==='collect'&&<FashionCollection key={genre} genre={genre}/> }
 {tab==='shopping'&&<ShoppingWishlist userId={uid} onInventoryAdded={load}/>}
-{genre==='closet'&&tab==='realize'&&<GapAnalysis userId={uid}/>}
+{genre==='closet'&&tab==='realize'&&<ClosetGapTabs userId={uid}/>}
 {tab==='library'&&<><h1>코디 라이브러리</h1><p className="muted">저장한 코디 {outfits.length}개 · 즐겨찾기 {outfits.filter(o=>o.favorite).length}개</p><OutfitGrid outfits={outfits} items={items} urls={urls} onOpen={o=>{setEditor(o);setTab('studio')}}/></>}
 </main>{photoSearchOpen&&<div className="overlay fashion-photo-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setPhotoSearchOpen(false)}}>
  <section className="modal fashion-photo-search-modal" role="dialog" aria-modal="true" aria-label="사진으로 검색" style={{width:'min(96vw,760px)',maxHeight:'90dvh',overflowY:'auto',padding:'16px',boxSizing:'border-box'}}>
