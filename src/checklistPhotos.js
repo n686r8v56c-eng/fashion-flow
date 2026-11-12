@@ -1,0 +1,8 @@
+const NAME='closet-checklist-photos-v1';
+function open(){return new Promise((resolve,reject)=>{const r=indexedDB.open(NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos')};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function run(method,key,value){const db=await open();try{return await new Promise((resolve,reject)=>{const tx=db.transaction('photos',method==='get'?'readonly':'readwrite');const req=method==='put'?tx.objectStore('photos').put(value,key):tx.objectStore('photos')[method](key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.onerror=()=>reject(tx.error)})}finally{db.close()}}
+export const photoKey=(userId,boardId,itemId='cover')=>JSON.stringify([userId,boardId,itemId]);
+export const getChecklistPhoto=key=>run('get',key);
+export const saveChecklistPhoto=(key,blob)=>run('put',key,blob);
+export const deleteChecklistPhoto=key=>run('delete',key);
+export async function compressChecklistPhoto(file){if(!file.type.startsWith('image/'))throw Error('이미지 파일을 선택해 줘.');const url=URL.createObjectURL(file);try{const img=new Image();await new Promise((ok,fail)=>{img.onload=ok;img.onerror=()=>fail(Error('사진을 읽지 못했어.'));img.src=url});const scale=Math.min(1,900/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);return await new Promise((ok,fail)=>cv.toBlob(b=>b?ok(b):fail(Error('사진 처리 실패')),'image/jpeg',.75))}finally{URL.revokeObjectURL(url)}}
