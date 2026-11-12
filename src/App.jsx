@@ -40,10 +40,9 @@ function OutfitColorPicker({userId}){
  return <div style={{borderTop:'1px solid #e9e3ee',paddingTop:18,marginTop:18}}>
  <h3>코디 사진에서 색 추출</h3><p className="sub">사진을 올리고 원하는 옷 부분을 터치하면 색상이 추가돼. 색상은 최대 8개까지 선택할 수 있어.</p>
  <label className="field"><span>코디 사진</span><input type="file" accept="image/*" onChange={loadImage}/></label>
- <div style={{position:'relative',maxWidth:430,margin:'12px auto',display:image?'block':'none',touchAction:'manipulation'}}>
- <canvas ref={canvas} onClick={sample} aria-label="사진을 터치해 색상 추출" style={{display:'block',width:'100%',height:'auto',borderRadius:12,cursor:'crosshair'}}/>
+ <div style={{position:'relative',maxWidth:430,margin:'12px auto',display:'block',touchAction:'manipulation'}}>
+ <canvas ref={canvas} onClick={sample} aria-label="사진을 터치해 색상 추출" style={{display:image?'block':'none',width:'100%',height:'auto',borderRadius:12,cursor:'crosshair'}}/>
  {selected&&<div style={{position:'absolute',left:selected.x+'%',top:selected.y+'%',width:20,height:20,border:'2px solid white',boxShadow:'0 0 0 2px #222',background:selected.hex,borderRadius:'50%',pointerEvents:'none',transform:'translate(-50%,-50%)'}}/>}</div>
- {!image&&<canvas ref={canvas} style={{display:'none'}}/>}
  <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'10px 0'}}>{colors.map((hex,i)=><button key={i} type="button" title="이 색 삭제" onClick={()=>setColors(old=>old.filter((_,j)=>i!==j))} style={{background:hex,width:48,height:48,border:'2px solid #ddd',borderRadius:9}} aria-label={hex+' 삭제'}/>)}</div>
  <label className="field"><span>코디 이름</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="예: 그레이 니트와 브라운 팬츠"/></label>
  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button className="primary" type="button" onClick={save}>코디 팔레트 저장</button><button className="light" type="button" onClick={()=>setColors([])}>색상 초기화</button></div>
