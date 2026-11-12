@@ -1,12 +1,12 @@
 import React,{useEffect,useState} from 'react';
-import {Plus,ImagePlus,Trash2,ExternalLink,Link2,X,Pencil,Copy} from 'lucide-react';
+import {Plus,ImagePlus,Trash2,ExternalLink,Link2,X,Pencil,Copy,ChevronDown,ChevronRight} from 'lucide-react';
 import {supabase,uploadPhoto,photoUrl} from './supabase';
 import {cachedRead,invalidateRead} from './dataCache.js';
 const CATEGORIES=['아우터','상의','하의','원피스','신발','가방','모자','목도리','액세서리','기타'];
 const STATES=['미보유','구매 검토','보유·활용 부족','구매 완료','제외'];
 const normalize=x=>({...x,category:x.category||'기타',links:Array.isArray(x.links)?x.links:(x.url?[{id:x.id+'-original',url:x.url}]:[])});
 export default function GapAnalysis({userId}){
- const [editing,setEditing]=useState(null),[selected,setSelected]=useState({}),[items,setItems]=useState([]),[category,setCategory]=useState('전체'),[filter,setFilter]=useState('전체'),[modal,setModal]=useState(false),[name,setName]=useState(''),[newCategory,setNewCategory]=useState('상의'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[linkFor,setLinkFor]=useState(null),[newLink,setNewLink]=useState('');
+ const [expanded,setExpanded]=useState({}),[editing,setEditing]=useState(null),[selected,setSelected]=useState({}),[items,setItems]=useState([]),[category,setCategory]=useState('전체'),[filter,setFilter]=useState('전체'),[modal,setModal]=useState(false),[name,setName]=useState(''),[newCategory,setNewCategory]=useState('상의'),[busy,setBusy]=useState(false),[error,setError]=useState(''),[photos,setPhotos]=useState({}),[linkFor,setLinkFor]=useState(null),[newLink,setNewLink]=useState('');
  useEffect(()=>{let live=true;cachedRead(userId,'realizations',async()=>supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle()).then(({data,error})=>{if(!live)return;if(error)throw error;setItems((data?.payload?.trendGaps||[]).map(normalize))}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[userId]);
  useEffect(()=>{let live=true;Promise.all(items.filter(x=>x.photo_path).map(async x=>[x.id,await photoUrl(x.photo_path)])).then(a=>{if(live)setPhotos(Object.fromEntries(a))}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[items]);
  async function save(next){setBusy(true);setError('');try{const {data,error}=await supabase.from('fashion_realization_data').select('payload').eq('user_id',userId).maybeSingle();if(error)throw error;const result=await supabase.from('fashion_realization_data').upsert({user_id:userId,payload:{...(data?.payload||{}),trendGaps:next},updated_at:new Date().toISOString()},{onConflict:'user_id'});if(result.error)throw result.error;await invalidateRead(userId,'realizations');setItems(next);return true}catch(e){setError('저장 실패: '+e.message);return false}finally{setBusy(false)}}
@@ -22,22 +22,22 @@ export default function GapAnalysis({userId}){
  <select aria-label="갭 상태 필터" value={filter} onChange={e=>setFilter(e.target.value)} style={fieldStyle}>{['전체',...STATES].map(s=><option key={s} value={s}>{s==='전체'?'갭 상태 전체':s}</option>)}</select>
  <button className="primary" aria-label="아이템 추가" onClick={()=>setModal(true)} style={{background:'#bba8db',borderRadius:12,display:'flex',justifyContent:'center',alignItems:'center'}}><Plus size={22}/></button></div>
  {error&&<p role="alert">{error}</p>}
- {items.filter(x=>(category==='전체'||x.category===category)&&(filter==='전체'||x.status===filter)).map(x=><article key={x.id} style={{padding:'12px 0',borderBottom:'1px solid #e9e3ee'}}>
+ {items.filter(x=>(category==='전체'||x.category===category)&&(filter==='전체'||x.status===filter)).map(x=><article key={x.id} style={{padding:'9px 0',borderBottom:'1px solid #e9e3ee'}}>
  <div style={{display:'flex',gap:9,alignItems:'center'}}>
- <label title="사진 추가" style={{width:65,height:70,flexShrink:0,background:'#f3edf8',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',cursor:'pointer'}}>{photos[x.id]?<img src={photos[x.id]} alt={x.title||'상품 사진'} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<ImagePlus size={22}/>}<input type="file" accept="image/*" style={{display:'none'}} disabled={busy} onChange={e=>{upload(x.id,e.target.files?.[0]);e.target.value=''}}/></label>
+ <label title="사진 추가" style={{width:58,height:58,flexShrink:0,background:'#f3edf8',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',cursor:'pointer'}}>{photos[x.id]?<img src={photos[x.id]} alt={x.title||'상품 사진'} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<ImagePlus size={22}/>}<input type="file" accept="image/*" style={{display:'none'}} disabled={busy} onChange={e=>{upload(x.id,e.target.files?.[0]);e.target.value=''}}/></label>
  <div style={{flex:1,minWidth:0}}><div style={{display:'flex',gap:6,alignItems:'center'}}>
- <strong style={{flex:1,minWidth:0,fontSize:16,overflowWrap:'anywhere'}}>{x.title||'이름 없음'}</strong>
- <select aria-label="갭 상태" value={x.status} disabled={busy} onChange={e=>patch(x.id,{status:e.target.value})} style={{...fieldStyle,width:118,flexShrink:1,fontSize:13,padding:'9px 2px'}}>{STATES.map(s=><option key={s}>{s}</option>)}</select>
- <button type="button" title="아이템 수정" aria-label="아이템 수정" onClick={()=>setEditing({id:x.id,title:x.title,category:x.category})} style={{border:0,background:'#f0eafa',color:'#7959a9',borderRadius:9,padding:8,flexShrink:0}}><Pencil size={17}/></button>
+ <div style={{flex:1,minWidth:0}}><strong style={{display:'block',fontSize:16,overflowWrap:'anywhere'}}>{x.title||'이름 없음'}</strong><small style={{color:'#9484a4'}}>{x.category}</small></div>
+ <select aria-label="갭 상태" value={x.status} disabled={busy} onChange={e=>patch(x.id,{status:e.target.value})} style={{...fieldStyle,width:105,flexShrink:1,fontSize:13,padding:'9px 2px'}}>{STATES.map(s=><option key={s}>{s}</option>)}</select>
+ <button type="button" title="아이템 수정" aria-label="아이템 수정" onClick={()=>setEditing({id:x.id,title:x.title,category:x.category})} style={{border:0,background:'#f0eafa',color:'#7959a9',borderRadius:9,padding:7,flexShrink:0}}><Pencil size={16}/></button><button type="button" aria-label={expanded[x.id]?'접기':'펼치기'} onClick={()=>setExpanded(p=>({...p,[x.id]:!p[x.id]}))} style={{border:0,background:'transparent',color:'#9278b1',padding:3,flexShrink:0}}>{expanded[x.id]?<ChevronDown size={18}/>:<ChevronRight size={18}/>}</button>
  </div></div></div>
- <div style={{margin:'10px 0 0 74px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
- {(x.links||[]).map((l,i)=><button key={l.id} type="button" onClick={()=>setSelected(p=>({...p,[x.id]:p[x.id]===l.id?null:l.id}))} style={{border:'1px solid #e4d5f0',borderRadius:9,padding:'8px 11px',background:(selected[x.id]||x.links[0]?.id)===l.id?'#e5d8f6':'#f6f2fa',color:'#7959a9',fontSize:13}}>상품 {i+1}</button>)}
+ {expanded[x.id]&&<div style={{margin:'7px 0 0 67px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+ {(x.links||[]).map((l,i)=><button key={l.id} type="button" onClick={()=>setSelected(p=>({...p,[x.id]:p[x.id]===l.id?null:l.id}))} style={{border:'1px solid #e4d5f0',borderRadius:9,padding:'8px 11px',background:selected[x.id]===l.id?'#e5d8f6':'#f6f2fa',color:'#7959a9',fontSize:13}}>상품 {i+1}</button>)}
  <button type="button" title="상품 링크 추가" aria-label="상품 링크 추가" disabled={busy} onClick={()=>{setLinkFor(x.id);setNewLink('')}} style={{border:0,background:'#f0eafa',color:'#7959a9',borderRadius:9,padding:8}}><Link2 size={18}/></button>
- </div>
- {x.links?.some(l=>l.id===(selected[x.id]||x.links[0]?.id))&&(()=>{const l=x.links.find(l=>l.id===(selected[x.id]||x.links[0]?.id));return <div style={{margin:'10px 0 0 74px',display:'flex',gap:7,flexWrap:'wrap'}}>
- <a href={l.url} target="_blank" rel="noopener noreferrer" className="light" style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px 10px',borderRadius:9,fontSize:13}}><ExternalLink size={14}/> 링크 열기</a>
- <button type="button" className="light" onClick={async()=>{try{await navigator.clipboard.writeText(l.url)}catch(e){setError('링크 복사 실패: '+e.message)}}} style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px 10px',fontSize:13}}><Copy size={14}/> 링크 복사</button>
- <button type="button" className="light" disabled={busy} onClick={()=>{if(window.confirm('이 상품 링크를 삭제할까?'))patch(x.id,{links:x.links.filter(y=>y.id!==l.id)})}} style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px 10px',fontSize:13}}><Trash2 size={14}/> 링크 삭제</button>
+ </div>}
+ {expanded[x.id]&&x.links?.some(l=>l.id===selected[x.id])&&(()=>{const l=x.links.find(l=>l.id===selected[x.id]);return <div style={{margin:'7px 0 0 67px',display:'flex',gap:5,flexWrap:'wrap',alignItems:'center'}}>
+ <a href={l.url} target="_blank" rel="noopener noreferrer" className="light" aria-label="링크 열기" title="링크 열기" style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px',borderRadius:9,fontSize:13}}><ExternalLink size={16}/></a>
+ <button type="button" className="light" aria-label="링크 복사" title="링크 복사" onClick={async()=>{try{await navigator.clipboard.writeText(l.url)}catch(e){setError('링크 복사 실패: '+e.message)}}} style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px',fontSize:13}}><Copy size={16}/></button>
+ <button type="button" className="light" aria-label="링크 삭제" title="링크 삭제" disabled={busy} onClick={()=>{if(window.confirm('이 상품 링크를 삭제할까?'))patch(x.id,{links:x.links.filter(y=>y.id!==l.id)})}} style={{display:'inline-flex',gap:5,alignItems:'center',padding:'7px 10px',fontSize:13}}><Trash2 size={16}/></button>
  </div>})()}
  </article>)}
  {!items.length&&<p className="empty">+ 버튼으로 필요한 아이템을 추가해 봐.</p>}
