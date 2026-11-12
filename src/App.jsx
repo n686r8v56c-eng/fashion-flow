@@ -20,7 +20,7 @@ import ClosetInbox from './ClosetInbox.jsx';
 import ClosetShopping from './ClosetShopping.jsx';
 import {cachedRead,cacheValue,invalidateRead} from './dataCache.js';
 import {downloadOutfitPng} from './outfitExport.js';
-const CATEGORIES=['아우터','상의','하의','원피스','신발','가방','액세서리','기타'];
+const CATEGORIES=['아우터','상의','하의','원피스','신발','가방','모자','목도리','액세서리','기타'];
 const EMPTY={title:'',category:'상의',subcategory:'',color:'',season:'사계절',style:'',brand:'',notes:''};
 const makeElement=(item,offset=0)=>({eid:crypto.randomUUID(),item_id:item.id,x:15+(offset%3)*24,y:8+Math.floor(offset/3)*25,w:30,rot:0,z:offset+1});
 const message=e=>alert(e?.message||String(e));
