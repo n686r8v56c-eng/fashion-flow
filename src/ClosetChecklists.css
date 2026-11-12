@@ -37,3 +37,12 @@
 
 /* Center the empty photo placeholder plus sign */
 .closet-checklist-photo-picker>span:not(.closet-checklist-photo-count){position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:24px;font-weight:400;line-height:1;pointer-events:none}
+
+/* Five nested checklist depths: compact enough for iPhone and photo/link controls. */
+.closet-checklist-item.closet-checklist-depth-2{margin-left:12px;padding-left:7px;border-left:2px solid #e5d9f1}
+.closet-checklist-item.closet-checklist-depth-3{margin-left:24px;padding-left:7px;border-left:2px solid #d4c0e8}
+.closet-checklist-item.closet-checklist-depth-4{margin-left:36px;padding-left:7px;border-left:2px solid #c9b2e4}
+.closet-checklist-item.closet-checklist-depth-5{margin-left:48px;padding-left:7px;border-left:2px solid #b99ad9}
+.closet-checklist-item.closet-checklist-depth-2 .closet-checklist-item-link{font-size:15px}
+.closet-checklist-item.closet-checklist-depth-3 .closet-checklist-item-link,.closet-checklist-item.closet-checklist-depth-4 .closet-checklist-item-link,.closet-checklist-item.closet-checklist-depth-5 .closet-checklist-item-link{font-size:14px}
+.closet-checklist-item.closet-checklist-depth-4,.closet-checklist-item.closet-checklist-depth-5{min-width:0}
