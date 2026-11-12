@@ -19,3 +19,11 @@
 .closet-checklist-zoom{position:fixed;inset:0;z-index:5000;background:#100b18eb;display:flex;align-items:center;justify-content:center;padding:48px 16px}
 .closet-checklist-zoom img{max-width:100%;max-height:85dvh;object-fit:contain;border-radius:10px}
 .closet-checklist-zoom>button{position:absolute;top:max(20px,env(safe-area-inset-top));right:16px;border:0;border-radius:50%;background:#ffffff33;color:#fff;padding:10px}
+
+.closet-checklist-items .closet-checklist-item>label{flex:0 0 auto;display:flex;align-items:center;margin:0}
+.closet-checklist-item-link{flex:1;min-width:0;text-align:left;display:flex;align-items:center;gap:6px;border:0;background:transparent;padding:5px 0;color:#342c3d;font:inherit;font-size:16px;overflow-wrap:anywhere;cursor:pointer;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.closet-checklist-item-link svg{flex-shrink:0;color:#8e6dbb}
+.closet-checklist-item-link.done{text-decoration:line-through;color:#a99caf}
+.closet-checklist-item.closet-checklist-subtask .closet-checklist-item-link{font-size:15px}
+.closet-checklist-item.closet-checklist-subsubtask .closet-checklist-item-link{font-size:14px}
+.closet-checklist-link-input{width:100%;box-sizing:border-box;border:1px solid #dfd2ed;border-radius:11px;padding:12px;font-size:16px}
