@@ -17,7 +17,8 @@ import FashionCollection from './FashionCollection.jsx';
 import FashionCandidates from './FashionCandidates.jsx';
 import SaverFlow from './SaverFlow.jsx';
 import PlaceAnalysis from './PlaceAnalysis.jsx';
-import {SceneHome,ScenePlaces,ScenePeople,SceneShoot,SceneRealize} from './SceneFlow.jsx';
+import {SceneHome,ScenePlaces,SceneShoot,SceneRealize} from './SceneFlow.jsx';
+import ScenePeopleAnalysis from './ScenePeopleAnalysis.jsx';
 import OutfitAnalysis from './OutfitAnalysis.jsx';
 import ItGirlBookmarks from './ItGirlBookmarks.jsx';
 import {LocalSyncProvider,SyncStatus} from './sync/LocalSync.jsx';
@@ -168,7 +169,7 @@ return <LocalSyncProvider key={uid} userId={uid} client={supabase}><div classNam
 {genre==='fashion'&&tab==='place-analysis'&&<SceneLocation/>}
 {genre==='fashion'&&tab==='scene-home'&&<SceneHome onGo={setTab}/>}
 {genre==='fashion'&&tab==='outfit-analysis'&&<OutfitAnalysis/>}
-{genre==='fashion'&&tab==='scene-people'&&<ScenePeople/>}
+{genre==='fashion'&&tab==='scene-people'&&<ScenePeopleAnalysis/>}
 {genre==='fashion'&&tab==='scene-shoot'&&<SceneShoot/>}
 {genre==='fashion'&&tab==='scene-realize'&&<SceneRealize onGo={setTab}/>}
 {genre==='fashion'&&tab==='itgirl'&&<ItGirlBookmarks userId={uid} onClose={()=>setTab('saver')}/>}
