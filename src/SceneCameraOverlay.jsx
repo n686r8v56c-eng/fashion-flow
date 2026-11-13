@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Camera,CameraOff,RefreshCcw,Download,Share2,ImagePlus,X,Grid2X2} from 'lucide-react';
 import './SceneCameraOverlay.css';
 
@@ -9,6 +10,14 @@ export default function SceneCameraOverlay({reference=''}) {
  const [showGuide,setShowGuide]=useState(true),[showGrid,setShowGrid]=useState(false),[custom,setCustom]=useState('');
  const [capture,setCapture]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const guide=custom||reference;
+ useEffect(()=>{
+  if(!capture)return;
+  const previous=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  const onKey=e=>{if(e.key==='Escape')setCapture('')};
+  document.addEventListener('keydown',onKey);
+  return()=>{document.body.style.overflow=previous;document.removeEventListener('keydown',onKey)};
+ },[capture]);
  const close=useCallback(()=>{streamRef.current?.getTracks().forEach(t=>t.stop());streamRef.current=null;if(videoRef.current){videoRef.current.pause();videoRef.current.srcObject=null}setEnabled(false)},[]);
  useEffect(()=>()=>{streamRef.current?.getTracks().forEach(t=>t.stop());if(urlRef.current)URL.revokeObjectURL(urlRef.current)},[]);
  const start=async(nextFacing=facing)=>{
@@ -48,7 +57,7 @@ export default function SceneCameraOverlay({reference=''}) {
    if(facing==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1)}
    ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
    const data=canvas.toDataURL('image/jpeg',.9);canvas.width=canvas.height=0;
-   setCapture(data);setMessage('촬영했어! 저장하거나 공유해 줘. 촬영 사진은 앱에 자동 저장되지 않아.');
+   setCapture(data);setMessage('');
    setError('');
   }catch(e){setError(e.message||'촬영에 실패했어.')}
  };
@@ -78,7 +87,20 @@ export default function SceneCameraOverlay({reference=''}) {
    <label>사진 상하 위치 <b>{shiftY}%</b><input type="range" min="-40" max="40" step="2" value={shiftY} onChange={e=>setShiftY(Number(e.target.value))}/></label>
    <div className="scene-camera-toolbar"><button type="button" onClick={()=>setShowGuide(x=>!x)}>{showGuide?'가이드 숨기기':'가이드 보이기'}</button><button type="button" onClick={()=>setShowGrid(x=>!x)}><Grid2X2 size={15}/> {showGrid?'격자 끄기':'3×3 격자'}</button></div>
   </div>}
-  {capture&&<div className="scene-camera-capture"><h4>방금 찍은 사진</h4><img src={capture} alt="카메라 촬영 결과"/><p>가이드 사진과 격자는 촬영 이미지에 포함되지 않아.</p><div className="scene-camera-toolbar"><button type="button" onClick={share}><Share2 size={16}/> 사진 앱에 저장·공유</button><button type="button" onClick={download}><Download size={16}/> 파일 다운로드</button><button type="button" onClick={()=>{setCapture('');setMessage('')}}>다시 찍기</button></div></div>}
+  {capture&&createPortal(<div className="scene-camera-review" role="dialog" aria-modal="true" aria-label="촬영 결과 확인">
+   <div className="scene-camera-review-head"><b>촬영 결과</b><button type="button" onClick={()=>{setCapture('');setError('');setMessage('')}} aria-label="촬영 결과 닫기"><X size={23}/></button></div>
+   <div className="scene-camera-review-photo"><img src={capture} alt="방금 촬영한 사진"/></div>
+   <div className="scene-camera-review-bottom">
+    <p>가이드·격자는 사진에 포함되지 않아. 사진은 아직 자동 저장되지 않았어.</p>
+    {error&&<p className="scene-camera-error" role="alert">{error}</p>}
+    {message&&<p className="scene-camera-note" role="status">{message}</p>}
+    <div className="scene-camera-review-actions">
+     <button type="button" className="scene-camera-review-retake" onClick={()=>{setCapture('');setError('');setMessage('')}}><RefreshCcw size={17}/> 다시 찍기</button>
+     <button type="button" className="scene-camera-review-save" onClick={share}><Share2 size={17}/> 사진 저장·공유</button>
+    </div>
+    <button type="button" className="scene-camera-review-download" onClick={download}><Download size={16}/> 파일로 다운로드</button>
+   </div>
+  </div>,document.body)}
   {error&&<p role="alert" className="scene-camera-error">{error}</p>}
   {message&&<p role="status" className="scene-camera-note">{message}</p>}
   <p className="scene-camera-note">카메라 촬영은 AI 호출이나 API 결제 없이 작동해. 영상·촬영 사진은 서버에 전송하지 않고, 결과는 사용자가 사진 앱·파일로 직접 저장해야 해. 카메라는 이 화면을 벗어나면 중단돼. 일부 iOS 브라우저에서는 카메라 권한·저장 메뉴가 다르게 보일 수 있어.</p>
