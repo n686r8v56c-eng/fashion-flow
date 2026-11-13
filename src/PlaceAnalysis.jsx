@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useState} from 'react';
 import {ImagePlus,MapPin,Search,ExternalLink,Trash2} from 'lucide-react';
 import {supabase} from './supabase';
 const field={border:'1px solid #e2d5ed',borderRadius:12,padding:12,fontSize:16,width:'100%',boxSizing:'border-box'};
@@ -9,10 +9,10 @@ async function prepare(file){
  try{
   const img=new Image();img.src=url;
   await new Promise((resolve,reject)=>{if(img.complete&&img.naturalWidth)return resolve();img.onload=resolve;img.onerror=()=>reject(Error('사진을 읽을 수 없어.'))});
-  const scale=Math.min(1,1100/Math.max(img.naturalWidth,img.naturalHeight));
+  const scale=Math.min(1,800/Math.max(img.naturalWidth,img.naturalHeight));
   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
   const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);
-  const image=canvas.toDataURL('image/jpeg',.72);canvas.width=canvas.height=0;
+  const image=canvas.toDataURL('image/jpeg',.58);canvas.width=canvas.height=0;
   if(image.length>2_800_000)throw Error('이미지가 너무 커. 더 작은 사진을 선택해 줘.');
   return image;
  }finally{URL.revokeObjectURL(url)}
@@ -26,10 +26,18 @@ export default function PlaceAnalysis(){
   try{
    const {data:{session}}=await supabase.auth.getSession();
    if(!session?.access_token)throw Error('로그인이 필요해.');
-   const response=await fetch('/api/analyze-location',{method:'POST',headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({image})});
-   const data=await response.json();if(!response.ok)throw Error(data.error||'분석하지 못했어.');
+   let response;
+   try{
+    response=await fetch('/api/analyze-location',{method:'POST',headers:{'content-type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({image}),cache:'no-store'});
+   }catch(networkError){
+    throw Error('서버 연결 실패: 아이폰 브라우저가 요청을 완료하지 못했어. 인터넷 연결이나 Cloudflare Pages 배포 상태를 확인해 줘. ('+(networkError?.message||'네트워크 오류')+')');
+   }
+   const raw=await response.text();
+   let data;try{data=JSON.parse(raw)}catch{throw Error('분석 서버 응답 오류 (HTTP '+response.status+'). Cloudflare Functions 배포·로그를 확인해 줘.');}
+   if(!response.ok)throw Error((data.error||'분석하지 못했어.')+' (HTTP '+response.status+')');
+   if(!data.result)throw Error('AI 분석 결과가 비어 있어. 서버 로그를 확인해 줘.');
    setResult(data.result);
-  }catch(err){setError(err.message)}finally{setBusy(false)}
+  }catch(err){setError(err?.message||'알 수 없는 오류가 발생했어.')}finally{setBusy(false)}
  };
  return <section style={{maxWidth:760,margin:'0 auto',padding:'8px 0 40px',display:'grid',gap:14}}>
   <h2 style={{margin:0}}>AI 장소 분석</h2>
