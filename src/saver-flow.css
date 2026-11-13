@@ -6,3 +6,8 @@
 .saver-photo[data-failed='true']::after{content:'미리보기를 불러올 수 없어. 다운로드 시 다시 확인해 줘.';display:block;padding:24px 12px;color:#866b9a;font-size:13px;text-align:center;background:#f8f6fa}
 
 .saver-cache-refresh{width:100%;margin-top:9px;padding:10px;border:1px solid #e7d9ee;border-radius:10px;background:white;color:#78548f;font-size:13px}
+
+/* Separate iPhone photo-library sharing from regular file downloads. */
+.saver-photo-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:5px;background:#f8f5fc}
+.saver-photo-actions button{min-width:0;padding:10px 5px;font-size:12px;line-height:1.35;border-radius:8px;white-space:normal}
+.saver-photo-actions button:first-child{background:#e5d8f5;color:#67469a}
