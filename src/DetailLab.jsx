@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from './detailLabData.js';
 import './DetailLab.css';
 
-const initial=()=>({refs:[],products:[],details:[],classOverrides:{},schemaVersion:1});
+const initial=()=>({refs:[],products:[],details:[],productAdditions:{},classOverrides:{},schemaVersion:1});
 const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2);
 const validUrl=value=>{try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)?u.href:''}catch{return ''}};
 const dateNow=()=>new Date().toISOString();
@@ -18,7 +18,7 @@ function dbOpen(){
 async function dbGet(key){const db=await dbOpen();try{return await new Promise((res,rej)=>{const req=db.transaction(STORE,'readonly').objectStore(STORE).get(key);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}finally{db.close()}}
 async function dbPut(key,value){const db=await dbOpen();try{await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}finally{db.close()}}
 const mergedRefs=data=>[...REFERENCE_SEEDS,...arrays(data.refs).filter(x=>!REFERENCE_SEEDS.some(s=>s.id===x.id))];
-const mergedProducts=data=>[...PRODUCT_SEEDS,...arrays(data.products).filter(x=>!PRODUCT_SEEDS.some(s=>s.id===x.id))];
+const mergedProducts=data=>[...PRODUCT_SEEDS.map(p=>({...p,features:[...arrays(p.features),...arrays(data.productAdditions?.[p.id])]})),...arrays(data.products).filter(x=>!PRODUCT_SEEDS.some(s=>s.id===x.id))];
 const mergedDetails=data=>[...DETAIL_SEEDS,...arrays(data.details).filter(x=>!DETAIL_SEEDS.some(s=>s.id===x.id))];
 const refOptions=(data,keyword)=>mergedRefs(data).filter(x=>(x.keyword||'경량패딩')===keyword);
 function sourceCount(detail,refs){return refs.filter(r=>arrays(r.details).includes(detail)).length}
@@ -73,7 +73,7 @@ export default function DetailLab({userId}){
   const p={id:id(),keyword,season,title:clean(productForm.title),brand:clean(productForm.brand),referenceId:productForm.referenceId,notes:clean(productForm.notes),features,createdAt:dateNow()};
   commit(x=>({...x,products:[...arrays(x.products),p]}));setProductForm({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
  };
- const addFeature=(productId,feature)=>{if(!clean(feature.detail))return;commit(x=>({...x,products:arrays(x.products).map(p=>p.id===productId?{...p,features:[...arrays(p.features),{...feature}]}:p)}))};
+ const addFeature=(productId,feature)=>{if(!clean(feature.detail))return;commit(x=>PRODUCT_SEEDS.some(p=>p.id===productId)?({...x,productAdditions:{...x.productAdditions,[productId]:[...arrays(x.productAdditions?.[productId]),{...feature}]}}):({...x,products:arrays(x.products).map(p=>p.id===productId?{...p,features:[...arrays(p.features),{...feature}]}:p)}))};
  const addDetail=()=>{if(!clean(detailForm.name)){setNotice('디테일 이름을 입력해 줘.');return}if(details.some(d=>d.name===clean(detailForm.name)&&d.keyword===keyword)){setNotice('이 키워드에 같은 디테일이 있어.');return}
   const d={id:id(),keyword,group:detailForm.group,name:clean(detailForm.name),note:clean(detailForm.note),status:'연구 후보',origin:'사용자 등록',createdAt:dateNow()};
   commit(x=>({...x,details:[...arrays(x.details),d]}));setDetailForm(f=>({...f,name:'',note:''}));
@@ -85,7 +85,7 @@ export default function DetailLab({userId}){
    const newRows={};for(const field of ['refs','products','details'])newRows[field]=incoming[field].filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&!existingIds.has(x.id));
    const n=Object.values(newRows).reduce((sum,list)=>sum+list.length,0);if(!n){setNotice('새로 추가할 항목이 없어. 기존 자료는 유지했어.');return}
    if(!confirm('현재 데이터를 유지하며 신규 '+n+'개 항목을 병합할까?'))return;
-   commit(x=>({...x,refs:[...arrays(x.refs),...newRows.refs],products:[...arrays(x.products),...newRows.products],details:[...arrays(x.details),...newRows.details]}));
+   commit(x=>({...x,refs:[...arrays(x.refs),...newRows.refs],products:[...arrays(x.products),...newRows.products],details:[...arrays(x.details),...newRows.details],productAdditions:{...x.productAdditions,...Object.fromEntries(Object.entries(incoming.productAdditions||{}).map(([id,features])=>[id,[...arrays(x.productAdditions?.[id]),...arrays(features)]]))}}));
   }catch(err){setNotice('가져오기 실패: '+err.message)}finally{setImporting(false)}
  };
  const prompt=composePrompt(keyword,currentProducts,picked,format);
@@ -108,7 +108,7 @@ export default function DetailLab({userId}){
   </div>}
   {tab==='상품 분석'&&<div className="dl-panel">
    <div className="dl-toolbar"><h3>{keyword} · 상품 카드</h3><span>{currentProducts.length}개</span></div>
-   {currentProducts.map(p=><ProductCard key={p.id} product={p} reference={refs.find(r=>r.id===p.referenceId)} editable={p.id.startsWith('sample-')===false} onAdd={f=>addFeature(p.id,f)} />)}
+   {currentProducts.map(p=><ProductCard key={p.id} product={p} reference={refs.find(r=>r.id===p.referenceId)} editable={true} onAdd={f=>addFeature(p.id,f)} />)}
    <div className="dl-form"><h4>+ 상품 카드 생성</h4><label>상품명<input value={productForm.title} onChange={e=>setProductForm(f=>({...f,title:e.target.value}))}/></label><label>브랜드<input value={productForm.brand} onChange={e=>setProductForm(f=>({...f,brand:e.target.value}))}/></label><label>연결 레퍼런스<select value={productForm.referenceId} onChange={e=>setProductForm(f=>({...f,referenceId:e.target.value}))}><option value="">선택 안 함</option>{currentRefs.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</select></label><label>디테일<input value={productForm.detail} onChange={e=>setProductForm(f=>({...f,detail:e.target.value}))} placeholder="예: 이중 지퍼"/></label><label>관찰 사실<textarea rows={2} value={productForm.observation} onChange={e=>setProductForm(f=>({...f,observation:e.target.value}))}/></label><label>진행자 평가<input value={productForm.evaluation} onChange={e=>setProductForm(f=>({...f,evaluation:e.target.value}))}/></label><label>소비자 가치 가설<input value={productForm.value} onChange={e=>setProductForm(f=>({...f,value:e.target.value}))}/></label><label>타임스탬프<input value={productForm.time} onChange={e=>setProductForm(f=>({...f,time:e.target.value}))} placeholder="예: 01:15"/></label><label>메모<input value={productForm.notes} onChange={e=>setProductForm(f=>({...f,notes:e.target.value}))}/></label><button onClick={addProduct}>상품 카드 저장</button></div>
   </div>}
   {tab==='디테일 사전'&&<div className="dl-panel">
