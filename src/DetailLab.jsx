@@ -1,0 +1,131 @@
+import React,{useEffect,useMemo,useState} from 'react';
+import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from './detailLabData.js';
+import './DetailLab.css';
+
+const initial=()=>({refs:[],products:[],details:[],classOverrides:{},schemaVersion:1});
+const id=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2);
+const validUrl=value=>{try{const u=new URL(value);return ['http:','https:'].includes(u.protocol)?u.href:''}catch{return ''}};
+const dateNow=()=>new Date().toISOString();
+const clean=v=>String(v??'').trim();
+const arrays=v=>Array.isArray(v)?v:[];
+const DB_NAME='fashion-detail-lab-v1',STORE='userData';
+function dbOpen(){
+ return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);
+  request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(STORE))request.result.createObjectStore(STORE)};
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+}
+async function dbGet(key){const db=await dbOpen();try{return await new Promise((res,rej)=>{const req=db.transaction(STORE,'readonly').objectStore(STORE).get(key);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}finally{db.close()}}
+async function dbPut(key,value){const db=await dbOpen();try{await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}finally{db.close()}}
+const mergedRefs=data=>[...REFERENCE_SEEDS,...arrays(data.refs).filter(x=>!REFERENCE_SEEDS.some(s=>s.id===x.id))];
+const mergedProducts=data=>[...PRODUCT_SEEDS,...arrays(data.products).filter(x=>!PRODUCT_SEEDS.some(s=>s.id===x.id))];
+const mergedDetails=data=>[...DETAIL_SEEDS,...arrays(data.details).filter(x=>!DETAIL_SEEDS.some(s=>s.id===x.id))];
+const refOptions=(data,keyword)=>mergedRefs(data).filter(x=>(x.keyword||'경량패딩')===keyword);
+function sourceCount(detail,refs){return refs.filter(r=>arrays(r.details).includes(detail)).length}
+function clickDownload(name,data){const file=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function composePrompt(keyword,products,detailNames,format){
+ const lines=products.map(p=>'- '+p.title+' ('+(p.brand||'브랜드 미확인')+'): '+arrays(p.features).filter(f=>detailNames.includes(f.detail)).map(f=>f.detail+' / 영상 관찰: '+f.observation+' / 평가: '+f.evaluation+' / 소비자 가치 가설: '+f.value).join('; ')).join('\n');
+ return [
+  '당신은 패션 상품 분석과 소비자 셀링 콘텐츠를 연결하는 콘텐츠 기획자입니다.',
+  '아래 상품 디테일은 스크립트에서 언급된 관찰·주관적 평가를 정리한 연구 기록입니다. 공식 제품 사양, 실제 성능, 사용자 사용 경험이 독립적으로 검증되었다고 간주하지 마세요.',
+  '카피 시뮬레이션은 판매 준비가 끝난 브랜드의 소비자 대상 문체로 작성하되, 기획자가 만들고 싶다고 말하거나 소비자에게 개발 의견을 묻는 문체는 사용하지 마세요.',
+  '상품명·가격·성능·소재·효능·협찬 여부·공식 인증 등 확인되지 않은 내용을 사실로 지어내지 마세요. 미검증 표시는 판매 카피 본문 밖에 둡니다.',
+  '',
+  '상품 키워드: '+keyword,'콘텐츠 형식: '+format,
+  '선택된 디테일: '+(detailNames.join(', ')||'없음'),
+  '상품 카드별 관찰·평가:',lines||'(선택된 제품 없음)',
+  '',
+  '1. 디테일 → 관찰된 변화 → 소비자 가치 → 설득 표현을 연결한 요약표를 만드세요.',
+  '2. 선택한 형식에 적합한 완성형 콘텐츠 초안을 작성하세요.',
+  '3. 실제 시연이 필요하다면 촬영 액션을 별도 정리하세요.',
+  '4. 영상 속 주관적 의견과 확인된 구조적 특징, 아직 미확인인 주장을 분리하세요.',
+  '5. 마지막에 게시 전 확인할 상품 사실만 간단히 적으세요.'
+ ].join('\n');
+}
+const EXAMPLE_SEASON='겨울',EXAMPLE_KEYWORD='경량패딩';
+export default function DetailLab({userId}){
+ const [tab,setTab]=useState('키워드');
+ const [season,setSeason]=useState(EXAMPLE_SEASON),[group,setGroup]=useState('전체'),[keyword,setKeyword]=useState(EXAMPLE_KEYWORD),[term,setTerm]=useState('');
+ const [data,setData]=useState(initial),[ready,setReady]=useState(false),[notice,setNotice]=useState('');
+ const [refForm,setRefForm]=useState({title:'',url:'',type:'착장·비교 리뷰',notes:'',details:''});
+ const [productForm,setProductForm]=useState({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
+ const [detailForm,setDetailForm]=useState({group:'컬러·배색',name:'',note:''});
+ const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
+ const key='user:'+userId;
+ useEffect(()=>{let active=true;setReady(false);setData(initial());dbGet(key).then(saved=>{if(active){setData(saved&&typeof saved==='object'?{...initial(),...saved}:initial());setReady(true)}}).catch(e=>{if(active){setNotice('로컬 저장소를 읽지 못했어: '+e.message);setReady(true)}});return()=>{active=false}},[key]);
+ const commit=fn=>{if(!ready){setNotice('데이터 읽기를 완료한 뒤 다시 시도해 줘.');return}const next=fn(data);dbPut(key,next).then(()=>{setData(next);setNotice('이 기기의 DETAIL LAB에 저장했어. JSON 백업도 권장해.')}).catch(e=>setNotice('저장 실패: '+e.message))};
+ const keywords=KEYWORDS.filter(x=>x.season===season);
+ const filtered=keywords.filter(x=>(group==='전체'||(data.classOverrides?.[x.id]||x.group)===group)&&x.keyword.includes(term));
+ const activeRows=KEYWORDS.filter(x=>x.keyword===keyword);
+ const refs=mergedRefs(data),products=mergedProducts(data),details=mergedDetails(data);
+ const currentRefs=refs.filter(r=>(r.keyword||'경량패딩')===keyword);
+ const currentProducts=products.filter(p=>p.keyword===keyword);
+ const currentDetails=details.filter(d=>d.keyword===keyword||!d.keyword);
+ const candidate=useMemo(()=>new Set([...currentProducts.flatMap(p=>arrays(p.features).map(f=>f.detail)),...currentRefs.flatMap(r=>arrays(r.details))]),[data,keyword]);
+ const options=Array.from(candidate);
+ const selectKeyword=x=>{setKeyword(x);setTab('레퍼런스');setPicked([]);setProductForm(f=>({...f,detail:''}))};
+ const addReference=()=>{if(!clean(refForm.title)){setNotice('영상 제목을 입력해 줘.');return}if(refForm.url&&!validUrl(refForm.url)){setNotice('영상 URL을 확인해 줘.');return}
+  const r={id:id(),keyword,title:clean(refForm.title),url:refForm.url?validUrl(refForm.url):'',type:refForm.type,notes:refForm.notes,source:'사용자 등록',details:refForm.details.split(',').map(clean).filter(Boolean),status:'등록·분석 대기',createdAt:dateNow()};
+  commit(x=>({...x,refs:[...arrays(x.refs),r]}));setRefForm({title:'',url:'',type:'착장·비교 리뷰',notes:'',details:''});
+ };
+ const addProduct=()=>{if(!clean(productForm.title)){setNotice('상품명을 입력해 줘.');return}
+  const features=clean(productForm.detail)?[{detail:clean(productForm.detail),observation:clean(productForm.observation),evaluation:clean(productForm.evaluation),value:clean(productForm.value),time:clean(productForm.time)}]:[];
+  const p={id:id(),keyword,season,title:clean(productForm.title),brand:clean(productForm.brand),referenceId:productForm.referenceId,notes:clean(productForm.notes),features,createdAt:dateNow()};
+  commit(x=>({...x,products:[...arrays(x.products),p]}));setProductForm({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
+ };
+ const addFeature=(productId,feature)=>{if(!clean(feature.detail))return;commit(x=>({...x,products:arrays(x.products).map(p=>p.id===productId?{...p,features:[...arrays(p.features),{...feature}]}:p)}))};
+ const addDetail=()=>{if(!clean(detailForm.name)){setNotice('디테일 이름을 입력해 줘.');return}if(details.some(d=>d.name===clean(detailForm.name)&&d.keyword===keyword)){setNotice('이 키워드에 같은 디테일이 있어.');return}
+  const d={id:id(),keyword,group:detailForm.group,name:clean(detailForm.name),note:clean(detailForm.note),status:'연구 후보',origin:'사용자 등록',createdAt:dateNow()};
+  commit(x=>({...x,details:[...arrays(x.details),d]}));setDetailForm(f=>({...f,name:'',note:''}));
+ };
+ const handleFile=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;if(file.size>5*1024*1024){setNotice('5MB 이하 JSON 백업만 가져올 수 있어.');return}
+  try{const source=JSON.parse(await file.text());if(source.format!=='fashion-detail-lab-v1'||!source.payload||typeof source.payload!=='object')throw Error('DETAIL LAB v1 백업 파일만 지원해.');
+   const incoming=source.payload;if(!['refs','products','details'].every(field=>Array.isArray(incoming[field])))throw Error('백업 항목 구조가 올바르지 않아.');
+   const existingIds=new Set([...refs,...products,...details].map(x=>x.id));
+   const newRows={};for(const field of ['refs','products','details'])newRows[field]=incoming[field].filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&!existingIds.has(x.id));
+   const n=Object.values(newRows).reduce((sum,list)=>sum+list.length,0);if(!n){setNotice('새로 추가할 항목이 없어. 기존 자료는 유지했어.');return}
+   if(!confirm('현재 데이터를 유지하며 신규 '+n+'개 항목을 병합할까?'))return;
+   commit(x=>({...x,refs:[...arrays(x.refs),...newRows.refs],products:[...arrays(x.products),...newRows.products],details:[...arrays(x.details),...newRows.details]}));
+  }catch(err){setNotice('가져오기 실패: '+err.message)}finally{setImporting(false)}
+ };
+ const prompt=composePrompt(keyword,currentProducts,picked,format);
+ const copyPrompt=async()=>{try{await navigator.clipboard.writeText(prompt);setNotice('AI 지시문을 복사했어.')}catch{setDraft(prompt);setNotice('복사가 제한돼 지시문을 아래에 표시했어.')}};
+ return <section className="dl-root">
+  <div className="dl-heading"><div><h2>DETAIL LAB</h2><p>시즌 키워드 → 롱폼 레퍼런스 → 상품별 디테일 → 설득 역조합</p></div><span className="dl-pill">연구 1차</span></div>
+  <div className="dl-status"><strong>Market Flow 원본 200개</strong><span>봄 50 · 여름 50 · 가을 50 · 겨울 50</span><small>정적 키워드 스냅샷 · 실시간 동기화 아님 · 로컬 IndexedDB 저장</small></div>
+  <nav className="dl-tabs" aria-label="DETAIL LAB 탭">{['키워드','레퍼런스','상품 분석','디테일 사전','역조합'].map(t=><button type="button" key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+  {tab==='키워드'&&<div className="dl-panel">
+   <div className="dl-row dl-season">{SEASONS.map(s=><button key={s} className={season===s?'selected':''} onClick={()=>{setSeason(s);setGroup('전체')}}>{s} · 50</button>)}</div>
+   <div className="dl-filters"><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="키워드 검색"/><select aria-label="대분류" value={group} onChange={e=>setGroup(e.target.value)}><option>전체</option>{GROUPS.map(g=><option key={g}>{g}</option>)}</select></div>
+   <p className="dl-muted">대분류는 수정 가능한 분석용 분류야. 원본 키워드는 삭제하거나 변경하지 않아.</p>
+   <div className="dl-list">{filtered.map(x=>{const refN=refs.filter(r=>(r.keyword||'경량패딩')===x.keyword).length;return <div className="dl-key" key={x.id}><button type="button" onClick={()=>selectKeyword(x.keyword)}><strong>{x.keyword}</strong><small>{refN}/3편 · {refN>=3?'스크립트 확보':'분석 대기'}</small></button><select aria-label={x.keyword+' 대분류'} value={data.classOverrides?.[x.id]||x.group} onChange={e=>commit(d=>({...d,classOverrides:{...d.classOverrides,[x.id]:e.target.value}}))}>{GROUPS.map(g=><option key={g}>{g}</option>)}</select></div>})}</div>
+   {!filtered.length&&<p className="dl-muted">해당 조건의 키워드가 없어.</p>}
+  </div>}
+  {tab==='레퍼런스'&&<div className="dl-panel">
+   <div className="dl-toolbar"><h3>{keyword} · 롱폼 분석</h3><span>{currentRefs.length}/3편 확보</span></div>
+   {currentRefs.map(r=><article className="dl-card" key={r.id}><div className="dl-between"><strong>{r.title}</strong><span className="dl-pill">{r.status||'등록'}</span></div><p>{r.type}</p><small>{r.source||'사용자 등록'} · {r.url?<a target="_blank" rel="noopener noreferrer" href={r.url}>영상 열기</a>:'영상 URL 미확인'}</small><p>{r.notes}</p><div className="dl-tags">{arrays(r.details).map(t=><span key={t}>{t}</span>)}</div><button type="button" onClick={()=>{setTab('상품 분석');setProductForm(f=>({...f,referenceId:r.id}))}}>상품 카드로 분석 →</button></article>)}
+   <div className="dl-form"><h4>+ 레퍼런스 추가</h4><label>영상 제목<input value={refForm.title} onChange={e=>setRefForm(f=>({...f,title:e.target.value}))}/></label><label>영상 URL (선택)<input value={refForm.url} onChange={e=>setRefForm(f=>({...f,url:e.target.value}))} placeholder="https://youtu.be/..."/></label><label>분석 유형<select value={refForm.type} onChange={e=>setRefForm(f=>({...f,type:e.target.value}))}>{['착장·비교 리뷰','트렌드·소재 해설','선택·순위 예고 리뷰','스타일링 가이드','기타'].map(x=><option key={x}>{x}</option>)}</select></label><label>분석 내용<textarea rows={3} value={refForm.notes} onChange={e=>setRefForm(f=>({...f,notes:e.target.value}))}/></label><label>발견한 디테일 (쉼표 구분)<input value={refForm.details} onChange={e=>setRefForm(f=>({...f,details:e.target.value}))}/></label><button onClick={addReference}>레퍼런스 저장</button></div>
+  </div>}
+  {tab==='상품 분석'&&<div className="dl-panel">
+   <div className="dl-toolbar"><h3>{keyword} · 상품 카드</h3><span>{currentProducts.length}개</span></div>
+   {currentProducts.map(p=><ProductCard key={p.id} product={p} reference={refs.find(r=>r.id===p.referenceId)} editable={p.id.startsWith('sample-')===false} onAdd={f=>addFeature(p.id,f)} />)}
+   <div className="dl-form"><h4>+ 상품 카드 생성</h4><label>상품명<input value={productForm.title} onChange={e=>setProductForm(f=>({...f,title:e.target.value}))}/></label><label>브랜드<input value={productForm.brand} onChange={e=>setProductForm(f=>({...f,brand:e.target.value}))}/></label><label>연결 레퍼런스<select value={productForm.referenceId} onChange={e=>setProductForm(f=>({...f,referenceId:e.target.value}))}><option value="">선택 안 함</option>{currentRefs.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</select></label><label>디테일<input value={productForm.detail} onChange={e=>setProductForm(f=>({...f,detail:e.target.value}))} placeholder="예: 이중 지퍼"/></label><label>관찰 사실<textarea rows={2} value={productForm.observation} onChange={e=>setProductForm(f=>({...f,observation:e.target.value}))}/></label><label>진행자 평가<input value={productForm.evaluation} onChange={e=>setProductForm(f=>({...f,evaluation:e.target.value}))}/></label><label>소비자 가치 가설<input value={productForm.value} onChange={e=>setProductForm(f=>({...f,value:e.target.value}))}/></label><label>타임스탬프<input value={productForm.time} onChange={e=>setProductForm(f=>({...f,time:e.target.value}))} placeholder="예: 01:15"/></label><label>메모<input value={productForm.notes} onChange={e=>setProductForm(f=>({...f,notes:e.target.value}))}/></label><button onClick={addProduct}>상품 카드 저장</button></div>
+  </div>}
+  {tab==='디테일 사전'&&<div className="dl-panel">
+   <div className="dl-toolbar"><h3>{keyword} · 디테일 사전</h3><span>{currentDetails.length}개 후보</span></div>
+   <p className="dl-muted">스크립트 기반 후보 사전이야. 3편에 나온 명칭을 1차로 모았으며 실제 제품의 성능 검증이나 공인 평가 기준은 아니야.</p>
+   {Array.from(new Set(currentDetails.map(d=>d.group))).map(g=><div key={g} className="dl-dict"><h4>{g}</h4><div className="dl-tags">{currentDetails.filter(d=>d.group===g).map(d=><span key={d.id} title={d.origin||''}>{d.name} <small>· {sourceCount(d.name,currentRefs)}편</small></span>)}</div></div>)}
+   <div className="dl-form"><h4>+ 디테일 분류 추가</h4><label>대분류<select value={detailForm.group} onChange={e=>setDetailForm(f=>({...f,group:e.target.value}))}>{Array.from(new Set(DETAIL_SEEDS.map(d=>d.group))).map(g=><option key={g}>{g}</option>)}</select></label><label>디테일명<input value={detailForm.name} onChange={e=>setDetailForm(f=>({...f,name:e.target.value}))}/></label><label>평가 기준·메모<textarea rows={2} value={detailForm.note} onChange={e=>setDetailForm(f=>({...f,note:e.target.value}))}/></label><button onClick={addDetail}>사전 후보 추가</button></div>
+  </div>}
+  {tab==='역조합'&&<div className="dl-panel"><h3>{keyword} · 설득 역조합</h3><p className="dl-muted">상품의 디테일·관찰·주관적 평가를 연결한 AI 작업 지시문을 생성해. 자동 생성 결과가 검증된 사실은 아니야.</p><label>출력 형식<select value={format} onChange={e=>setFormat(e.target.value)}>{['최종 셀링 카피 시뮬레이션','유튜브 롱폼 비교 구성','숏폼 리뷰 스크립트','Threads 텍스트','상세페이지','촬영 컷리스트'].map(x=><option key={x}>{x}</option>)}</select></label><h4>디테일 선택</h4><div className="dl-checks">{options.map(d=><label key={d}><input type="checkbox" checked={picked.includes(d)} onChange={e=>setPicked(v=>e.target.checked?[...v,d]:v.filter(x=>x!==d))}/>{d}</label>)}</div><div className="dl-row"><button onClick={copyPrompt}>AI 지시문 복사</button><button onClick={()=>setDraft(prompt)}>지시문 보기</button></div>{draft&&<textarea readOnly rows={14} value={draft} onFocus={e=>e.target.select()}/>}</div>}
+  <div className="dl-footer"><button type="button" onClick={()=>clickDownload('fashion-detail-lab-'+new Date().toISOString().slice(0,10)+'.json',{format:'fashion-detail-lab-v1',exportedAt:dateNow(),payload:data})}>JSON 백업</button><label className="dl-import">JSON 병합 가져오기<input type="file" accept="application/json,.json" onChange={handleFile} disabled={!ready||importing}/></label><small>원본 키워드와 초기 경량패딩 샘플은 기본 제공 · 사용자 추가 기록은 이 기기에 저장</small></div>
+  {notice&&<p role="status" className="dl-notice">{notice}</p>}
+ </section>;
+}
+function ProductCard({product,reference,editable,onAdd}){
+ const [adding,setAdding]=useState(false);
+ const [f,setF]=useState({detail:'',observation:'',evaluation:'',value:'',time:''});
+ return <article className="dl-card"><div className="dl-between"><strong>{product.title}</strong><span className="dl-pill">{product.brand||'브랜드 미확인'}</span></div><small>{reference?.title||'출처 미연결'} · {product.notes||'상세 사양 미확인'}</small>{arrays(product.features).map((x,i)=><div className="dl-feature" key={i}><strong>{x.detail}</strong>{x.time&&<small>{x.time}</small>}<p>관찰: {x.observation||'미확인'}</p><p>평가: {x.evaluation||'미확인'}</p><p>가치 가설: {x.value||'미확인'}</p></div>)}
+ {editable&&<><button type="button" onClick={()=>setAdding(v=>!v)}>{adding?'추가 닫기':'+ 디테일 분석 추가'}</button>{adding&&<div className="dl-form">{[['detail','디테일'],['observation','관찰'],['evaluation','평가'],['value','소비자 가치 가설'],['time','타임스탬프']].map(([key,label])=><label key={key}>{label}<input value={f[key]} onChange={e=>setF(old=>({...old,[key]:e.target.value}))}/></label>)}<button onClick={()=>{if(!clean(f.detail))return;onAdd(f);setAdding(false);setF({detail:'',observation:'',evaluation:'',value:'',time:''})}}>분석 추가 저장</button></div>}</>}
+ </article>;
+}
