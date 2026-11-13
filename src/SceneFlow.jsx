@@ -76,14 +76,14 @@ export function ScenePlaces({incoming}){
   </div>
  </section>
 }
-export function SceneHome({onGo}){
- const [preview,setPreview]=useState('');
- useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview)},[preview]);
+export function SceneHome({onGo,image,onImage}){
+ const [loading,setLoading]=useState(false);
+ const choose=async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setLoading(true);try{const url=URL.createObjectURL(file);try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('사진을 열 수 없어.'));img.src=url});const scale=Math.min(1,900/Math.max(img.naturalWidth,img.naturalHeight));const canvas=document.createElement('canvas');canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);onImage(canvas.toDataURL('image/jpeg',.65));canvas.width=canvas.height=0}finally{URL.revokeObjectURL(url)}}catch(err){alert(err.message)}finally{setLoading(false)}};
  const features=[['WHERE','장소 · 카페 · 분위기','place-analysis',MapPin],['WHAT','착장 · 컬러 · 아이템','outfit-analysis',Shirt],['WHO','인물 스타일 · 함께할 장면','scene-people',Users],['HOW','포즈 · 구도 · 촬영 팁','scene-shoot',Camera]];
  return <section className="scene-section scene-home"><h2>PHOTO → REAL LIFE</h2><div className="scene-panel">
-  <div className="scene-intro"><div className="scene-hero-image">{preview?<img src={preview} alt="선택한 영감 사진"/>:<ImagePlus size={34}/>}</div><div><small>STEP 01 · INSPIRATION</small><h3>갖고 싶은 순간의 사진 한 장</h3><p>인스타그램·핀터레스트·내가 저장한 코디 사진</p><label className="scene-upload">영감 사진 선택<input type="file" accept="image/*" onChange={e=>{if(preview)URL.revokeObjectURL(preview);const f=e.target.files?.[0];setPreview(f?URL.createObjectURL(f):'');e.target.value=''}}/></label></div></div>
+  <div className="scene-intro"><div className="scene-hero-image">{image?<img src={image} alt="선택한 영감 사진"/>:<ImagePlus size={34}/>}</div><div><small>STEP 01 · INSPIRATION</small><h3>갖고 싶은 순간의 사진 한 장</h3><p>인스타그램·핀터레스트·내가 저장한 코디 사진</p><label className="scene-upload">{loading?'사진 준비 중…':image?'다른 영감 사진 선택':'영감 사진 선택'}<input type="file" accept="image/*" onChange={choose}/></label></div></div>
   <hr/><small>STEP 02 · AI 분석</small><div className="scene-home-grid">{features.map(([title,desc,id,Icon])=><button key={id} onClick={()=>onGo(id)}><Icon size={22}/><b>{title}</b><small>{desc}</small></button>)}</div>
-  <p className="scene-hint">사진은 이 홈에서 미리보기만 보여줘. 실제 AI 분석은 각 탭에서 사진을 선택해 실행해.</p>
+  <p className="scene-hint">홈에서 고른 사진은 착장AI·장소AI·인물 탭으로 전달돼. 실제 AI 분석은 각 탭의 분석 버튼을 눌러야 시작돼. 사진은 현재 앱 실행 중 메모리에만 유지해.</p>
   <hr/><small>STEP 03 · REALIZATION</small><h3>그 장면을 내 현실로 만들기</h3><p>장소 후보 저장 → 방문 동선 → 착장 준비 → 촬영 → 실제 사진 기록</p><button style={btn('primary')} onClick={()=>onGo('scene-realize')}><Check size={16}/> 실현 계획 열기</button>
  </div></section>
 }
