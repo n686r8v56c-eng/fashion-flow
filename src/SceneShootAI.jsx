@@ -3,6 +3,7 @@ import {Camera,ImagePlus,ScanEye,Save,Trash2,CheckCircle2,Plus,ArrowUp,ArrowDown
 import {supabase} from './supabase';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import './SceneFlow.css';
+import SceneCameraOverlay from './SceneCameraOverlay.jsx';
 const inputStyle={width:'100%',boxSizing:'border-box',fontSize:16,padding:'10px 11px',border:'1px solid #dfd4e9',borderRadius:10,background:'#fff',color:'#3c2c48'};
 const softButton={padding:'9px 12px',background:'#f5f0fa',color:'#755a94',border:'1px solid #e2d6ed',borderRadius:10,fontSize:14};
 async function resized(file){
@@ -92,6 +93,7 @@ export default function SceneShootAI({initialImage=''}) {
       {savedMessage&&<p role="status" className="scene-hint">{savedMessage}</p>}
    </>}
   </div>
+  <SceneCameraOverlay reference={photo}/>
   <h3 style={{marginTop:10}}>내 촬영 프로젝트 · {records.length}개</h3>
   {storageError&&<p role="alert" className="scene-error">{storageError}</p>}
   {!records.length&&<p className="scene-hint">AI 컷 리스트를 저장하면 여기에서 순서 편집·메모·촬영 완료 체크를 할 수 있어.</p>}
