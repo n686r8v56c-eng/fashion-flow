@@ -1,5 +1,5 @@
 // Browser-only image compression; no Supabase write and no extra Apify request.
-export async function compressImageForZip(blob,{maxDimension=1400,quality=0.68}={}){
+export async function compressImageForZip(blob,{maxDimension=900,quality=0.45}={}){
   if(!blob?.type?.startsWith('image/'))throw new Error('이미지 파일이 아니야.');
   const url=URL.createObjectURL(blob);
   let img=null;
