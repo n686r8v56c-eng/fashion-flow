@@ -52,7 +52,7 @@ export default function DetailLab({userId}){
  const [productForm,setProductForm]=useState({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
  const [detailForm,setDetailForm]=useState({group:'컬러·배색',name:'',note:''});
  const [productSource,setProductSource]=useState('전체 영상');
- const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
+ const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailBrand,setDetailBrand]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
  const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
  const key='user:'+userId;
  useEffect(()=>{let active=true;setReady(false);setData(initial());dbGet(key).then(saved=>{if(active){setData(saved&&typeof saved==='object'?{...initial(),...saved}:initial());setReady(true)}}).catch(e=>{if(active){setNotice('로컬 저장소를 읽지 못했어: '+e.message);setReady(true)}});return()=>{active=false}},[key]);
@@ -67,9 +67,12 @@ export default function DetailLab({userId}){
  const currentDetails=details.filter(d=>d.keyword===keyword||!d.keyword);
  const extractedDetails=Array.from(new Set(products.flatMap(p=>arrays(p.features).map(f=>f.detail)))).filter(Boolean);
  const allDictionary=Array.from(new Map([...details,...extractedDetails.filter(name=>!details.some(d=>d.name===name)).map(name=>({id:'observed:'+name,name,group:'영상에서 추가 발견',origin:'상품 카드 기반 자동 추출',status:'자동 관찰'}))].map(d=>[d.name,d])).values());
- const visibleDetails=(detailScope==='전체 상품'?allDictionary:allDictionary.filter(d=>d.keyword===keyword||!d.keyword||products.filter(p=>p.keyword===keyword).some(p=>arrays(p.features).some(f=>f.detail===d.name)))).filter(d=>d.name.includes(detailQuery));
- const matchedProducts=products.filter(p=>arrays(p.features).some(f=>f.detail===selectedDetail)&& (detailSeason==='전체'||p.season===detailSeason) && (detailGroup==='전체'||KEYWORDS.some(k=>k.keyword===p.keyword&&(data.classOverrides?.[k.id]||k.group)===detailGroup)));
- const matchingReferences=refs.filter(r=>arrays(r.details).includes(selectedDetail)||products.some(p=>p.referenceId===r.id&&arrays(p.features).some(f=>f.detail===selectedDetail)));
+ const brands=Array.from(new Set(products.map(p=>clean(p.brand)||'미확인'))).sort((a,b)=>a.localeCompare(b,'ko'));
+ const brandProducts=detailBrand==='전체'?products:products.filter(p=>(clean(p.brand)||'미확인')===detailBrand);
+ const visibleDetails=(detailScope==='전체 상품'?allDictionary:allDictionary.filter(d=>d.keyword===keyword||!d.keyword||brandProducts.filter(p=>p.keyword===keyword).some(p=>arrays(p.features).some(f=>f.detail===d.name))))
+   .filter(d=>d.name.includes(detailQuery)&&(detailBrand==='전체'||brandProducts.some(p=>arrays(p.features).some(f=>f.detail===d.name))));
+ const matchedProducts=brandProducts.filter(p=>arrays(p.features).some(f=>f.detail===selectedDetail)&& (detailSeason==='전체'||p.season===detailSeason) && (detailGroup==='전체'||KEYWORDS.some(k=>k.keyword===p.keyword&&(data.classOverrides?.[k.id]||k.group)===detailGroup)));
+ const matchingReferences=refs.filter(r=>matchedProducts.some(p=>p.referenceId===r.id));
  const candidate=new Set([...currentProducts.flatMap(p=>arrays(p.features).map(f=>f.detail)),...currentRefs.flatMap(r=>arrays(r.details))]);
  const options=Array.from(candidate);
  const selectKeyword=x=>{setKeyword(x);setTab('레퍼런스');setPicked([]);setProductForm(f=>({...f,detail:''}))};
@@ -127,9 +130,10 @@ export default function DetailLab({userId}){
    <div className="dl-toolbar"><h3>디테일 사전 · 상품 역검색</h3><span>{visibleDetails.length}개 디테일 후보</span></div>
    <p className="dl-muted">디테일을 누르면 그 디테일이 실제로 기록된 상품 카드만 보여줘. 원본 상품 카드와 사전 데이터는 변경되지 않아.</p>
    <div className="dl-filters"><select aria-label="디테일 범위" value={detailScope} onChange={e=>setDetailScope(e.target.value)}><option>전체 상품</option><option>현재 키워드</option></select><input aria-label="디테일 검색" placeholder="디테일 이름 검색" value={detailQuery} onChange={e=>setDetailQuery(e.target.value)}/></div>
-   {Array.from(new Set(visibleDetails.map(d=>d.group))).map(g=><div key={g} className="dl-dict"><h4>{g}</h4><div className="dl-tags dl-clickable-tags">{visibleDetails.filter(d=>d.group===g).map(d=><button type="button" key={d.id} title={d.origin||''} aria-pressed={selectedDetail===d.name} className={selectedDetail===d.name?'selected':''} onClick={()=>setSelectedDetail(v=>v===d.name?'':d.name)}>{d.name} <small>· {products.filter(p=>arrays(p.features).some(f=>f.detail===d.name)).length}상품</small></button>)}</div></div>)}
+   <label>브랜드 필터<select aria-label="브랜드 필터" value={detailBrand} onChange={e=>{setDetailBrand(e.target.value);setSelectedDetail('')}}><option value="전체">전체 브랜드</option>{brands.map(b=><option key={b} value={b}>{b}</option>)}</select></label>
+   {Array.from(new Set(visibleDetails.map(d=>d.group))).map(g=><div key={g} className="dl-dict"><h4>{g}</h4><div className="dl-tags dl-clickable-tags">{visibleDetails.filter(d=>d.group===g).map(d=><button type="button" key={d.id} title={d.origin||''} aria-pressed={selectedDetail===d.name} className={selectedDetail===d.name?'selected':''} onClick={()=>setSelectedDetail(v=>v===d.name?'':d.name)}>{d.name} <small>· {brandProducts.filter(p=>arrays(p.features).some(f=>f.detail===d.name)).length}상품</small></button>)}</div></div>)}
    {selectedDetail&&<section className="dl-results" aria-label="디테일별 상품 검색 결과">
-     <div className="dl-toolbar"><h3>「{selectedDetail}」 연결 상품</h3><button type="button" onClick={()=>{setSelectedDetail('');setDetailSeason('전체');setDetailGroup('전체')}}>필터 해제</button></div>
+     <div className="dl-toolbar"><h3>「{selectedDetail}」 연결 상품</h3><button type="button" onClick={()=>{setSelectedDetail('');setDetailSeason('전체');setDetailGroup('전체');setDetailBrand('전체');setDetailQuery('')}}>필터 해제</button></div>
      <div className="dl-filters"><select aria-label="상품 시즌 필터" value={detailSeason} onChange={e=>setDetailSeason(e.target.value)}><option>전체</option>{SEASONS.map(x=><option key={x}>{x}</option>)}</select><select aria-label="상품 대분류 필터" value={detailGroup} onChange={e=>setDetailGroup(e.target.value)}><option>전체</option>{GROUPS.map(x=><option key={x}>{x}</option>)}</select></div>
      <p className="dl-muted">상품 카드 {matchedProducts.length}개 · 참고 레퍼런스 {matchingReferences.length}편. 레퍼런스 언급만으로 상품 디테일을 확정하지 않아.</p>
      {matchedProducts.map(p=><ProductCard key={p.id} product={{...p,features:arrays(p.features).filter(f=>f.detail===selectedDetail)}} reference={refs.find(r=>r.id===p.referenceId)} editable={false} onAdd={()=>{}} />)}
