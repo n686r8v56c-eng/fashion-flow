@@ -34,11 +34,19 @@ export default function SceneCameraOverlay({reference=''}) {
   const video=videoRef.current;
   if(!enabled||!video?.videoWidth||!video.videoHeight){setError('카메라 화면이 준비되지 않았어.');return}
   try{
-   const max=2400,ratio=Math.min(1,max/Math.max(video.videoWidth,video.videoHeight));
-   const canvas=document.createElement('canvas');canvas.width=Math.round(video.videoWidth*ratio);canvas.height=Math.round(video.videoHeight*ratio);
+   // Match the CSS object-fit:cover crop seen through the preview (3:4 frame).
+   const container=video.parentElement;
+   const viewRatio=(container?.clientWidth||3)/(container?.clientHeight||4);
+   const sourceRatio=video.videoWidth/video.videoHeight;
+   const sw=sourceRatio>viewRatio?video.videoHeight*viewRatio:video.videoWidth;
+   const sh=sourceRatio>viewRatio?video.videoHeight:video.videoWidth/viewRatio;
+   const sx=(video.videoWidth-sw)/2,sy=(video.videoHeight-sh)/2;
+   const ratio=Math.min(1,2400/Math.max(sw,sh));
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(sw*ratio));canvas.height=Math.max(1,Math.round(sh*ratio));
    const ctx=canvas.getContext('2d');if(!ctx)throw Error('촬영 이미지를 만들 수 없어.');
-   // Keep captured original clean: guidance photo and grid are preview aids only.
-   ctx.drawImage(video,0,0,canvas.width,canvas.height);
+   // The guide and grid never appear in the captured photo.
+   if(facing==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1)}
+   ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
    const data=canvas.toDataURL('image/jpeg',.9);canvas.width=canvas.height=0;
    setCapture(data);setMessage('촬영했어! 저장하거나 공유해 줘. 촬영 사진은 앱에 자동 저장되지 않아.');
    setError('');
