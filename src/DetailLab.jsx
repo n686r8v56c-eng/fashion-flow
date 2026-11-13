@@ -1,5 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from './detailLabData.js';
+import {RESEARCH_PRODUCTS,RESEARCH_ENRICHMENTS} from './detailLabResearch.js';
 import './DetailLab.css';
 
 const initial=()=>({refs:[],products:[],details:[],productAdditions:{},classOverrides:{},schemaVersion:1});
@@ -18,7 +19,7 @@ function dbOpen(){
 async function dbGet(key){const db=await dbOpen();try{return await new Promise((res,rej)=>{const req=db.transaction(STORE,'readonly').objectStore(STORE).get(key);req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error)})}finally{db.close()}}
 async function dbPut(key,value){const db=await dbOpen();try{await new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}finally{db.close()}}
 const mergedRefs=data=>[...REFERENCE_SEEDS,...arrays(data.refs).filter(x=>!REFERENCE_SEEDS.some(s=>s.id===x.id))];
-const mergedProducts=data=>[...PRODUCT_SEEDS.map(p=>({...p,features:[...arrays(p.features),...arrays(data.productAdditions?.[p.id])]})),...arrays(data.products).filter(x=>!PRODUCT_SEEDS.some(s=>s.id===x.id))];
+const mergedProducts=data=>[...PRODUCT_SEEDS.map(p=>({...p,features:[...arrays(p.features),...arrays(RESEARCH_ENRICHMENTS[p.id]),...arrays(data.productAdditions?.[p.id])]})),...RESEARCH_PRODUCTS.map(p=>({...p,features:[...arrays(p.features),...arrays(data.productAdditions?.[p.id])]})),...arrays(data.products).filter(x=>![...PRODUCT_SEEDS,...RESEARCH_PRODUCTS].some(s=>s.id===x.id))];
 const mergedDetails=data=>[...DETAIL_SEEDS,...arrays(data.details).filter(x=>!DETAIL_SEEDS.some(s=>s.id===x.id))];
 const refOptions=(data,keyword)=>mergedRefs(data).filter(x=>(x.keyword||'경량패딩')===keyword);
 function sourceCount(detail,refs){return refs.filter(r=>arrays(r.details).includes(detail)).length}
@@ -50,6 +51,7 @@ export default function DetailLab({userId}){
  const [refForm,setRefForm]=useState({title:'',url:'',type:'착장·비교 리뷰',notes:'',details:''});
  const [productForm,setProductForm]=useState({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
  const [detailForm,setDetailForm]=useState({group:'컬러·배색',name:'',note:''});
+ const [productSource,setProductSource]=useState('전체 영상');
  const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
  const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
  const key='user:'+userId;
@@ -61,11 +63,14 @@ export default function DetailLab({userId}){
  const refs=mergedRefs(data),products=mergedProducts(data),details=mergedDetails(data);
  const currentRefs=refs.filter(r=>(r.keyword||'경량패딩')===keyword);
  const currentProducts=products.filter(p=>p.keyword===keyword);
+ const sourceProducts=currentProducts.filter(p=>productSource==='전체 영상'||p.referenceId===productSource);
  const currentDetails=details.filter(d=>d.keyword===keyword||!d.keyword);
- const visibleDetails=(detailScope==='전체 상품'?details:currentDetails).filter(d=>d.name.includes(detailQuery));
+ const extractedDetails=Array.from(new Set(products.flatMap(p=>arrays(p.features).map(f=>f.detail)))).filter(Boolean);
+ const allDictionary=Array.from(new Map([...details,...extractedDetails.filter(name=>!details.some(d=>d.name===name)).map(name=>({id:'observed:'+name,name,group:'영상에서 추가 발견',origin:'상품 카드 기반 자동 추출',status:'자동 관찰'}))].map(d=>[d.name,d])).values());
+ const visibleDetails=(detailScope==='전체 상품'?allDictionary:allDictionary.filter(d=>d.keyword===keyword||!d.keyword||products.filter(p=>p.keyword===keyword).some(p=>arrays(p.features).some(f=>f.detail===d.name)))).filter(d=>d.name.includes(detailQuery));
  const matchedProducts=products.filter(p=>arrays(p.features).some(f=>f.detail===selectedDetail)&& (detailSeason==='전체'||p.season===detailSeason) && (detailGroup==='전체'||KEYWORDS.some(k=>k.keyword===p.keyword&&(data.classOverrides?.[k.id]||k.group)===detailGroup)));
- const matchingReferences=refs.filter(r=>arrays(r.details).includes(selectedDetail));
- const candidate=useMemo(()=>new Set([...currentProducts.flatMap(p=>arrays(p.features).map(f=>f.detail)),...currentRefs.flatMap(r=>arrays(r.details))]),[data,keyword]);
+ const matchingReferences=refs.filter(r=>arrays(r.details).includes(selectedDetail)||products.some(p=>p.referenceId===r.id&&arrays(p.features).some(f=>f.detail===selectedDetail)));
+ const candidate=new Set([...currentProducts.flatMap(p=>arrays(p.features).map(f=>f.detail)),...currentRefs.flatMap(r=>arrays(r.details))]);
  const options=Array.from(candidate);
  const selectKeyword=x=>{setKeyword(x);setTab('레퍼런스');setPicked([]);setProductForm(f=>({...f,detail:''}))};
  const addReference=()=>{if(!clean(refForm.title)){setNotice('영상 제목을 입력해 줘.');return}if(refForm.url&&!validUrl(refForm.url)){setNotice('영상 URL을 확인해 줘.');return}
@@ -77,7 +82,7 @@ export default function DetailLab({userId}){
   const p={id:id(),keyword,season,title:clean(productForm.title),brand:clean(productForm.brand),referenceId:productForm.referenceId,notes:clean(productForm.notes),features,createdAt:dateNow()};
   commit(x=>({...x,products:[...arrays(x.products),p]}));setProductForm({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
  };
- const addFeature=(productId,feature)=>{if(!clean(feature.detail))return;commit(x=>PRODUCT_SEEDS.some(p=>p.id===productId)?({...x,productAdditions:{...x.productAdditions,[productId]:[...arrays(x.productAdditions?.[productId]),{...feature}]}}):({...x,products:arrays(x.products).map(p=>p.id===productId?{...p,features:[...arrays(p.features),{...feature}]}:p)}))};
+ const addFeature=(productId,feature)=>{if(!clean(feature.detail))return;commit(x=>[...PRODUCT_SEEDS,...RESEARCH_PRODUCTS].some(p=>p.id===productId)?({...x,productAdditions:{...x.productAdditions,[productId]:[...arrays(x.productAdditions?.[productId]),{...feature}]}}):({...x,products:arrays(x.products).map(p=>p.id===productId?{...p,features:[...arrays(p.features),{...feature}]}:p)}))};
  const addDetail=()=>{if(!clean(detailForm.name)){setNotice('디테일 이름을 입력해 줘.');return}if(details.some(d=>d.name===clean(detailForm.name)&&d.keyword===keyword)){setNotice('이 키워드에 같은 디테일이 있어.');return}
   const d={id:id(),keyword,group:detailForm.group,name:clean(detailForm.name),note:clean(detailForm.note),status:'연구 후보',origin:'사용자 등록',createdAt:dateNow()};
   commit(x=>({...x,details:[...arrays(x.details),d]}));setDetailForm(f=>({...f,name:'',note:''}));
@@ -107,12 +112,15 @@ export default function DetailLab({userId}){
   </div>}
   {tab==='레퍼런스'&&<div className="dl-panel">
    <div className="dl-toolbar"><h3>{keyword} · 롱폼 분석</h3><span>{currentRefs.length}/3편 확보</span></div>
+   {keyword==='경량패딩'&&<p className="dl-muted">3편의 제공 스크립트를 기준으로 등장 상품·사례의 분석 카드를 연결했어. 1편은 원문 타임스탬프가 없고, 2편은 직접 착용하지 않은 트렌드 사례 상품도 포함해.</p>}
    {currentRefs.map(r=><article className="dl-card" key={r.id}><div className="dl-between"><strong>{r.title}</strong><span className="dl-pill">{r.status||'등록'}</span></div><p>{r.type}</p><small>{r.source||'사용자 등록'} · {r.url?<a target="_blank" rel="noopener noreferrer" href={r.url}>영상 열기</a>:'영상 URL 미확인'}</small><p>{r.notes}</p><div className="dl-tags">{arrays(r.details).map(t=><span key={t}>{t}</span>)}</div><button type="button" onClick={()=>{setTab('상품 분석');setProductForm(f=>({...f,referenceId:r.id}))}}>상품 카드로 분석 →</button></article>)}
    <div className="dl-form"><h4>+ 레퍼런스 추가</h4><label>영상 제목<input value={refForm.title} onChange={e=>setRefForm(f=>({...f,title:e.target.value}))}/></label><label>영상 URL (선택)<input value={refForm.url} onChange={e=>setRefForm(f=>({...f,url:e.target.value}))} placeholder="https://youtu.be/..."/></label><label>분석 유형<select value={refForm.type} onChange={e=>setRefForm(f=>({...f,type:e.target.value}))}>{['착장·비교 리뷰','트렌드·소재 해설','선택·순위 예고 리뷰','스타일링 가이드','기타'].map(x=><option key={x}>{x}</option>)}</select></label><label>분석 내용<textarea rows={3} value={refForm.notes} onChange={e=>setRefForm(f=>({...f,notes:e.target.value}))}/></label><label>발견한 디테일 (쉼표 구분)<input value={refForm.details} onChange={e=>setRefForm(f=>({...f,details:e.target.value}))}/></label><button onClick={addReference}>레퍼런스 저장</button></div>
   </div>}
   {tab==='상품 분석'&&<div className="dl-panel">
-   <div className="dl-toolbar"><h3>{keyword} · 상품 카드</h3><span>{currentProducts.length}개</span></div>
-   {currentProducts.map(p=><ProductCard key={p.id} product={p} reference={refs.find(r=>r.id===p.referenceId)} editable={true} onAdd={f=>addFeature(p.id,f)} />)}
+   <div className="dl-toolbar"><h3>{keyword} · 상품 카드</h3><span>{currentProducts.length}개 · 디테일 {currentProducts.reduce((sum,p)=>sum+arrays(p.features).length,0)}건</span></div>
+   {keyword==='경량패딩'&&<p className="dl-muted">영상 1: 10개 착장 · 영상 2: 12개 제품·브랜드 사례 · 영상 3: 13개 착장·컬러 구간. 정확한 품번·브랜드명 미확인 사례 포함. 2편에는 직접 평가하지 않은 제품도 있어.</p>}
+   <label>영상별 카드 필터<select aria-label="영상별 상품 필터" value={productSource} onChange={e=>setProductSource(e.target.value)}><option value="전체 영상">전체 영상</option>{currentRefs.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</select></label>
+   {sourceProducts.map(p=><ProductCard key={p.id} product={p} reference={refs.find(r=>r.id===p.referenceId)} editable={true} onAdd={f=>addFeature(p.id,f)} />)}
    <div className="dl-form"><h4>+ 상품 카드 생성</h4><label>상품명<input value={productForm.title} onChange={e=>setProductForm(f=>({...f,title:e.target.value}))}/></label><label>브랜드<input value={productForm.brand} onChange={e=>setProductForm(f=>({...f,brand:e.target.value}))}/></label><label>연결 레퍼런스<select value={productForm.referenceId} onChange={e=>setProductForm(f=>({...f,referenceId:e.target.value}))}><option value="">선택 안 함</option>{currentRefs.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</select></label><label>디테일<input value={productForm.detail} onChange={e=>setProductForm(f=>({...f,detail:e.target.value}))} placeholder="예: 이중 지퍼"/></label><label>관찰 사실<textarea rows={2} value={productForm.observation} onChange={e=>setProductForm(f=>({...f,observation:e.target.value}))}/></label><label>진행자 평가<input value={productForm.evaluation} onChange={e=>setProductForm(f=>({...f,evaluation:e.target.value}))}/></label><label>소비자 가치 가설<input value={productForm.value} onChange={e=>setProductForm(f=>({...f,value:e.target.value}))}/></label><label>타임스탬프<input value={productForm.time} onChange={e=>setProductForm(f=>({...f,time:e.target.value}))} placeholder="예: 01:15"/></label><label>메모<input value={productForm.notes} onChange={e=>setProductForm(f=>({...f,notes:e.target.value}))}/></label><button onClick={addProduct}>상품 카드 저장</button></div>
   </div>}
   {tab==='디테일 사전'&&<div className="dl-panel">
