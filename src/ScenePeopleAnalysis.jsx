@@ -17,8 +17,8 @@ async function prepare(file){
   return data;
  }finally{URL.revokeObjectURL(url)}
 }
-export default function ScenePeopleAnalysis(){
- const [image,setImage]=useState(''),[result,setResult]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+export default function ScenePeopleAnalysis({initialImage=''}){
+ const [image,setImage]=useState(initialImage),[result,setResult]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [keywords,setKeywords]=useState('');
  const choose=async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;setError('');setResult(null);try{setImage(await prepare(f))}catch(err){setError(err.message)}};
  const analyze=async()=>{
