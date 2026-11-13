@@ -170,7 +170,7 @@ return <LocalSyncProvider key={uid} userId={uid} client={supabase}><div classNam
 {genre==='fashion'&&tab==='scene-home'&&<SceneHome onGo={setTab} image={sceneImage} onImage={setSceneImage}/>}
 {genre==='fashion'&&tab==='outfit-analysis'&&<OutfitAnalysis initialImage={sceneImage}/>}
 {genre==='fashion'&&tab==='scene-people'&&<ScenePeopleAnalysis initialImage={sceneImage}/>}
-{genre==='fashion'&&tab==='scene-shoot'&&<SceneShoot/>}
+{genre==='fashion'&&tab==='scene-shoot'&&<SceneShoot image={sceneImage}/>}
 {genre==='fashion'&&tab==='scene-realize'&&<SceneRealize onGo={setTab}/>}
 {genre==='fashion'&&tab==='itgirl'&&<ItGirlBookmarks userId={uid} onClose={()=>setTab('saver')}/>}
 {genre==='closet'&&tab==='outfit-color'&&<section className="panel"><OutfitColorPicker userId={uid}/></section>}
