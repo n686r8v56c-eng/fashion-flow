@@ -18,11 +18,11 @@ async function prepare(file){
   return image;
  }finally{URL.revokeObjectURL(url)}
 }
-export default function PlaceAnalysis({onSaved}){
+export default function PlaceAnalysis({onSaved,initialImage=''}){
  const candidates=useLocalCollection('scene-place-candidates-v1');
  const [saveStatus,setSaveStatus]=useState('');
  const saveCandidate=async(name)=>{try{const item={id:crypto.randomUUID(),name,address:'',url:'',source:'AI 분석',status:'후보',purpose:'사진 촬영',notes:[result.background,result.mood,...(result.visualClues||[]),notes].filter(Boolean).join(' · '),verified:false,updatedAt:new Date().toISOString()};await candidates.write(item);setSaveStatus('장소 후보함에 저장했어.');onSaved?.()}catch(e){setSaveStatus('저장 실패: '+e.message)}};
- const [image,setImage]=useState(''),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notes,setNotes]=useState('');
+ const [image,setImage]=useState(initialImage),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notes,setNotes]=useState('');
  const clear=()=>{setImage('');setResult(null);setNotes('');setError('')};
  const choose=async(e)=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{clear();setImage(await prepare(file))}catch(err){setError(err.message)}};
  const analyze=async()=>{
