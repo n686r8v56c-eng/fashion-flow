@@ -40,8 +40,8 @@ function ItemCard({item,index}){
   <a className="outfit-ai-more" href={'https://search.shopping.naver.com/search/all?query='+encodeURIComponent(query)} target="_blank" rel="noopener noreferrer">네이버 쇼핑에서 더 보기 <ExternalLink size={14}/></a>
  </article>;
 }
-export default function OutfitAnalysis(){
- const [image,setImage]=useState(''),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[preparing,setPreparing]=useState(false),[error,setError]=useState('');
+export default function OutfitAnalysis({initialImage=''}){
+ const [image,setImage]=useState(initialImage),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[preparing,setPreparing]=useState(false),[error,setError]=useState('');
  async function choose(e){
   const file=e.target.files?.[0];e.target.value='';if(!file)return;
   setPreparing(true);setError('');setResult(null);setImage('');
