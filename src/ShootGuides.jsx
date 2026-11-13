@@ -10,6 +10,7 @@ const checked=point=>point&&point.visibility!==0&&(point.visibility==null||point
 const visible=points=>NODES.filter(i=>checked(points?.[i]));
 function scorePose(actual,target,mirror=false){
  if(!actual||!target)return null;
+ if(![11,12,23,24].every(i=>checked(actual[i])&&checked(target[i])))return null;
  const ids=visible(actual).filter(i=>checked(target[i]));
  if(ids.length<7)return null;
  const center=p=>({x:(p[23].x+p[24].x)/2,y:(p[23].y+p[24].y)/2});
@@ -63,7 +64,7 @@ export function PoseGuide({videoRef,frameRef,running,reference,facing,active}){
     if(reference){
      const img=new Image();img.src=reference;
      await new Promise((ok,no)=>{if(img.complete&&img.naturalWidth)ok();else{img.onload=ok;img.onerror=()=>no(Error('레퍼런스 사진을 읽지 못했어.'))}});
-     if(disposed)return;
+     if(disposed){landmarker.close();return}
      const result=landmarker.detect(img);
      refPoints.current=result.landmarks?.[0]||null;setRefVisible(Boolean(refPoints.current));
     }
