@@ -50,6 +50,7 @@ export default function DetailLab({userId}){
  const [refForm,setRefForm]=useState({title:'',url:'',type:'착장·비교 리뷰',notes:'',details:''});
  const [productForm,setProductForm]=useState({title:'',brand:'',referenceId:'',notes:'',detail:'',observation:'',evaluation:'',value:'',time:''});
  const [detailForm,setDetailForm]=useState({group:'컬러·배색',name:'',note:''});
+ const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
  const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
  const key='user:'+userId;
  useEffect(()=>{let active=true;setReady(false);setData(initial());dbGet(key).then(saved=>{if(active){setData(saved&&typeof saved==='object'?{...initial(),...saved}:initial());setReady(true)}}).catch(e=>{if(active){setNotice('로컬 저장소를 읽지 못했어: '+e.message);setReady(true)}});return()=>{active=false}},[key]);
@@ -61,6 +62,9 @@ export default function DetailLab({userId}){
  const currentRefs=refs.filter(r=>(r.keyword||'경량패딩')===keyword);
  const currentProducts=products.filter(p=>p.keyword===keyword);
  const currentDetails=details.filter(d=>d.keyword===keyword||!d.keyword);
+ const visibleDetails=(detailScope==='전체 상품'?details:currentDetails).filter(d=>d.name.includes(detailQuery));
+ const matchedProducts=products.filter(p=>arrays(p.features).some(f=>f.detail===selectedDetail)&& (detailSeason==='전체'||p.season===detailSeason) && (detailGroup==='전체'||KEYWORDS.some(k=>k.keyword===p.keyword&&(data.classOverrides?.[k.id]||k.group)===detailGroup)));
+ const matchingReferences=refs.filter(r=>arrays(r.details).includes(selectedDetail));
  const candidate=useMemo(()=>new Set([...currentProducts.flatMap(p=>arrays(p.features).map(f=>f.detail)),...currentRefs.flatMap(r=>arrays(r.details))]),[data,keyword]);
  const options=Array.from(candidate);
  const selectKeyword=x=>{setKeyword(x);setTab('레퍼런스');setPicked([]);setProductForm(f=>({...f,detail:''}))};
@@ -112,9 +116,17 @@ export default function DetailLab({userId}){
    <div className="dl-form"><h4>+ 상품 카드 생성</h4><label>상품명<input value={productForm.title} onChange={e=>setProductForm(f=>({...f,title:e.target.value}))}/></label><label>브랜드<input value={productForm.brand} onChange={e=>setProductForm(f=>({...f,brand:e.target.value}))}/></label><label>연결 레퍼런스<select value={productForm.referenceId} onChange={e=>setProductForm(f=>({...f,referenceId:e.target.value}))}><option value="">선택 안 함</option>{currentRefs.map(r=><option key={r.id} value={r.id}>{r.title}</option>)}</select></label><label>디테일<input value={productForm.detail} onChange={e=>setProductForm(f=>({...f,detail:e.target.value}))} placeholder="예: 이중 지퍼"/></label><label>관찰 사실<textarea rows={2} value={productForm.observation} onChange={e=>setProductForm(f=>({...f,observation:e.target.value}))}/></label><label>진행자 평가<input value={productForm.evaluation} onChange={e=>setProductForm(f=>({...f,evaluation:e.target.value}))}/></label><label>소비자 가치 가설<input value={productForm.value} onChange={e=>setProductForm(f=>({...f,value:e.target.value}))}/></label><label>타임스탬프<input value={productForm.time} onChange={e=>setProductForm(f=>({...f,time:e.target.value}))} placeholder="예: 01:15"/></label><label>메모<input value={productForm.notes} onChange={e=>setProductForm(f=>({...f,notes:e.target.value}))}/></label><button onClick={addProduct}>상품 카드 저장</button></div>
   </div>}
   {tab==='디테일 사전'&&<div className="dl-panel">
-   <div className="dl-toolbar"><h3>{keyword} · 디테일 사전</h3><span>{currentDetails.length}개 후보</span></div>
-   <p className="dl-muted">스크립트 기반 후보 사전이야. 3편에 나온 명칭을 1차로 모았으며 실제 제품의 성능 검증이나 공인 평가 기준은 아니야.</p>
-   {Array.from(new Set(currentDetails.map(d=>d.group))).map(g=><div key={g} className="dl-dict"><h4>{g}</h4><div className="dl-tags">{currentDetails.filter(d=>d.group===g).map(d=><span key={d.id} title={d.origin||''}>{d.name} <small>· {sourceCount(d.name,currentRefs)}편</small></span>)}</div></div>)}
+   <div className="dl-toolbar"><h3>디테일 사전 · 상품 역검색</h3><span>{visibleDetails.length}개 디테일 후보</span></div>
+   <p className="dl-muted">디테일을 누르면 그 디테일이 실제로 기록된 상품 카드만 보여줘. 원본 상품 카드와 사전 데이터는 변경되지 않아.</p>
+   <div className="dl-filters"><select aria-label="디테일 범위" value={detailScope} onChange={e=>setDetailScope(e.target.value)}><option>전체 상품</option><option>현재 키워드</option></select><input aria-label="디테일 검색" placeholder="디테일 이름 검색" value={detailQuery} onChange={e=>setDetailQuery(e.target.value)}/></div>
+   {Array.from(new Set(visibleDetails.map(d=>d.group))).map(g=><div key={g} className="dl-dict"><h4>{g}</h4><div className="dl-tags dl-clickable-tags">{visibleDetails.filter(d=>d.group===g).map(d=><button type="button" key={d.id} title={d.origin||''} aria-pressed={selectedDetail===d.name} className={selectedDetail===d.name?'selected':''} onClick={()=>setSelectedDetail(v=>v===d.name?'':d.name)}>{d.name} <small>· {products.filter(p=>arrays(p.features).some(f=>f.detail===d.name)).length}상품</small></button>)}</div></div>)}
+   {selectedDetail&&<section className="dl-results" aria-label="디테일별 상품 검색 결과">
+     <div className="dl-toolbar"><h3>「{selectedDetail}」 연결 상품</h3><button type="button" onClick={()=>{setSelectedDetail('');setDetailSeason('전체');setDetailGroup('전체')}}>필터 해제</button></div>
+     <div className="dl-filters"><select aria-label="상품 시즌 필터" value={detailSeason} onChange={e=>setDetailSeason(e.target.value)}><option>전체</option>{SEASONS.map(x=><option key={x}>{x}</option>)}</select><select aria-label="상품 대분류 필터" value={detailGroup} onChange={e=>setDetailGroup(e.target.value)}><option>전체</option>{GROUPS.map(x=><option key={x}>{x}</option>)}</select></div>
+     <p className="dl-muted">상품 카드 {matchedProducts.length}개 · 참고 레퍼런스 {matchingReferences.length}편. 레퍼런스 언급만으로 상품 디테일을 확정하지 않아.</p>
+     {matchedProducts.map(p=><ProductCard key={p.id} product={{...p,features:arrays(p.features).filter(f=>f.detail===selectedDetail)}} reference={refs.find(r=>r.id===p.referenceId)} editable={false} onAdd={()=>{}} />)}
+     {matchedProducts.length===0&&<p className="dl-muted">현재 필터에 일치하는 상품 카드가 없어. 디테일 후보는 존재하지만 상품에 아직 연결하지 않았을 수도 있어.</p>}
+   </section>}
    <div className="dl-form"><h4>+ 디테일 분류 추가</h4><label>대분류<select value={detailForm.group} onChange={e=>setDetailForm(f=>({...f,group:e.target.value}))}>{Array.from(new Set(DETAIL_SEEDS.map(d=>d.group))).map(g=><option key={g}>{g}</option>)}</select></label><label>디테일명<input value={detailForm.name} onChange={e=>setDetailForm(f=>({...f,name:e.target.value}))}/></label><label>평가 기준·메모<textarea rows={2} value={detailForm.note} onChange={e=>setDetailForm(f=>({...f,note:e.target.value}))}/></label><button onClick={addDetail}>사전 후보 추가</button></div>
   </div>}
   {tab==='역조합'&&<div className="dl-panel"><h3>{keyword} · 설득 역조합</h3><p className="dl-muted">상품의 디테일·관찰·주관적 평가를 연결한 AI 작업 지시문을 생성해. 자동 생성 결과가 검증된 사실은 아니야.</p><label>출력 형식<select value={format} onChange={e=>setFormat(e.target.value)}>{['최종 셀링 카피 시뮬레이션','유튜브 롱폼 비교 구성','숏폼 리뷰 스크립트','Threads 텍스트','상세페이지','촬영 컷리스트'].map(x=><option key={x}>{x}</option>)}</select></label><h4>디테일 선택</h4><div className="dl-checks">{options.map(d=><label key={d}><input type="checkbox" checked={picked.includes(d)} onChange={e=>setPicked(v=>e.target.checked?[...v,d]:v.filter(x=>x!==d))}/>{d}</label>)}</div><div className="dl-row"><button onClick={copyPrompt}>AI 지시문 복사</button><button onClick={()=>setDraft(prompt)}>지시문 보기</button></div>{draft&&<textarea readOnly rows={14} value={draft} onFocus={e=>e.target.select()}/>}</div>}
