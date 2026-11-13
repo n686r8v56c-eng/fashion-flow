@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {Camera,Images,FolderClosed,House,Bookmark,Plus,Trash2,Download,Share2,RefreshCcw,Timer,Grid3X3,FlipHorizontal,ImagePlus,Check,ScanEye,ArrowLeft,ArrowRight,Upload,FileDown,Save,Eye,Layers,X} from 'lucide-react';
 import {supabase} from './supabase';
 import './ShootStandalone.css';
+import {OutfitFrame,PoseGuide,measureLight} from './ShootGuides.jsx';
 
 const DB='shoot-flow-local-v1',STORE='projects',uid=()=>crypto.randomUUID(),now=()=>new Date().toISOString();
 const NAV=[['home',House,'홈'],['reference',Bookmark,'레퍼런스'],['camera',Camera,'촬영'],['results',Images,'결과'],['projects',FolderClosed,'프로젝트']];
@@ -21,12 +22,13 @@ function download(data,name){const a=document.createElement('a');a.href=data;a.d
 function downloadJson(p){const blob=new Blob([JSON.stringify({format:'shoot-flow-v1',exportedAt:now(),project:p})],{type:'application/json'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='shoot-flow-'+p.id+'.json';a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)}
 function Field({label,value,onSave,type='text',placeholder=''}){const [draft,setDraft]=useState(value||'');useEffect(()=>setDraft(value||''),[value]);return <label className="shoot-field">{label}<input type={type} value={draft} placeholder={placeholder} onChange={e=>setDraft(e.target.value)} onBlur={()=>{if(draft!==(value||''))onSave(draft)}}/></label>}
 
-function LiveCamera({reference,onPhotos,onError,onNotice}){
- const video=useRef(null),stream=useRef(null),timers=useRef([]),cancelled=useRef(false);
+function LiveCamera({reference,referenceLight,liveLight,onLightAnalyzed,onPhotos,onError,onNotice}){
+ const video=useRef(null),frame=useRef(null),stream=useRef(null),timers=useRef([]),cancelled=useRef(false);
  const [running,setRunning]=useState(false),[facing,setFacing]=useState('environment'),[pending,setPending]=useState(false);
  const [opacity,setOpacity]=useState(40),[zoom,setZoom]=useState(100),[shiftX,setShiftX]=useState(0),[shiftY,setShiftY]=useState(0),[grid,setGrid]=useState(false),[showReference,setShowReference]=useState(true);
  const [delay,setDelay]=useState(3),[burst,setBurst]=useState(1),[interval,setIntervalMs]=useState(1800),[countdown,setCountdown]=useState(null),[progress,setProgress]=useState(0),[preview,setPreview]=useState([]);
  const [sharing,setSharing]=useState(false);
+ const [guide,setGuide]=useState('none'),[outfit,setOutfit]=useState('full'),[lightStats,setLightStats]=useState(null),[lightBusy,setLightBusy]=useState(false);
  const stop=()=>{stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;if(video.current){video.current.pause();video.current.srcObject=null}setRunning(false)};
  const clear=()=>{cancelled.current=true;timers.current.forEach(t=>{clearTimeout(t.id);t.resolve()});timers.current=[];setPending(false);setCountdown(null);setProgress(0)};
  useEffect(()=>()=>{cancelled.current=true;timers.current.forEach(t=>{clearTimeout(t.id);t.resolve()});stream.current?.getTracks().forEach(t=>t.stop())},[]);
@@ -59,6 +61,21 @@ function LiveCamera({reference,onPhotos,onError,onNotice}){
   }catch(e){onError('촬영 오류: '+e.message)}
   finally{setPending(false);setCountdown(null);setProgress(0);timers.current=[]}
  };
+ const lightMeasure=()=>{try{setLightStats(measureLight(video.current));onError('')}catch(e){onError(e.message)}};
+ const lightAI=async()=>{
+  if(!running||lightBusy)return;
+  if(!window.confirm('현재 카메라 화면 1장을 OpenAI API로 보내 광원을 분석할까? API 이용료가 발생해.'))return;
+  setLightBusy(true);onError('');
+  try{
+   const frameData=snapFrame(),{data:{session}}=await supabase.auth.getSession();
+   if(!session?.access_token)throw Error('AI 분석에는 로그인이 필요해.');
+   const res=await fetch('/api/analyze-shoot',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,'content-type':'application/json'},body:JSON.stringify({image:frameData})});
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok||!data.result)throw Error(data.error||'광원 AI 분석에 실패했어.');
+   await onLightAnalyzed(data.result.light);
+   onNotice('현재 장면의 광원 분석 결과를 프로젝트에 저장했어.');
+  }catch(e){onError(e.message)}finally{setLightBusy(false)}
+ };
  const closeReview=()=>{setPreview([]);onError('');onNotice('')};
  const share=()=>{
   if(!preview.length)return;
@@ -71,11 +88,14 @@ function LiveCamera({reference,onPhotos,onError,onNotice}){
  useEffect(()=>{if(!preview.length)return;const prev=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{document.body.style.overflow=prev}},[preview.length]);
  return <section className="shoot-camera-panel">
   <div className="shoot-camera-head"><h2>촬영 워크벤치</h2><span>{reference?'레퍼런스 오버레이 준비':'레퍼런스를 먼저 등록하면 겹쳐 볼 수 있어'}</span></div>
-  <div className="shoot-camera-view">
+  <div className="shoot-guides"><h3>2차 촬영 가이드</h3><div className="shoot-guide-choice"><button type="button" className={guide==='none'?'active':''} onClick={()=>setGuide('none')}>가이드 끄기</button><button type="button" className={guide==='outfit'?'active':''} onClick={()=>setGuide('outfit')}>OOTD 구도</button><button type="button" className={guide==='pose'?'active':''} onClick={()=>setGuide('pose')}>AI 포즈</button></div>{guide==='outfit'&&<div className="shoot-guide-choice">{[['full','전신'],['half','반신'],['upper','상반신'],['bag','가방'],['shoes','신발']].map(([key,title])=><button key={key} className={outfit===key?'active':''} onClick={()=>setOutfit(key)}>{title}</button>)}</div>}{guide==='pose'&&<p className="shoot-small">AI 포즈는 기기에서 작동하며 최초 모델 다운로드에 인터넷 연결이 필요해. 유사도는 대략적인 자세 비교일 뿐 정확한 측정은 아니야.</p>}</div>
+  <div ref={frame} className="shoot-camera-view">
    <video ref={video} autoPlay muted playsInline style={{visibility:running?'visible':'hidden',transform:facing==='user'?'scaleX(-1)':'none'}}/>
    {!running&&<div className="shoot-camera-empty"><Camera size={36}/><p>카메라를 시작해 줘.</p></div>}
    {reference&&showReference&&<img className="shoot-camera-guide" src={reference} alt="영감 사진 오버레이" style={{opacity:opacity/100,transform:`translate(${shiftX}%,${shiftY}%) scale(${zoom/100})`}}/>}
    {grid&&<div className="shoot-camera-grid" aria-hidden="true"/>}
+   {guide==='outfit'&&<OutfitFrame mode={outfit}/>}
+   <PoseGuide videoRef={video} frameRef={frame} running={running} reference={reference} facing={facing} active={guide==='pose'}/>
    {pending&&<div className="shoot-camera-count">{countdown!==null?countdown:progress?progress+' / '+burst:'촬영 준비'}</div>}
   </div>
   <div className="shoot-camera-actions">
