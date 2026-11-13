@@ -61,12 +61,14 @@ export default function SceneCameraOverlay({reference=''}) {
    setError('');
   }catch(e){setError(e.message||'촬영에 실패했어.')}
  };
- const fileFromCapture=async()=>{
-  const response=await fetch(capture);const blob=await response.blob();
-  return new File([blob],`scene-shot-${new Date().toISOString().replace(/[:.]/g,'-')}.jpg`,{type:'image/jpeg'});
+ // Build the file synchronously: iOS Safari requires navigator.share to run directly within a tap.
+ const fileFromCapture=()=>{
+  const base64=capture.split(',')[1];const binary=atob(base64);const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return new File([bytes],`scene-shot-${new Date().toISOString().replace(/[:.]/g,'-')}.jpg`,{type:'image/jpeg'});
  };
- const download=async()=>{if(!capture)return;const file=await fileFromCapture();const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);setMessage('파일 저장을 요청했어. 아이폰에서는 파일 앱/다운로드 항목을 확인해 줘.')};
- const share=async()=>{if(!capture)return;try{const file=await fileFromCapture();if(!navigator.share||!navigator.canShare?.({files:[file]}))throw Error('이 브라우저에서는 사진 공유를 지원하지 않아. 파일 저장을 이용해 줘.');await navigator.share({files:[file],title:'SCENE 촬영 사진'});setMessage('공유 시트를 열었어. 사진 앱에 저장하려면 사진 저장 메뉴를 선택해 줘.')}catch(e){if(e.name!=='AbortError')setError(e.message)}};
+ const download=()=>{if(!capture)return;try{const file=fileFromCapture();const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);setMessage('다운로드를 요청했어. 아이폰에서는 파일 앱/다운로드를 확인해 줘.')}catch(e){setError('파일 저장 준비 실패: '+e.message)}};
+ const share=()=>{if(!capture)return;try{const file=fileFromCapture();if(!navigator.share||!navigator.canShare?.({files:[file]}))throw Error('이 브라우저에서는 사진 공유를 지원하지 않아. 파일 다운로드를 이용해 줘.');navigator.share({files:[file],title:'SCENE 촬영 사진'}).then(()=>setMessage('공유 완료. 사진 앱 저장 여부는 직접 확인해 줘.')).catch(e=>{if(e.name!=='AbortError')setError('사진 공유 실패: '+e.message)})}catch(e){setError(e.message)}};
  return <section className="scene-camera">
   <div className="scene-camera-head"><div><h3>레퍼런스 오버레이 카메라</h3><p>영감 사진을 반투명하게 겹쳐 놓고 인물 위치와 구도를 맞춰봐.</p></div><Camera size={22}/></div>
   <label className="scene-camera-upload"><ImagePlus size={17}/> {guide?'다른 참고 사진 선택':'참고 사진 선택'}<input type="file" accept="image/*" onChange={choose}/></label>
