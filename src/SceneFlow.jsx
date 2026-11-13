@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {MapPin,Plus,Trash2,ExternalLink,ArrowUp,ArrowDown,Navigation,Check,Camera,Users,ImagePlus,Shirt,Search,CalendarDays,Copy} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
+import SceneShootAI from './SceneShootAI.jsx';
 import './SceneFlow.css';
 const uid=()=>crypto.randomUUID();
 const safeUrl=value=>{try{const u=new URL(value);return u.protocol==='https:'?u.href:''}catch{return ''}};
@@ -93,10 +94,11 @@ export function ScenePeople(){
  return <section className="scene-section"><h2>인물 스타일</h2><div className="scene-panel"><h3>WHO · 함께할 장면</h3><p>얼굴이 닮은 실제 사람을 찾는 대신, 사진 속 옷·헤어·액세서리·커플 스타일을 키워드로 탐색해.</p><label className="scene-field">찾고 싶은 스타일 키워드<input value={keywords} onChange={e=>setKeywords(e.target.value)} placeholder="예: 남자 그레이 니트 미니멀룩"/></label><div className="scene-actions">{links.map(([label,link])=><a key={label} href={link} target="_blank" rel="noopener noreferrer">{label} <ExternalLink size={13}/></a>)}</div><p className="scene-hint">검색 링크는 웹의 공개 콘텐츠를 여는 방식이며 인스타그램에서 자동으로 닮은 사람을 찾거나 실제 계정을 식별하지 않아.</p></div></section>
 }
 const shootDefaults=['장소 촬영 허용 여부 확인','원하는 시간대·자연광 확인','원본 사진의 전신·반신 구도 확인','카메라 높이·각도 맞추기','손·시선·포즈 연습','의상·가방·꽃 등 소품 준비','촬영 후 실제 사진 비교'];
-export function SceneShoot(){
+export function SceneShoot({image=''}){
+ const [sub,setSub]=useState('ai');
  const {records,save,error}=useRecords('scene-shoot-checks-v1');
  const rows=shootDefaults.map((label,i)=>records.find(x=>x.name===label)||{id:'shoot-'+i,name:label,done:false});
- return <section className="scene-section"><h2>촬영 · HOW</h2><p>영감 사진 속 장면을 재현하기 위한 촬영 체크리스트</p>{error&&<p className="scene-error">{error}</p>}<div className="scene-panel">{rows.map(row=><label className="scene-check-row" key={row.id}><input type="checkbox" checked={Boolean(row.done)} onChange={e=>save({...row,done:e.target.checked})}/><span>{row.name}</span></label>)}</div><p className="scene-hint">체크 상태는 계정의 로컬 우선 동기화 기록에 저장돼.</p></section>
+ return <><nav className="scene-subtabs" aria-label="촬영 도구 선택"><button className={sub==='ai'?'active':''} onClick={()=>setSub('ai')}>AI 촬영 분석</button><button className={sub==='checklist'?'active':''} onClick={()=>setSub('checklist')}>기본 체크리스트</button></nav>{sub==='ai'?<SceneShootAI initialImage={image}/>:<section className="scene-section"><h2>촬영 · HOW</h2><p>영감 사진 속 장면을 재현하기 위한 촬영 체크리스트</p>{error&&<p className="scene-error">{error}</p>}<div className="scene-panel">{rows.map(row=><label className="scene-check-row" key={row.id}><input type="checkbox" checked={Boolean(row.done)} onChange={e=>save({...row,done:e.target.checked})}/><span>{row.name}</span></label>)}</div><p className="scene-hint">체크 상태는 계정의 로컬 우선 동기화 기록에 저장돼.</p></section>}</>
 }
 export function SceneRealize({onGo}){
  const {records,save,remove,error}=useRecords('scene-realization-v1');
