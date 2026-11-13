@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import {ImagePlus,MapPin,Search,ExternalLink,Trash2} from 'lucide-react';
 import {supabase} from './supabase';
+import {useLocalCollection} from './sync/LocalSync.jsx';
 const field={border:'1px solid #e2d5ed',borderRadius:12,padding:12,fontSize:16,width:'100%',boxSizing:'border-box'};
 async function prepare(file){
  if(!file?.type?.startsWith('image/'))throw Error('이미지 파일을 선택해 줘.');
@@ -17,7 +18,10 @@ async function prepare(file){
   return image;
  }finally{URL.revokeObjectURL(url)}
 }
-export default function PlaceAnalysis(){
+export default function PlaceAnalysis({onSaved}){
+ const candidates=useLocalCollection('scene-place-candidates-v1');
+ const [saveStatus,setSaveStatus]=useState('');
+ const saveCandidate=async(name)=>{try{const item={id:crypto.randomUUID(),name,address:'',url:'',source:'AI 분석',status:'후보',purpose:'사진 촬영',notes:[result.background,result.mood,...(result.visualClues||[]),notes].filter(Boolean).join(' · '),verified:false,updatedAt:new Date().toISOString()};await candidates.write(item);setSaveStatus('장소 후보함에 저장했어.');onSaved?.()}catch(e){setSaveStatus('저장 실패: '+e.message)}};
  const [image,setImage]=useState(''),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notes,setNotes]=useState('');
  const clear=()=>{setImage('');setResult(null);setNotes('');setError('')};
  const choose=async(e)=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;try{clear();setImage(await prepare(file))}catch(err){setError(err.message)}};
@@ -52,6 +56,7 @@ export default function PlaceAnalysis(){
   <div><b>분위기</b><p>{result.mood}</p></div>
   <div><b>관찰한 단서</b>{result.visualClues?.length?<ul>{result.visualClues.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>명확한 단서 없음</p>}</div>
   <div><b>공개 장소 후보</b>{result.placeCandidates?.length?<ul>{result.placeCandidates.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>특정 장소는 확인되지 않았어.</p>}</div>
+  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{result.placeCandidates?.length?result.placeCandidates.map((name,i)=><button type="button" key={i} className="light" onClick={()=>saveCandidate(name)}>후보 저장: {name}</button>):<button type="button" className="light" onClick={()=>saveCandidate(result.background||'장소 미확인')}>가칭으로 후보 저장</button>}</div>{saveStatus&&<p role="status">{saveStatus}</p>}
   <div><b>추정 근거 수준</b><p>{result.certainty}</p></div>
   <p style={{fontSize:13,color:'#8d789b'}}>{result.caution}</p>
   <label style={{fontWeight:600}}>내가 확인한 장소 / 메모<textarea rows={2} style={{...field,display:'block',marginTop:8}} placeholder="확인된 정보는 직접 기록해 줘." value={notes} onChange={e=>setNotes(e.target.value)}/></label>
