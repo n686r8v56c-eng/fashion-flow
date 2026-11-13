@@ -17,6 +17,7 @@ export function garmentCategory(word){
  if(/맨투맨|후드집업|기모후드/.test(word))return '스웨트·후디';
  if(/니트|터틀넥|반목/.test(word))return '니트';
  if(/패딩|코트|재킷|블레이저|바람막이|아노락|무스탕|플리스|후리스|구스다운|덕다운|비치커버업/.test(word))return '아우터';
+ if(/티셔츠|피케셔츠|폴로티셔츠/.test(word))return '티셔츠·이너·탑';
  if(/셔츠|블라우스/.test(word))return '셔츠·블라우스';
  return '티셔츠·이너·탑';
 }
@@ -38,6 +39,16 @@ export const REFERENCE_SEEDS=[
  {id:'script-3',title:'데일리 경량패딩 1등 후보 비교',type:'선택·순위 예고 리뷰',source:'대화 제공 스크립트 3',url:'',notes:'무신사 스탠다드·노스페이스·선러브·카비씨·시에라·코드그라피 등 착장. 디자인·어깨·지퍼·포켓·배색·실루엣 비교. 1등 예고했으나 끝에는 하나를 선정하지 않음. 구매 혜택 언급, 상업 관계는 미확인.',details:['뮤트 톤','래글런 어깨','이중 지퍼','숨은 포켓','아방한 볼륨','보온 체감','컬러 코디','리버시블'],status:'스크립트 검토'}
 ];
 export const PRODUCT_SEEDS=[
+ {id:'sample-topten',referenceId:'script-1',title:'탑텐 올리브 경량패딩',brand:'탑텐',keyword:'경량패딩',season:'겨울',notes:'첫 번째 제공 스크립트 초반. 정확한 모델명·품번·판매가·영상 타임스탬프 미확인',features:[
+ {detail:'컬러 배색',observation:'올리브 그린을 선택했고 은은한 색감·광택을 언급',evaluation:'저렴한 가격에 디테일이 마음에 든다고 평가',value:'베이직 팬츠에 컬러를 더하는 코디',time:'타임스탬프 미확인'},
+ {detail:'골반·크롭 기장',observation:'골반 라인까지 오는 기장과 핏을 언급',evaluation:'지나치게 딱 맞지 않는 점을 선호',value:'스웨트 팬츠와 편한 데일리 착장',time:'타임스탬프 미확인'}]},
+ {id:'sample-fila',referenceId:'script-2',title:'휠라 프린트 표면 경량패딩',brand:'휠라',keyword:'경량패딩',season:'겨울',notes:'두 번째 스크립트 05:49~06:36. 정확한 제품명 미확인',features:[
+ {detail:'프린트 표면',observation:'충전재가 비친 것처럼 보이는 얼룩덜룩한 표면을 원단 프린트라고 설명',evaluation:'실제 충전재의 비침과 구별해 재미있는 디자인이라고 평가',value:'원단 프린트를 통해 독특한 표면감 표현',time:'05:49–06:18'},
+ {detail:'절개선',observation:'몸의 곡선에 맞춘 절개선이 있다고 설명',evaluation:'편한 착용감을 느낀다는 진행자의 주관적 평가',value:'절개 위치와 움직임의 관계를 확인할 필요',time:'06:18–06:36'}]},
+ {id:'sample-ball',referenceId:'script-2',title:'수아 볼 충전재 패딩',brand:'수아(전사 표기)',keyword:'경량패딩',season:'겨울',notes:'두 번째 스크립트 07:19~09:04. 충전재 성능·판매 수치·세탁 내구성은 독립 검증 전',features:[
+ {detail:'볼 충전재',observation:'구형 충전재가 보인다고 설명',evaluation:'공기를 머금는 구조라는 진행자의 설명',value:'다운 이외 충전재 선택 기준 탐색',time:'07:19–08:20'},
+ {detail:'세탁 후 상태',observation:'소유자가 세 번 세탁했다는 경험과 현재 상태를 제시',evaluation:'뭉침이 적다고 진행자가 평가했으나 시험 결과는 아님',value:'관리 편의성 판단을 위한 검증 항목',time:'08:20–09:04'}]},
+
  {id:'sample-musinsa',referenceId:'script-3',title:'무신사 스탠다드 라이트 퍼플 경량패딩',brand:'무신사 스탠다드',keyword:'경량패딩',season:'겨울',notes:'세 번째 스크립트 00:27~01:52, 정확한 품번·가격·실측 미확인',features:[
  {detail:'뮤트 톤',observation:'라이트 퍼플 컬러와 은은한 배색을 언급',evaluation:'진행자가 디자인과 컬러에 호의적',value:'강하지 않은 컬러 포인트',time:'00:36–00:54'},
  {detail:'래글런 어깨',observation:'어깨가 래글런으로 구성되었다고 설명',evaluation:'남성적으로 크지 않고 부드러운 핏이라고 평가',value:'둥근 어깨선의 실루엣',time:'01:34–01:43'},
