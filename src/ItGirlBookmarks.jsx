@@ -1,8 +1,8 @@
 import React,{useEffect,useState} from 'react';
 import{X,Plus,Pencil,Trash2,ExternalLink,UserRound,Youtube,Instagram,Search}from'lucide-react';
 import{supabase}from'./supabase';
-const categories=['전체','인플루언서','스타','일반인'];
-const blank=()=>({id:'',name:'',category:'인플루언서',url:''});
+const categories=['전체','스타','인플루언서','쇼핑몰','일반인'];
+const blank=()=>({id:'',name:'',category:'스타',url:''});
 function iconFor(entry){const u=(entry.url||'').toLowerCase();return /(?:youtube\.com|youtu\.be)/.test(u)?Youtube:/(?:instagram\.com|instagr\.am)/.test(u)?Instagram:UserRound}
 function validUrl(raw){try{const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);return ['http:','https:'].includes(url.protocol)?url.toString():null}catch{return null}}
 export default function ItGirlBookmarks({userId,onClose}){
