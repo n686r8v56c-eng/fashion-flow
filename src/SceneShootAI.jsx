@@ -28,6 +28,20 @@ function useSavedShoots(){
  return {records,write,remove,error};
 }
 const normalizedShots=shots=>(shots||[]).map((s,i)=>({id:crypto.randomUUID(),title:s.title||'컷 '+(i+1),description:s.description||'',framing:s.framing||'',pose:s.pose||'',light:s.light||'',props:s.props||'',done:false}));
+function EditableShot({shot,index,total,onChange,onMove}){
+ const [name,setName]=useState(shot.title),[memo,setMemo]=useState(shot.description);
+ useEffect(()=>{setName(shot.title);setMemo(shot.description)},[shot.id,shot.title,shot.description]);
+ return <div style={{padding:'10px 0',borderTop:'1px solid #eee6f2',display:'grid',gap:7}}>
+  <div style={{display:'flex',alignItems:'center',gap:9}}>
+   <input type="checkbox" checked={Boolean(shot.done)} onChange={e=>onChange({done:e.target.checked})} aria-label={shot.title+' 완료'} style={{width:20,height:20,accentColor:'#8f67c1'}}/>
+   <input aria-label={'컷 '+(index+1)+' 이름'} style={{...inputStyle,flex:1,minWidth:0}} value={name} onChange={e=>setName(e.target.value)} onBlur={()=>{if(name.trim()&&name.trim()!==shot.title)onChange({title:name.trim()})}}/>
+   <button type="button" style={softButton} disabled={index===0} aria-label="컷 위로" onClick={()=>onMove(-1)}><ArrowUp size={14}/></button>
+   <button type="button" style={softButton} disabled={index===total-1} aria-label="컷 아래로" onClick={()=>onMove(1)}><ArrowDown size={14}/></button>
+  </div>
+  <textarea aria-label={shot.title+' 촬영 메모'} style={{...inputStyle,resize:'vertical'}} rows={2} value={memo} onChange={e=>setMemo(e.target.value)} onBlur={()=>{if(memo!==shot.description)onChange({description:memo})}}/>
+  <small style={{color:'#81718d'}}>구도: {shot.framing||'미정'} · 포즈: {shot.pose||'미정'} · 빛: {shot.light||'미정'} · 소품: {shot.props||'미정'}</small>
+ </div>
+}
 function ShotList({project,save,remove}){
  const [editing,setEditing]=useState(project.title);
  useEffect(()=>setEditing(project.title),[project.id,project.title]);
@@ -39,16 +53,7 @@ function ShotList({project,save,remove}){
    <div className="scene-heading"><div><b>저장한 촬영 프로젝트</b><p className="scene-hint">{count} / {project.shots.length}컷 완료</p></div><button type="button" className="scene-danger" aria-label="프로젝트 삭제" onClick={()=>{if(window.confirm('이 촬영 프로젝트와 컷 리스트를 삭제할까?'))remove(project.id)}}><Trash2 size={18}/></button></div>
    <input style={inputStyle} value={editing} onChange={e=>setEditing(e.target.value)} onBlur={()=>{if(editing.trim()&&editing.trim()!==project.title)update({title:editing.trim()})}} aria-label="프로젝트 이름"/>
    {project.summary&&<p>{project.summary}</p>}
-   {project.shots.map((shot,i)=><div key={shot.id} style={{padding:'10px 0',borderTop:'1px solid #eee6f2',display:'grid',gap:7}}>
-      <div style={{display:'flex',alignItems:'center',gap:9}}>
-       <input type="checkbox" checked={Boolean(shot.done)} onChange={e=>changeShot(shot.id,{done:e.target.checked})} aria-label={shot.title+' 완료'} style={{width:20,height:20,accentColor:'#8f67c1'}}/>
-       <input aria-label={'컷 '+(i+1)+' 이름'} style={{...inputStyle,flex:1,minWidth:0}} value={shot.title} onChange={e=>changeShot(shot.id,{title:e.target.value})}/>
-       <button type="button" style={softButton} disabled={i===0} aria-label="컷 위로" onClick={()=>move(i,-1)}><ArrowUp size={14}/></button>
-       <button type="button" style={softButton} disabled={i===project.shots.length-1} aria-label="컷 아래로" onClick={()=>move(i,1)}><ArrowDown size={14}/></button>
-      </div>
-      <textarea aria-label={shot.title+' 촬영 메모'} style={{...inputStyle,resize:'vertical'}} rows={2} value={shot.description} onChange={e=>changeShot(shot.id,{description:e.target.value})}/>
-      <small style={{color:'#81718d'}}>구도: {shot.framing||'미정'} · 포즈: {shot.pose||'미정'} · 빛: {shot.light||'미정'} · 소품: {shot.props||'미정'}</small>
-    </div>)}
+   {project.shots.map((shot,i)=><EditableShot key={shot.id} shot={shot} index={i} total={project.shots.length} onChange={change=>changeShot(shot.id,change)} onMove={delta=>move(i,delta)}/>)}
    <button type="button" style={softButton} onClick={()=>update({shots:[...project.shots,{id:crypto.randomUUID(),title:'새 컷',description:'',framing:'',pose:'',light:'',props:'',done:false}]})}><Plus size={16}/> 컷 추가</button>
  </article>;
 }
