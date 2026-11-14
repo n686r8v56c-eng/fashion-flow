@@ -68,3 +68,22 @@
 .lookbook-archive-shortcut svg{width:19px;height:19px;stroke-width:2.1;flex:none}
 .lookbook-archive-shortcut:focus-visible{outline:2px solid #9070be;outline-offset:2px;border-radius:4px}
 @media(max-width:380px){.lookbook-heading{gap:5px}.lookbook-heading-left{gap:3px}.lookbook-archive-shortcut{gap:2px;font-size:12px}}
+
+
+/* Lookbook editorial navigation: title on first line, Wish / Look text tabs beneath. */
+.lookbook-heading{display:flex;align-items:center;justify-content:flex-start;margin:7px 0 6px}
+.lookbook-category-row{display:flex;align-items:center;gap:15px;min-height:40px;margin:0 0 10px;padding:0 5px}
+.lookbook-category-label{font:inherit;font-size:16px;font-weight:750;line-height:1.25;color:#947fa8;border:0;border-radius:0;background:transparent;box-shadow:none;padding:7px 0;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+.lookbook-category-label.active{color:#3f2d4f;font-weight:800}
+.lookbook-category-plus{display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;box-shadow:none;color:#4a395d;padding:4px 2px;min-width:26px;min-height:32px;cursor:pointer}
+.lookbook-category-plus:disabled{opacity:.45}
+.lookbook-category-restore{margin-left:auto;border:0;background:none;color:#8e72ad;font:inherit;font-size:12px;padding:5px 0;cursor:pointer}
+.lookbook-category-label:focus-visible,.lookbook-category-plus:focus-visible{outline:2px solid #9070be;outline-offset:3px;border-radius:4px}
+.lookbook-category-menu-backdrop{position:fixed;inset:0;z-index:11000;display:flex;justify-content:center;align-items:center;background:#30223b60;padding:18px;box-sizing:border-box}
+.lookbook-category-menu{display:flex;flex-direction:column;gap:10px;width:min(340px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 16px 45px #27193628}
+.lookbook-category-menu strong{font-size:18px;color:#3f2d4f;margin-bottom:5px}
+.lookbook-category-menu button{display:flex;align-items:center;gap:9px;width:100%;background:#f7f1fd;border:1px solid #e6daf2;color:#674888;border-radius:10px;padding:11px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.lookbook-category-menu button:disabled{opacity:.4}
+.lookbook-category-menu form{display:flex;flex-direction:column;gap:8px}
+.lookbook-category-menu input{width:100%;box-sizing:border-box;border:1px solid #dfcfeb;border-radius:10px;padding:10px 12px;font:inherit;font-size:16px}
+@media(max-width:380px){.lookbook-category-row{gap:12px}.lookbook-category-label{font-size:16px}}
