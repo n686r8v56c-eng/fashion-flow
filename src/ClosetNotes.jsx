@@ -5,7 +5,7 @@ import './ClosetNotes.css';
 
 const DEFAULT_TITLES=['메모리랩','뷰티건강','Write','Fashion','Money','Thread'];
 const blank=()=>({id:crypto.randomUUID(),text:'',done:false,archived:false,link:''});
-const newSection=(userId,index)=>({id:'section-'+index,userId,type:'closet-checklist',order:index,title:DEFAULT_TITLES[index],entries:[],updated_at:new Date().toISOString()});
+const newSection=(userId,index)=>({id:'section-'+index,userId,type:'closet-checklist',order:index,title:DEFAULT_TITLES[index],entries:[],sectionArchived:false,updated_at:new Date().toISOString()});
 const safeUrl=value=>{const text=String(value||'').trim();if(!text)return '';try{const url=new URL(text);if(url.protocol!=='http:'&&url.protocol!=='https:')return null;return url.href}catch{return null}};
 
 export default function ClosetNotes({userId}){
@@ -17,11 +17,10 @@ export default function ClosetNotes({userId}){
  const [linkTarget,setLinkTarget]=useState(null);
  const [linkDraft,setLinkDraft]=useState('');
  const [error,setError]=useState('');
- const [busy,setBusy]=useState(false);
+ const [addingRow,setAddingRow]=useState(false);
  const sectionsRef=useRef([]);
  const inputs=useRef({});
  const hold=useRef(null);
- const editing=useRef(false);
  const queuedFocus=useRef(null);
  const initialized=useRef(false);
  const timers=useRef(new Map());
@@ -94,6 +93,31 @@ export default function ClosetNotes({userId}){
   }
  },[sections]);
 
+ const addRow=async()=>{
+  if(addingRow)return;
+  setAddingRow(true);
+  setError('');
+  const existing=sectionsRef.current;
+  const order=Math.max(-1,...existing.map(x=>Number(x.order)||0))+1;
+  const now=new Date().toISOString();
+  const newRows=[0,1].map(i=>({
+   id:crypto.randomUUID(),userId,type:'closet-checklist',order:order+i,
+   title:'새 영역',entries:[],sectionArchived:false,updated_at:now
+  }));
+  // Mark as pending so collection notifications cannot replace the local rows
+  // before both new boxes have been written.
+  newRows.forEach(row=>pending.current.set(row.id,row));
+  setLocal([...existing,...newRows]);
+  try{
+   writeQueue.current=writeQueue.current.catch(()=>{}).then(()=>collection.writeBatch(newRows));
+   await writeQueue.current;
+   newRows.forEach(row=>{if(pending.current.get(row.id)===row)pending.current.delete(row.id)});
+  }catch(e){setError('행 저장 실패: '+e.message)}
+  finally{setAddingRow(false)}
+ };
+ const archiveSection=(section,archived)=>{
+  persist({...section,sectionArchived:archived},true);
+ };
  const updateEntry=(section,id,patch,immediate=false)=>{
   persist({...section,entries:(section.entries||[]).map(entry=>entry.id===id?{...entry,...patch}:entry)},immediate);
  };
@@ -127,7 +151,6 @@ export default function ClosetNotes({userId}){
   }
  };
  const openLink=(section,entry)=>{
-  editing.current=true;
   setLinkTarget({sectionId:section.id,entryId:entry.id});
   setLinkDraft(entry.link||'');
  };
@@ -145,18 +168,24 @@ export default function ClosetNotes({userId}){
   if(section&&titleDraft.trim())persist({...section,title:titleDraft.trim()},true);
   setRenameId(null);
  };
- const sectionRows=sections.filter(x=>x.userId===userId);
+ const sectionRows=sections.filter(x=>x.userId===userId).sort((a,b)=>(a.order??0)-(b.order??0)).filter(section=>
+  archiveView?Boolean(section.sectionArchived)||(section.entries||[]).some(entry=>entry.archived):!section.sectionArchived
+ );
  return <section className="closet-notes">
   <div className="closet-notes-head"><h1>메모장</h1><button type="button" className={archiveView?'active':''} aria-pressed={archiveView} onClick={()=>{flushAll();setArchiveView(v=>!v)}}><Archive size={18}/>{archiveView?'전체':'아카이브'}</button></div>
   {error&&<p className="closet-notes-error" role="alert">{error}</p>}
   <div className="closet-notes-grid">
    {sectionRows.map(section=>{
-    const entries=(section.entries||[]).filter(x=>Boolean(x.archived)===archiveView);
+    const isArchivedBox=Boolean(section.sectionArchived);
+    const entries=(section.entries||[]).filter(x=>archiveView?(isArchivedBox||Boolean(x.archived)):!x.archived);
     return <div className="closet-notes-section" key={section.id}>
-     {renameId===section.id?<form className="closet-notes-rename" onSubmit={e=>{e.preventDefault();saveTitle()}}>
+     <div className="closet-notes-section-header">
+      {renameId===section.id?<form className="closet-notes-rename" onSubmit={e=>{e.preventDefault();saveTitle()}}>
        <input autoFocus value={titleDraft} maxLength={35} onChange={e=>setTitleDraft(e.target.value)} aria-label="영역 제목"/>
        <button type="submit" aria-label="제목 저장"><Check size={18}/></button>
-      </form>:<button type="button" className="closet-notes-section-title" onClick={()=>{setRenameId(section.id);setTitleDraft(section.title)}}>{section.title}</button>}
+      </form>:<button type="button" className="closet-notes-section-title" disabled={archiveView} onClick={()=>{setRenameId(section.id);setTitleDraft(section.title)}}>{section.title}</button>}
+      {(!archiveView||isArchivedBox)&&<button type="button" className="closet-notes-section-archive" aria-label={isArchivedBox?section.title+' 박스 복원':section.title+' 박스 아카이브'} title={isArchivedBox?'박스 복원':'박스 아카이브'} onClick={()=>archiveSection(section,!isArchivedBox)}>{isArchivedBox?<ArchiveRestore size={17}/>:<Archive size={17}/>}</button>}
+     </div>
      <div className="closet-notes-entries">
       {entries.map((entry,index)=><div className="closet-notes-entry" key={entry.id}
        onContextMenu={e=>{e.preventDefault();if(!archiveView)openLink(section,entry)}}>
@@ -170,16 +199,17 @@ export default function ClosetNotes({userId}){
         onPointerMove={()=>clearTimeout(hold.current)}
         onBlur={()=>flushAll()}/>
        {entry.link&&<a className="closet-notes-link" href={entry.link} target="_blank" rel="noopener noreferrer" aria-label="링크 열기"><Link2 size={15}/></a>}
-       <button type="button" className="closet-notes-archive-action" aria-label={archiveView?'아카이브 복원':'항목 아카이브'}
-        onClick={()=>archiveView?updateEntry(section,entry.id,{archived:false},true):archive(section,entry)}>
+       {(!archiveView||!isArchivedBox)&&<button type="button" className="closet-notes-archive-action" aria-label={archiveView?'항목 복원':'항목 아카이브'}
+        onClick={()=>archiveView?(isArchivedBox?null:updateEntry(section,entry.id,{archived:false},true)):archive(section,entry)}>
         {archiveView?<ArchiveRestore size={16}/>:<Archive size={16}/>}
-       </button>
+       </button>}
       </div>)}
      </div>
      {!archiveView&&<button type="button" className="closet-notes-add" aria-label={section.title+' 항목 추가'} onClick={()=>addAt(section,(section.entries||[]).length)}><Plus size={18}/></button>}
     </div>;
    })}
   </div>
+  {!archiveView&&<button type="button" className="closet-notes-add-row" disabled={addingRow} onClick={addRow}><Plus size={18}/> 행 추가</button>}
   {linkTarget&&<div className="closet-notes-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setLinkTarget(null)}}>
    <section className="closet-notes-modal" role="dialog" aria-modal="true" aria-labelledby="closet-notes-link-title">
     <div className="closet-notes-modal-head"><h2 id="closet-notes-link-title">링크</h2><button type="button" aria-label="닫기" onClick={()=>setLinkTarget(null)}><X size={20}/></button></div>
