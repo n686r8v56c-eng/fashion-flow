@@ -179,7 +179,7 @@ export default function DetailLab({userId}){
    <div className="dl-toolbar"><h3>실제 발화 · 가치 전환 / 서사 전술</h3><span>12대 분류 · 48개 하위 항목</span></div>
    <p className="dl-muted">문장을 요약하거나 새로 만들지 않고 제공된 전사에서 인용한 원문만 보여줘. 전술은 검토용 분류이며 판매 성과가 입증된 것은 아니야.</p>
    <label>영상 선택<select value={speechSource} onChange={e=>{setSpeechSource(e.target.value);setSpeechCategory('전체');setSpeechTactic('전체')}}><option value="전체">전체 영상 ({researchBundle.length}편)</option>{researchBundle.map(n=><option key={n.id} value={n.id}>{n.title} · 원문 {SPEECH_QUOTES.filter(q=>q.sourceId===n.id).length}개</option>)}</select></label>
-   <p className="dl-muted">{SPEECH_SOURCE_NOTE} · 현재 실제 발화는 1편에만 등록되어 있어. 다른 영상의 분류 원문은 아직 등록되지 않았어.</p>
+   <p className="dl-muted">{SPEECH_SOURCE_NOTE} · 현재 실제 발화는 1편과 3편에 등록되어 있어. 2편의 전술별 발화 원문은 아직 등록되지 않았어.</p>
    <div className="dl-filters">
     <label>대분류<select value={speechCategory} onChange={e=>{setSpeechCategory(e.target.value);setSpeechTactic('전체')}}><option value="전체">전체 12대 분류</option>{SPEECH_TACTICS.map(c=><option key={c.id} value={c.id}>{c.id}. {c.name}</option>)}</select></label>
     <label>세부 전술<select value={speechTactic} onChange={e=>setSpeechTactic(e.target.value)}><option value="전체">전체 세부 전술</option>{speechTactics.map(t=><option key={t.id} value={t.id}>{t.id} {t.name}</option>)}</select></label>
