@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Images,Check,X,Trash2} from 'lucide-react';
+import {Plus,Check,X,NotebookPen} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
@@ -12,6 +12,8 @@ export default function ClosetLookbook({userId}){
  const [editing,setEditing]=useState(null);
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
+ const [memoTarget,setMemoTarget]=useState(null);
+ const [memoDraft,setMemoDraft]=useState('');
  const scrolling=useRef(null);
  const seeded=useRef(false);
  const pressTimer=useRef(null);
@@ -85,6 +87,21 @@ export default function ClosetLookbook({userId}){
   }catch(e){setError('사진 저장 실패: '+e.message)}
   finally{setBusy('')}
  }
+ function openMemo(board,index){
+  setMemoTarget({boardId:board.id,index});
+  setMemoDraft(String((board.memos||{})[index]||''));
+ }
+ async function saveMemo(){
+  if(!memoTarget)return;
+  const board=boards.find(b=>b.id===memoTarget.boardId);
+  if(!board)return;
+  setBusy('memo');setError('');
+  try{
+   await collection.write({...board,memos:{...(board.memos||{}),[memoTarget.index]:memoDraft},updated_at:new Date().toISOString()});
+   setMemoTarget(null);
+  }catch(e){setError('메모 저장 실패: '+e.message)}
+  finally{setBusy('')}
+ }
  async function clearSlot(board,index){
   const slots=[...(board.slots||Array(8).fill(null))];
   slots[index]=null;
@@ -114,11 +131,19 @@ export default function ClosetLookbook({userId}){
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
        {busy===key&&<span className="lookbook-loading">저장 중</span>}
       </button>
+      {path&&<button type="button" className={'lookbook-memo'+(String((board.memos||{})[index]||'').trim()?' has-memo':'')} aria-label={board.name+' '+(index+1)+'번 사진 메모'} onClick={()=>openMemo(board,index)}><NotebookPen size={17}/></button>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>})}
     </div>
    </article>)}
    <button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy}><Plus size={25}/><span>보드 추가</span></button>
   </div>
+  {memoTarget&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setMemoTarget(null)}}>
+    <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-labelledby="lookbook-memo-title">
+      <div className="lookbook-memo-heading"><h2 id="lookbook-memo-title">메모</h2><button type="button" aria-label="닫기" onClick={()=>setMemoTarget(null)}><X size={21}/></button></div>
+      <textarea autoFocus aria-label="사진 메모" value={memoDraft} onChange={e=>setMemoDraft(e.target.value)} rows={7}/>
+      <div className="lookbook-memo-actions"><button type="button" disabled={!!busy} onClick={()=>setMemoTarget(null)}>취소</button><button type="button" disabled={!!busy} onClick={saveMemo}>저장</button></div>
+    </section>
+  </div>}
  </section>;
 }
