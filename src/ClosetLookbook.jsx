@@ -28,7 +28,7 @@ export default function ClosetLookbook({userId}){
    if(mine.length===0&&!seeded.current){
     seeded.current=true;
     const now=new Date().toISOString();
-    const first={id:crypto.randomUUID(),userId,type:'lookbook-board',number:1,name:'보드1',position:0,slots:[null,null,null,null],created_at:now,updated_at:now};
+    const first={id:crypto.randomUUID(),userId,type:'lookbook-board',number:1,name:'보드1',position:0,slots:Array(8).fill(null),created_at:now,updated_at:now};
     try{await collection.write(first)}catch(e){if(alive)setError('첫 보드 저장 실패: '+e.message)}
    }
   }).catch(e=>{if(alive)setError(e.message)});
@@ -49,7 +49,7 @@ export default function ClosetLookbook({userId}){
  },[boards,userId]);
  async function createBoard(){
   const number=nextNumber();
-  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',number,name:'보드'+number,position:sorted.length,slots:[null,null,null,null],created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',number,name:'보드'+number,position:sorted.length,slots:Array(8).fill(null),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   setBusy('create');setError('');
   try{
    await collection.write(board);
@@ -79,14 +79,14 @@ export default function ClosetLookbook({userId}){
   setBusy(key);setError('');
   try{
    const path=await uploadPhoto(file,userId);
-   const slots=[...(board.slots||[null,null,null,null])];
+   const slots=[...(board.slots||Array(8).fill(null))];
    slots[index]=path;
    await collection.write({...board,slots,updated_at:new Date().toISOString()});
   }catch(e){setError('사진 저장 실패: '+e.message)}
   finally{setBusy('')}
  }
  async function clearSlot(board,index){
-  const slots=[...(board.slots||[null,null,null,null])];
+  const slots=[...(board.slots||Array(8).fill(null))];
   slots[index]=null;
   setBusy(board.id+':'+index);
   try{await collection.write({...board,slots,updated_at:new Date().toISOString()})}
@@ -108,7 +108,7 @@ export default function ClosetLookbook({userId}){
       :<button type="button" className="lookbook-board-title" onPointerDown={()=>beginPress(board)} onPointerUp={cancelPress} onPointerMove={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress} onContextMenu={e=>{e.preventDefault();setDraft(board.name);setEditing(board.id)}} onClick={()=>{longPressed.current=false}} title="길게 누르면 이름 편집">{board.name}</button>}
     </div>
     <div className="lookbook-tiles">
-     {[0,1,2,3].map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
+     {Array.from({length:8},(_,index)=>index).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
       <input ref={el=>{if(el)fileRefs.current[key]=el;else delete fileRefs.current[key]}} type="file" accept="image/*" aria-label={board.name+' '+(index+1)+'번 사진 선택'} onChange={e=>upload(board,index,e)} hidden/>
       <button type="button" className="lookbook-photo-button" disabled={!!busy} aria-label={board.name+' '+(index+1)+'번 사진 '+(path?'교체':'추가')} onClick={()=>fileRefs.current[key]?.click()}>
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
