@@ -58,7 +58,7 @@ export default function DetailLab({userId}){
  const [narrativeSource,setNarrativeSource]=useState('script-1');
  const [speechSource,setSpeechSource]=useState('전체');
  const [speechCategory,setSpeechCategory]=useState('전체'),[speechTactic,setSpeechTactic]=useState('전체'),[speechQuery,setSpeechQuery]=useState('');
- const [painForm,setPainForm]=useState({title:'',pain:'',solution:''}),[editingPain,setEditingPain]=useState('');
+
  const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailBrand,setDetailBrand]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
  const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
  const key='user:'+userId;
@@ -109,7 +109,7 @@ export default function DetailLab({userId}){
    const newRows={};for(const field of ['refs','products','details','painPoints'])newRows[field]=arrays(incoming[field]).filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&!existingIds.has(x.id)&& (field!=='painPoints'||(typeof x.title==='string'&&typeof x.solution==='string')));
    const n=Object.values(newRows).reduce((sum,list)=>sum+list.length,0);if(!n){setNotice('새로 추가할 항목이 없어. 기존 자료는 유지했어.');return}
    if(!confirm('현재 데이터를 유지하며 신규 '+n+'개 항목을 병합할까?'))return;
-   commit(x=>({...x,refs:[...arrays(x.refs),...newRows.refs],products:[...arrays(x.products),...newRows.products],details:[...arrays(x.details),...newRows.details],painPoints:[...arrays(x.painPoints),...newRows.painPoints],productAdditions:{...x.productAdditions,...Object.fromEntries(Object.entries(incoming.productAdditions||{}).map(([id,features])=>[id,[...arrays(x.productAdditions?.[id]),...arrays(features)]]))}}));
+   commit(x=>({...x,refs:[...arrays(x.refs),...newRows.refs],products:[...arrays(x.products),...newRows.products],details:[...arrays(x.details),...newRows.details],painPoints:[...arrays(x.painPoints),...newRows.painPoints],painNotes:{...x.painNotes,...Object.fromEntries(Object.entries(incoming.painNotes||{}).map(([key,items])=>[key,[...arrays(x.painNotes?.[key]),...arrays(items).filter(n=>n&&typeof n.id==='string'&&!arrays(x.painNotes?.[key]).some(old=>old.id===n.id))]]))},productAdditions:{...x.productAdditions,...Object.fromEntries(Object.entries(incoming.productAdditions||{}).map(([id,features])=>[id,[...arrays(x.productAdditions?.[id]),...arrays(features)]]))}}));
   }catch(err){setNotice('가져오기 실패: '+err.message)}finally{setImporting(false)}
  };
  const prompt=composePrompt(keyword,currentProducts,picked,format);
@@ -199,29 +199,40 @@ export default function DetailLab({userId}){
   </div>}
   {tab==='페인포인트'&&<div className="dl-panel">
    <div className="dl-toolbar"><h3>{keyword} · 페인포인트</h3><span>{(keyword==='경량패딩'?PAIN_POINT_SEEDS.length:0)+arrays(data.painPoints).filter(p=>p.keyword===keyword).length}개 항목</span></div>
-   <form className="dl-form" onSubmit={e=>{e.preventDefault();const title=clean(painForm.title),pain=clean(painForm.pain),solution=clean(painForm.solution);if(!title||!solution){setNotice('문제 제목과 해결책을 입력해 줘.');return}const entry={id:editingPain||id(),keyword,title,pain:pain||title,solution,createdAt:dateNow()};commit(x=>({...x,painPoints:editingPain?arrays(x.painPoints).map(p=>p.id===editingPain?{...p,...entry,createdAt:p.createdAt||entry.createdAt}:p):[...arrays(x.painPoints),entry]}));setPainForm({title:'',pain:'',solution:''});setEditingPain('')}}>
-    <h4>{editingPain?'내 문제 수정':'+ 문제 직접 등록'}</h4>
-    <label>문제 제목<input value={painForm.title} onChange={e=>setPainForm(f=>({...f,title:e.target.value}))} placeholder="예: 소매가 불편하다" required/></label>
-    <label>구체적인 불편 (선택)<textarea rows={2} value={painForm.pain} onChange={e=>setPainForm(f=>({...f,pain:e.target.value}))} placeholder="왜 불편한지 기록"/></label>
-    <label>해결책<textarea rows={2} value={painForm.solution} onChange={e=>setPainForm(f=>({...f,solution:e.target.value}))} placeholder="어떤 디자인·기능으로 해결할지" required/></label>
-    <div className="dl-row"><button type="submit" disabled={!ready}>{editingPain?'수정 저장':'문제 저장'}</button>{editingPain&&<button type="button" onClick={()=>{setEditingPain('');setPainForm({title:'',pain:'',solution:''})}}>수정 취소</button>}</div>
-   </form>
-   {[...(keyword==='경량패딩'?PAIN_POINT_SEEDS:[]),...arrays(data.painPoints).filter(p=>p.keyword===keyword)].map((pain,i)=><details className="dl-card" key={pain.id} style={{marginBottom:10}}>
-    <summary style={{cursor:'pointer',fontWeight:600,lineHeight:1.5}}>{i+1}. {pain.title}</summary>
-    <div style={{marginTop:14,display:'grid',gap:12}}>
-     <p style={{fontSize:'1.15rem',fontWeight:700,lineHeight:1.55,margin:0,whiteSpace:'pre-wrap'}}>{pain.solution}</p>
-     {arrays(data.painPoints).some(p=>p.id===pain.id)&&<div className="dl-row">
-       <button type="button" onClick={()=>{setEditingPain(pain.id);setPainForm({title:pain.title,pain:pain.pain||'',solution:pain.solution||''})}}>수정</button>
-       <button type="button" onClick={()=>{if(window.confirm('이 수동 등록 문제를 삭제할까?'))commit(x=>({...x,painPoints:arrays(x.painPoints).filter(p=>p.id!==pain.id)}))}}>삭제</button>
-     </div>}
-    </div>
-   </details>)}
-   <button type="button" onClick={()=>clickDownload('fashion-detail-lab-painpoints-'+keyword+'.json',{format:'fashion-detail-lab-painpoints-v1',keyword,origin:'디테일랩 기본 연구 + 사용자 로컬 수동 등록',painPoints:[...(keyword==='경량패딩'?PAIN_POINT_SEEDS:[]),...arrays(data.painPoints).filter(p=>p.keyword===keyword)]})}>페인포인트 자료 JSON 다운로드</button>
+   {[...(keyword==='경량패딩'?PAIN_POINT_SEEDS:[]),...arrays(data.painPoints).filter(p=>p.keyword===keyword)].map((pain,i)=>
+    <PainNoteCard key={pain.id} pain={pain} index={i+1} notes={arrays(data.painNotes?.[pain.id])}
+     ready={ready}
+     onSave={value=>commit(x=>({...x,painNotes:{...x.painNotes,[pain.id]:[...arrays(x.painNotes?.[pain.id]),{id:id(),text:value,createdAt:dateNow()}]}}))}
+     onDelete={noteId=>commit(x=>({...x,painNotes:{...x.painNotes,[pain.id]:arrays(x.painNotes?.[pain.id]).filter(n=>n.id!==noteId)}}))}
+    />)}
+   <button type="button" onClick={()=>clickDownload('fashion-detail-lab-painpoints-'+keyword+'.json',{format:'fashion-detail-lab-painpoints-v2',keyword,painPoints:[...(keyword==='경량패딩'?PAIN_POINT_SEEDS:[]),...arrays(data.painPoints).filter(p=>p.keyword===keyword)],painNotes:data.painNotes||{}})}>페인포인트 자료 JSON 다운로드</button>
   </div>}
   {tab==='역조합'&&<div className="dl-panel"><h3>{keyword} · 설득 역조합</h3><p className="dl-muted">상품의 디테일·관찰·주관적 평가를 연결한 AI 작업 지시문을 생성해. 자동 생성 결과가 검증된 사실은 아니야.</p><label>출력 형식<select value={format} onChange={e=>setFormat(e.target.value)}>{['최종 셀링 카피 시뮬레이션','유튜브 롱폼 비교 구성','숏폼 리뷰 스크립트','Threads 텍스트','상세페이지','촬영 컷리스트'].map(x=><option key={x}>{x}</option>)}</select></label><h4>디테일 선택</h4><div className="dl-checks">{options.map(d=><label key={d}><input type="checkbox" checked={picked.includes(d)} onChange={e=>setPicked(v=>e.target.checked?[...v,d]:v.filter(x=>x!==d))}/>{d}</label>)}</div><div className="dl-row"><button onClick={copyPrompt}>AI 지시문 복사</button><button onClick={()=>setDraft(prompt)}>지시문 보기</button></div>{draft&&<textarea readOnly rows={14} value={draft} onFocus={e=>e.target.select()}/>}</div>}
   <div className="dl-footer"><button type="button" onClick={()=>clickDownload('fashion-detail-lab-'+new Date().toISOString().slice(0,10)+'.json',{format:'fashion-detail-lab-v1',exportedAt:dateNow(),payload:data})}>JSON 백업</button><label className="dl-import">JSON 병합 가져오기<input type="file" accept="application/json,.json" onChange={handleFile} disabled={!ready||importing}/></label><small>원본 키워드와 초기 경량패딩 샘플은 기본 제공 · 사용자 추가 기록은 이 기기에 저장</small></div>
   {notice&&<p role="status" className="dl-notice">{notice}</p>}
  </section>;
+}
+function PainNoteCard({pain,index,notes,ready,onSave,onDelete}){
+ const [input,setInput]=useState('');
+ const [editing,setEditing]=useState(false);
+ const [expanded,setExpanded]=useState(false);
+ const cardRef=useRef(null);
+ const submit=e=>{e.preventDefault();const value=clean(input);if(!value||!ready)return;onSave(value);setInput('');setEditing(false);setExpanded(false);if(cardRef.current)cardRef.current.open=false};
+ return <details ref={cardRef} className="dl-card" style={{marginBottom:10}}>
+  <summary style={{cursor:'pointer',fontWeight:600,lineHeight:1.5}}>{index}. {pain.title}</summary>
+  <div style={{marginTop:14,display:'grid',gap:12}}>
+   <p style={{fontSize:'1.15rem',fontWeight:700,lineHeight:1.55,margin:0,whiteSpace:'pre-wrap'}}>{pain.solution}</p>
+   <form onSubmit={submit} style={{display:'grid',gap:8}}>
+    <textarea rows={2} aria-label={pain.title+' 메모 입력'} placeholder="여기에 붙여넣기 · 메모 입력" value={input} onChange={e=>setInput(e.target.value)} style={{fontSize:'1rem'}}/>
+    <button type="submit" disabled={!ready||!clean(input)}>저장</button>
+   </form>
+   {notes.map(n=><details key={n.id} style={{border:'1px solid var(--dl-border, #e3d6ea)',borderRadius:10,padding:'10px 12px',fontSize:'1rem'}}>
+     <summary style={{cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:400,fontSize:'1rem'}}>{n.text.split('\\n')[0]||n.text}</summary>
+     <p style={{whiteSpace:'pre-wrap',fontSize:'1rem',lineHeight:1.6,overflowWrap:'anywhere'}}>{n.text}</p>
+     <button type="button" onClick={()=>onDelete(n.id)}>메모 삭제</button>
+    </details>)}
+  </div>
+ </details>
 }
 function ProductCard({product,reference,editable,onAdd}){
  const [adding,setAdding]=useState(false);
