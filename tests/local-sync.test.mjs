@@ -76,9 +76,9 @@ test('closet queue survives old server constraints and restores separated collec
  assert.deepEqual(await resumed.list(names[2]),[]);assert.equal((await resumed.list(names[0])).length,1);
  resumed.close();b.close();
 });
-test('new CLOSET collections survive DB constraint, retry and cross-device roundtrip',async()=>{
+test('nonstandard collections survive DB constraint, retry and cross-device roundtrip',async()=>{
  const srv=server(),a=await device(srv,'closet-new-a');
- const names=['closet-notes-v1','closet-lookbook-boards','closet-shopping','closet-future-collection'];
+ const names=['closet-notes-v1','closet-lookbook-boards','closet-shopping','closet-future-collection','fashion-video-inbox','user-notes-v1'];
  for(const name of names)await a.save(name,{id:'same-id',title:name});
  srv.setFail(true);await a.sync();assert.equal(a.getStatus().pending,names.length);a.close();
  const resumed=await device(srv,'closet-new-a');srv.setFail(false);await resumed.sync();
