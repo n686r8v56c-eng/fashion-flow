@@ -10,13 +10,13 @@
 .lookbook-rename input{border:1px solid #dfcfeb;border-radius:8px;padding:7px;font-size:16px;min-width:0;flex:1}
 .lookbook-rename button{border:0;background:transparent;color:#8461a6;padding:5px}
 .lookbook-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-.lookbook-tile{min-width:0;position:relative;aspect-ratio:3 / 4;overflow:hidden;border-radius:12px;background:#f6e9f3}
-.lookbook-photo-button{display:flex;justify-content:center;align-items:center;width:100%;height:100%;border:0;padding:0;background:#f3ddec;cursor:pointer;color:#533a60}
+.lookbook-tile{min-width:0;position:relative;aspect-ratio:3 / 4;overflow:hidden;border-radius:12px;background:#f2ecfb}
+.lookbook-photo-button{display:flex;justify-content:center;align-items:center;width:100%;height:100%;border:0;padding:0;background:#f0eafa;cursor:pointer;color:#7654a4}
 .lookbook-photo-button img{display:block;width:100%;height:100%;object-fit:cover}
-.lookbook-empty{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#69466e}
+.lookbook-empty{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#8969b0}
 .lookbook-clear{position:absolute;right:6px;top:6px;display:grid;place-items:center;border:0;border-radius:50%;height:24px;width:24px;background:rgba(255,255,255,.92);color:#674a80}
 .lookbook-loading{position:absolute;inset:0;display:grid;place-items:center;background:#ffffff9c;font-size:13px;font-weight:700;color:#6b5290}
-.lookbook-add-board{flex:0 0 min(65vw,230px);align-self:stretch;min-height:300px;background:#f7ebf5;color:#805aa4;border:1px dashed #e2cdea;border-radius:14px;display:flex;flex-direction:column;gap:12px;justify-content:center;align-items:center;font-weight:700;font-size:15px}
+.lookbook-add-board{flex:0 0 118px;align-self:flex-start;height:124px;min-height:0;background:#f2ecfb;color:#805aa4;border:1px dashed #e2cdea;border-radius:14px;display:flex;flex-direction:column;gap:6px;justify-content:center;align-items:center;font-weight:700;font-size:12px}
 .lookbook-error{color:#ae3653;font-size:13px}
 @media(min-width:700px){.lookbook-board{flex-basis:390px}}
 @media(max-width:380px){.lookbook-board{flex-basis:84vw}.lookbook-scroller{gap:10px}}
