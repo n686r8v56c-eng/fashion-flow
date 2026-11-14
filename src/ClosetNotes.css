@@ -1,0 +1,32 @@
+.closet-notes{min-width:0;padding:3px 0 25px}
+.closet-notes-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.closet-notes-head h1{font-size:20px;font-weight:800;color:#412c50;margin:0}
+.closet-notes-head>button{display:flex;align-items:center;gap:5px;border:1px solid #e2d5ed;border-radius:10px;background:#fff;color:#805eaa;padding:9px 10px;font-weight:700;font-size:13px}
+.closet-notes-head>button.active{background:#eee6f8}
+.closet-notes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid #dfd2ea;border-radius:16px;overflow:hidden;background:#fff}
+.closet-notes-section{min-width:0;min-height:235px;padding:15px 11px;border-bottom:1px solid #dfd2ea}
+.closet-notes-section:nth-child(odd){border-right:1px solid #dfd2ea}
+.closet-notes-section:nth-last-child(-n+2){border-bottom:0}
+.closet-notes-section-title{padding:0;background:transparent;border:0;text-align:left;color:#432e53;font-size:17px;font-weight:800;line-height:1.4;margin:0 0 18px;max-width:100%;overflow-wrap:anywhere}
+.closet-notes-rename{display:flex;align-items:center;gap:4px;margin:0 0 15px}
+.closet-notes-rename input{min-width:0;flex:1;width:100%;border:1px solid #d8c7e7;border-radius:6px;padding:4px;font-size:16px}
+.closet-notes-rename button{border:0;background:transparent;color:#8b69b2;padding:2px}
+.closet-notes-entries{display:grid;gap:3px}
+.closet-notes-entry{display:flex;align-items:center;gap:7px;min-width:0;min-height:31px}
+.closet-notes-entry input[type=checkbox]{width:13px;height:13px;accent-color:#916cc1;flex:0 0 13px;margin:0}
+.closet-notes-input{flex:1 1 0;width:0;min-width:0;padding:4px 0;border:0;outline:0;background:transparent;color:#422f51;font-size:16px;font-weight:600;line-height:1.4}
+.closet-notes-input[readonly]{color:#9385a1}
+.closet-notes-entry input[type=checkbox]:checked+.closet-notes-input{text-decoration:line-through;opacity:.65}
+.closet-notes-link,.closet-notes-archive-action{flex:none;display:grid;place-items:center;color:#9d85b5;background:transparent;border:0;padding:2px}
+.closet-notes-add{border:0;background:transparent;color:#baa4d2;display:grid;place-items:center;margin-top:10px;padding:3px}
+.closet-notes-error{color:#b13454;font-size:13px}
+.closet-notes-overlay{position:fixed;inset:0;z-index:10000;background:#34213f7a;display:flex;justify-content:center;align-items:center;padding:16px}
+.closet-notes-modal{background:white;border-radius:18px;padding:18px;width:min(100%,410px);box-sizing:border-box;display:grid;gap:16px;box-shadow:0 10px 40px #24103233}
+.closet-notes-modal-head{display:flex;align-items:center;justify-content:space-between}
+.closet-notes-modal-head h2{margin:0;font-size:20px;color:#422e52}
+.closet-notes-modal-head button{border:0;background:transparent;color:#8c7a9e;padding:4px}
+.closet-notes-modal>input{border:1px solid #ded1ed;border-radius:10px;padding:12px;font-size:16px;min-width:0}
+.closet-notes-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.closet-notes-modal-actions button{background:#f4eefb;color:#825caa;border:1px solid #e2d3ef;border-radius:10px;padding:11px;font-weight:700}
+.closet-notes-modal-actions button:last-child{background:#906fc0;border-color:#906fc0;color:white}
+@media(max-width:370px){.closet-notes-section{padding:12px 8px}.closet-notes-entry{gap:4px}.closet-notes-section-title{font-size:15px}}
