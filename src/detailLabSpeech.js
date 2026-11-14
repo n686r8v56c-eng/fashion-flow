@@ -841,4 +841,4 @@ export const SPEECH_QUOTES=[
   {"id":"script-2-speech-048","sourceId":"script-2","time":"09:04","quote":"이건 제가 9월에 르꼬끄랑 협업할 때 보여 드렸던 패딩인데","tactics":["10-1","10-4"],"note":"이전 협업 관계와 제품 소개 경험 고지","confidence":"확인"},
   {"id":"script-2-speech-049","sourceId":"script-2","time":"09:28","quote":"이런 정보를 매일 물어보시니까 그냥 영상 내에서 이런 거 알려주면서 시작하는 분들 되게 많더라고요 앞으로는 알려 드릴까 봐요","tactics":["11-1","12-4"],"note":"시청자 질문을 반영한 향후 콘텐츠 제공 제안. 댓글 직접 요청은 아님","confidence":"부분"}
 ];
-export const SPEECH_SOURCE_NOTE='사용자 제공 원본 1편 전사 · 00:00–16:26 · 표기/오탈자는 원문 그대로 · 타임코드는 각 전사 블록 시작 시각';
+export const SPEECH_SOURCE_NOTE='사용자 제공 경량패딩 3편 전사의 실제 발화 발췌 · 1편 00:00–16:26 / 2편 00:00–09:37 / 3편 00:00–15:26 · 발화 표기/오탈자 보존 · 타임코드는 원문 전사 블록의 시작 시각 · 영상 원본 재검증 전';
