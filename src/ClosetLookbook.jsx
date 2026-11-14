@@ -105,7 +105,7 @@ export default function ClosetLookbook({userId}){
        <button type="submit" aria-label="이름 저장"><Check size={18}/></button>
        <button type="button" onClick={()=>setEditing(null)} aria-label="취소"><X size={18}/></button>
       </form>
-      :<button type="button" className="lookbook-board-title" onPointerDown={()=>beginPress(board)} onPointerUp={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress} onContextMenu={e=>{e.preventDefault();setDraft(board.name);setEditing(board.id)}} onClick={()=>{if(longPressed.current){longPressed.current=false;return}setDraft(board.name);setEditing(board.id)}} title="길게 누르면 이름 편집">{board.name}</button>}
+      :<button type="button" className="lookbook-board-title" onPointerDown={()=>beginPress(board)} onPointerUp={cancelPress} onPointerMove={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress} onContextMenu={e=>{e.preventDefault();setDraft(board.name);setEditing(board.id)}} onClick={()=>{longPressed.current=false}} title="길게 누르면 이름 편집">{board.name}</button>}
     </div>
     <div className="lookbook-tiles">
      {[0,1,2,3].map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
