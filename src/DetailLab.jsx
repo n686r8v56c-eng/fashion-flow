@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from './detailLabData.js';
 import {RESEARCH_PRODUCTS,RESEARCH_ENRICHMENTS} from './detailLabResearch.js';
 import {NARRATIVE_RESEARCH,NARRATIVE_SCHEMA} from './detailLabNarrative.js';
+import {SPEECH_TACTICS,SPEECH_QUOTES,SPEECH_SOURCE_NOTE} from './detailLabSpeech.js';
 import './DetailLab.css';
 
 const initial=()=>({refs:[],products:[],details:[],productAdditions:{},classOverrides:{},schemaVersion:1});
@@ -54,6 +55,7 @@ export default function DetailLab({userId}){
  const [detailForm,setDetailForm]=useState({group:'컬러·배색',name:'',note:''});
  const [productSource,setProductSource]=useState('전체 영상');
  const [narrativeSource,setNarrativeSource]=useState('script-1');
+ const [speechCategory,setSpeechCategory]=useState('전체'),[speechTactic,setSpeechTactic]=useState('전체'),[speechQuery,setSpeechQuery]=useState('');
  const [detailScope,setDetailScope]=useState('전체 상품'),[selectedDetail,setSelectedDetail]=useState(''),[detailSeason,setDetailSeason]=useState('전체'),[detailGroup,setDetailGroup]=useState('전체'),[detailBrand,setDetailBrand]=useState('전체'),[detailQuery,setDetailQuery]=useState('');
  const [picked,setPicked]=useState([]),[format,setFormat]=useState('최종 셀링 카피 시뮬레이션'),[draft,setDraft]=useState(''),[importing,setImporting]=useState(false);
  const key='user:'+userId;
@@ -65,6 +67,9 @@ export default function DetailLab({userId}){
  const refs=mergedRefs(data),products=mergedProducts(data),details=mergedDetails(data);
  const currentRefs=refs.filter(r=>(r.keyword||'경량패딩')===keyword);
  const currentNarrative=NARRATIVE_RESEARCH.find(n=>n.id===narrativeSource);
+ const speechCategories=SPEECH_TACTICS.filter(c=>speechCategory==='전체'||c.id===speechCategory);
+ const speechTactics=speechCategories.flatMap(c=>c.tactics);
+ const visibleSpeech=SPEECH_QUOTES.filter(x=>x.sourceId===narrativeSource&&(speechCategory==='전체'||x.tactics.some(t=>t.startsWith(speechCategory+'-')))&&(speechTactic==='전체'||x.tactics.includes(speechTactic))&&(!speechQuery||[x.quote,x.note,x.time].some(v=>v.includes(speechQuery))));
  const researchBundle=NARRATIVE_RESEARCH.filter(n=>n.keyword===keyword).map(n=>({...n,reference:refs.find(r=>r.id===n.id)||null,linkedProductIds:products.filter(p=>p.referenceId===n.id).map(p=>p.id)}));
  const currentProducts=products.filter(p=>p.keyword===keyword);
  const sourceProducts=currentProducts.filter(p=>productSource==='전체 영상'||p.referenceId===productSource);
@@ -109,7 +114,7 @@ export default function DetailLab({userId}){
  return <section className="dl-root">
   <div className="dl-heading"><div><h2>DETAIL LAB</h2><p>시즌 키워드 → 롱폼 레퍼런스 → 상품별 디테일 → 설득 역조합</p></div><span className="dl-pill">연구 1차</span></div>
   <div className="dl-status"><strong>Market Flow 원본 200개</strong><span>봄 50 · 여름 50 · 가을 50 · 겨울 50</span><small>정적 키워드 스냅샷 · 실시간 동기화 아님 · 로컬 IndexedDB 저장</small></div>
-  <nav className="dl-tabs" aria-label="DETAIL LAB 탭">{['키워드','레퍼런스','상품 분석','디테일 사전','콘텐츠 구조','역조합'].map(t=><button type="button" key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+  <nav className="dl-tabs" aria-label="DETAIL LAB 탭">{['키워드','레퍼런스','상품 분석','디테일 사전','콘텐츠 구조','실제 발화','역조합'].map(t=><button type="button" key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}</nav>
   {tab==='키워드'&&<div className="dl-panel">
    <div className="dl-row dl-season">{SEASONS.map(s=><button key={s} className={season===s?'selected':''} onClick={()=>{setSeason(s);setGroup('전체')}}>{s} · 50</button>)}</div>
    <div className="dl-filters"><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="키워드 검색"/><select aria-label="대분류" value={group} onChange={e=>setGroup(e.target.value)}><option>전체</option>{GROUPS.map(g=><option key={g}>{g}</option>)}</select></div>
@@ -119,7 +124,7 @@ export default function DetailLab({userId}){
   </div>}
   {tab==='레퍼런스'&&<div className="dl-panel">
    <div className="dl-toolbar"><h3>{keyword} · 롱폼 분석</h3><span>{currentRefs.length}/3편 확보</span></div>
-   {keyword==='경량패딩'&&<p className="dl-muted">3편의 제공 스크립트를 기준으로 등장 상품·사례의 분석 카드를 연결했어. 1편은 원문 타임스탬프가 없고, 2편은 직접 착용하지 않은 트렌드 사례 상품도 포함해.</p>}
+   {keyword==='경량패딩'&&<p className="dl-muted">3편의 제공 스크립트를 기준으로 등장 상품·사례의 분석 카드를 연결했어. 1편의 타임코드가 포함된 보완 전사가 실제 발화 탭에 연결됐고, 2편은 직접 착용하지 않은 트렌드 사례 상품도 포함해.</p>}
    {currentRefs.map(r=><article className="dl-card" key={r.id}><div className="dl-between"><strong>{r.title}</strong><span className="dl-pill">{r.status||'등록'}</span></div><p>{r.type}</p><small>{r.source||'사용자 등록'} · {r.url?<a target="_blank" rel="noopener noreferrer" href={r.url}>영상 열기</a>:'영상 URL 미확인'}</small><p>{r.notes}</p><div className="dl-tags">{arrays(r.details).map(t=><span key={t}>{t}</span>)}</div><button type="button" onClick={()=>{setTab('상품 분석');setProductForm(f=>({...f,referenceId:r.id}))}}>상품 카드로 분석 →</button></article>)}
    <div className="dl-form"><h4>+ 레퍼런스 추가</h4><label>영상 제목<input value={refForm.title} onChange={e=>setRefForm(f=>({...f,title:e.target.value}))}/></label><label>영상 URL (선택)<input value={refForm.url} onChange={e=>setRefForm(f=>({...f,url:e.target.value}))} placeholder="https://youtu.be/..."/></label><label>분석 유형<select value={refForm.type} onChange={e=>setRefForm(f=>({...f,type:e.target.value}))}>{['착장·비교 리뷰','트렌드·소재 해설','선택·순위 예고 리뷰','스타일링 가이드','기타'].map(x=><option key={x}>{x}</option>)}</select></label><label>분석 내용<textarea rows={3} value={refForm.notes} onChange={e=>setRefForm(f=>({...f,notes:e.target.value}))}/></label><label>발견한 디테일 (쉼표 구분)<input value={refForm.details} onChange={e=>setRefForm(f=>({...f,details:e.target.value}))}/></label><button onClick={addReference}>레퍼런스 저장</button></div>
   </div>}
@@ -168,6 +173,26 @@ export default function DetailLab({userId}){
    <div className="dl-row"><button type="button" onClick={()=>clickDownload('fashion-writing-content-'+keyword+'-'+new Date().toISOString().slice(0,10)+'.json',{format:NARRATIVE_SCHEMA,exportedAt:dateNow(),source:'Fashion Flow DETAIL LAB',videos:researchBundle})}>Writing Flow용 분석 JSON 다운로드</button><button type="button" onClick={()=>clickDownload('fashion-detail-content-combined-'+keyword+'.json',{format:'fashion-detail-lab-research-bundle-v1',exportedAt:dateNow(),source:'Fashion Flow DETAIL LAB',videos:researchBundle,products:products.filter(p=>p.keyword===keyword),details:allDictionary.filter(d=>d.keyword===keyword||!d.keyword)})}>상품+콘텐츠 통합 JSON</button></div>
    <p className="dl-muted">Writing Flow 자동 가져오기는 아직 연결되지 않았어. JSON은 중복 분석 없이 후속 연동에 사용하는 자료야.</p>
    </>}
+  </div>}
+  {tab==='실제 발화'&&<div className="dl-panel">
+   <div className="dl-toolbar"><h3>실제 발화 · 가치 전환 / 서사 전술</h3><span>12대 분류 · 48개 하위 항목</span></div>
+   <p className="dl-muted">문장을 요약하거나 새로 만들지 않고 제공된 전사에서 인용한 원문만 보여줘. 전술은 검토용 분류이며 판매 성과가 입증된 것은 아니야.</p>
+   <label>영상 선택<select value={narrativeSource} onChange={e=>{setNarrativeSource(e.target.value);setSpeechCategory('전체');setSpeechTactic('전체')}}>{researchBundle.map(n=><option key={n.id} value={n.id}>{n.title}</option>)}</select></label>
+   {narrativeSource==='script-1'?<p className="dl-muted">{SPEECH_SOURCE_NOTE}</p>:<p className="dl-muted">현재 제공된 타임코드 원문은 첫 번째 영상(script-1)에만 연결했어. 다른 영상은 기존 분석을 보존하며 실제 발화 태그 데이터가 추가되기 전까지 비워 둬.</p>}
+   <div className="dl-filters">
+    <label>대분류<select value={speechCategory} onChange={e=>{setSpeechCategory(e.target.value);setSpeechTactic('전체')}}><option value="전체">전체 12대 분류</option>{SPEECH_TACTICS.map(c=><option key={c.id} value={c.id}>{c.id}. {c.name}</option>)}</select></label>
+    <label>세부 전술<select value={speechTactic} onChange={e=>setSpeechTactic(e.target.value)}><option value="전체">전체 세부 전술</option>{speechTactics.map(t=><option key={t.id} value={t.id}>{t.id} {t.name}</option>)}</select></label>
+    <label>원문 검색<input value={speechQuery} onChange={e=>setSpeechQuery(e.target.value)} placeholder="발화·시각·판단 근거 검색"/></label>
+   </div>
+   <p className="dl-muted">현재 보이는 발화 {visibleSpeech.length}개 / script-1 원문 등록 {SPEECH_QUOTES.filter(x=>x.sourceId==='script-1').length}개 · 중복 원문 저장 없이 복수 태그 연결</p>
+   {visibleSpeech.map(q=><article className="dl-card" key={q.id}>
+    <div className="dl-between"><strong>{q.time} · 실제 발화 원문</strong><span className="dl-pill">{q.confidence==='확인'?'전술 적용':'부분·유사'}</span></div>
+    <blockquote style={{whiteSpace:'pre-wrap',margin:'12px 0',padding:'10px 12px',borderLeft:'3px solid #a487d1',background:'rgba(147,112,219,.06)',lineHeight:1.7}}>{q.quote}</blockquote>
+    <div className="dl-tags">{q.tactics.map(code=>{const c=SPEECH_TACTICS.find(g=>g.tactics.some(t=>t.id===code));const t=c?.tactics.find(x=>x.id===code);return <span key={code}>{code} {t?.name||'미확인'}</span>})}</div>
+    <p className="dl-muted">분류 근거: {q.note}</p>
+   </article>)}
+   {!visibleSpeech.length&&<p className="dl-muted">이 조건에서 등록된 실제 발화가 없어. 해당 전술이 쓰이지 않았다고 확정하는 의미는 아니야.</p>}
+   <button type="button" onClick={()=>clickDownload('fashion-detail-lab-speech-'+narrativeSource+'.json',{format:'fashion-detail-lab-verbatim-speech-v1',sourceId:narrativeSource,sourceNote:SPEECH_SOURCE_NOTE,categories:SPEECH_TACTICS,quotes:SPEECH_QUOTES.filter(x=>x.sourceId===narrativeSource)})}>이 영상 실제 발화 JSON 다운로드</button>
   </div>}
   {tab==='역조합'&&<div className="dl-panel"><h3>{keyword} · 설득 역조합</h3><p className="dl-muted">상품의 디테일·관찰·주관적 평가를 연결한 AI 작업 지시문을 생성해. 자동 생성 결과가 검증된 사실은 아니야.</p><label>출력 형식<select value={format} onChange={e=>setFormat(e.target.value)}>{['최종 셀링 카피 시뮬레이션','유튜브 롱폼 비교 구성','숏폼 리뷰 스크립트','Threads 텍스트','상세페이지','촬영 컷리스트'].map(x=><option key={x}>{x}</option>)}</select></label><h4>디테일 선택</h4><div className="dl-checks">{options.map(d=><label key={d}><input type="checkbox" checked={picked.includes(d)} onChange={e=>setPicked(v=>e.target.checked?[...v,d]:v.filter(x=>x!==d))}/>{d}</label>)}</div><div className="dl-row"><button onClick={copyPrompt}>AI 지시문 복사</button><button onClick={()=>setDraft(prompt)}>지시문 보기</button></div>{draft&&<textarea readOnly rows={14} value={draft} onFocus={e=>e.target.select()}/>}</div>}
   <div className="dl-footer"><button type="button" onClick={()=>clickDownload('fashion-detail-lab-'+new Date().toISOString().slice(0,10)+'.json',{format:'fashion-detail-lab-v1',exportedAt:dateNow(),payload:data})}>JSON 백업</button><label className="dl-import">JSON 병합 가져오기<input type="file" accept="application/json,.json" onChange={handleFile} disabled={!ready||importing}/></label><small>원본 키워드와 초기 경량패딩 샘플은 기본 제공 · 사용자 추가 기록은 이 기기에 저장</small></div>
