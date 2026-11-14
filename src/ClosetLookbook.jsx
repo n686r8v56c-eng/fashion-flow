@@ -72,7 +72,7 @@ export default function ClosetLookbook({userId}){
  async function createCategory(){
   if(busy)return;
   const id=`custom-${crypto.randomUUID()}`;
-  const number=Math.max(0,...customCategories.map(c=>Number(String(c.name||'').match(/^함(\\d+)$/)?.[1])||0))+1;
+  const number=Math.max(0,...customCategories.map(c=>Number(String(c.name||'').match(/^함(\d+)$/)?.[1])||0))+1;
   const now=new Date().toISOString();
   const record={id:`lookbook-category:${userId}:${id}`,type:'lookbook-category',userId,categoryId:id,name:`함${number}`,hidden:false,position:customCategories.length,created_at:now,updated_at:now};
   setBusy('category');setError('');
