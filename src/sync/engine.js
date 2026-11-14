@@ -1,15 +1,16 @@
 import {openLocalDatabase,transaction,readLegacy} from './localDatabase.js';
 const TABLE='fashion_sync_events';
-// Closet collections share the existing server collection without changing local keys.
-const CLOSET_COLLECTIONS=['closet-inbox','closet-checklists','closet-inventory-outfits'];
+// Keep all closet-* records under the server's existing 'collection' check constraint.
+// The wire prefix is stable so older devices can still decode their known collections.
+const isClosetCollection=collection=>typeof collection==='string'&&collection.startsWith('closet-');
 const WIRE_PREFIX='~fashion-closet-v1~';
 function wireKey(collection,id){
- return CLOSET_COLLECTIONS.includes(collection)?{collection:'collection',item_id:WIRE_PREFIX+collection+'~'+id}:{collection,item_id:id};
+ return isClosetCollection(collection)?{collection:'collection',item_id:WIRE_PREFIX+collection+'~'+id}:{collection,item_id:id};
 }
 function localEvent(event){
  if(event?.collection!=='collection'||!event.item_id?.startsWith(WIRE_PREFIX))return event;
  const rest=event.item_id.slice(WIRE_PREFIX.length),separator=rest.indexOf('~'),collection=rest.slice(0,separator);
- return separator>0&&CLOSET_COLLECTIONS.includes(collection)?{...event,collection,item_id:rest.slice(separator+1)}:event;
+ return separator>0&&isClosetCollection(collection)&&rest.slice(separator+1)?{...event,collection,item_id:rest.slice(separator+1)}:event;
 }
 
 const keyFor=(owner,collection,id)=>JSON.stringify([owner,collection,id]);
