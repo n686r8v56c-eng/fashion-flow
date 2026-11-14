@@ -76,6 +76,22 @@ test('closet queue survives old server constraints and restores separated collec
  assert.deepEqual(await resumed.list(names[2]),[]);assert.equal((await resumed.list(names[0])).length,1);
  resumed.close();b.close();
 });
+test('new CLOSET collections survive DB constraint, retry and cross-device roundtrip',async()=>{
+ const srv=server(),a=await device(srv,'closet-new-a');
+ const names=['closet-notes-v1','closet-lookbook-boards','closet-shopping','closet-future-collection'];
+ for(const name of names)await a.save(name,{id:'same-id',title:name});
+ srv.setFail(true);await a.sync();assert.equal(a.getStatus().pending,names.length);a.close();
+ const resumed=await device(srv,'closet-new-a');srv.setFail(false);await resumed.sync();
+ assert.equal(resumed.getStatus().pending,0);
+ assert.ok(srv.events.every(e=>e.collection==='collection'&&e.item_id.length<=100));
+ const b=await device(srv,'closet-new-b');await b.sync();
+ for(const name of names)assert.equal((await b.list(name))[0].title,name);
+ assert.deepEqual(await b.list('collection'),[]);
+ await b.remove(names[0],'same-id');await b.sync();await resumed.sync();
+ assert.deepEqual(await resumed.list(names[0]),[]);
+ for(const name of names.slice(1))assert.equal((await resumed.list(name))[0].title,name);
+ resumed.close();b.close();
+});
 test('closet conflict events decode back into the logical collection',async()=>{
  const srv=server(),a=await device(srv,'closet-conflict-a'),b=await device(srv,'closet-conflict-b'),collection='closet-inventory-outfits';
  await a.save(collection,{id:'look',title:'초안'});await a.sync();await b.sync();
