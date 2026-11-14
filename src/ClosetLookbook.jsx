@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Check,X,NotebookPen} from 'lucide-react';
+import {Plus,Check,X,NotebookPen,Archive,ArchiveRestore} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
@@ -8,6 +8,7 @@ export default function ClosetLookbook({userId}){
  const collection=useLocalCollection('closet-lookbook-boards');
  const [boards,setBoards]=useState([]);
  const [boardType,setBoardType]=useState('wish');
+ const [showArchived,setShowArchived]=useState(false);
  const [loaded,setLoaded]=useState(false);
  const [pictures,setPictures]=useState({});
  const [busy,setBusy]=useState('');
@@ -21,9 +22,11 @@ export default function ClosetLookbook({userId}){
  const pressTimer=useRef(null);
  const longPressed=useRef(false);
  const fileRefs=useRef({});
- const activeBoards=boards.filter(b=>(b.boardType||'wish')===boardType);
+ const categoryBoards=boards.filter(b=>(b.boardType||'wish')===boardType);
+ const activeBoards=categoryBoards.filter(b=>!b.archivedAt);
+ const archivedBoards=categoryBoards.filter(b=>!!b.archivedAt).sort((a,b)=>String(b.archivedAt).localeCompare(String(a.archivedAt)));
  const sorted=[...activeBoards].sort((a,b)=>(a.position??0)-(b.position??0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
- const nextNumber=()=>Math.max(0,...activeBoards.map(b=>Number(b.number)||0))+1;
+ const nextNumber=()=>Math.max(0,...categoryBoards.map(b=>Number(b.number)||0))+1;
  useEffect(()=>{
   let alive=true;
   const reload=()=>collection.read().then(async rows=>{
@@ -37,12 +40,12 @@ export default function ClosetLookbook({userId}){
   return()=>{alive=false;unsubscribe();clearTimeout(pressTimer.current)};
  },[collection,userId]);
  useEffect(()=>{
-  if(!loaded||activeBoards.length||seeding.current.has(boardType))return;
+  if(!loaded||categoryBoards.length||seeding.current.has(boardType))return;
   seeding.current.add(boardType);
   const now=new Date().toISOString();
   const first={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number:1,name:'보드1',position:0,slots:Array(8).fill(null),created_at:now,updated_at:now};
   collection.write(first).catch(e=>{setError('첫 보드 저장 실패: '+e.message);seeding.current.delete(boardType)});
- },[loaded,boardType,activeBoards.length,collection,userId]);
+ },[loaded,boardType,categoryBoards.length,collection,userId]);
  useEffect(()=>{
   let active=true;
   (async()=>{
@@ -54,9 +57,18 @@ export default function ClosetLookbook({userId}){
   })().catch(e=>{if(active)setError('사진 불러오기 실패: '+e.message)});
   return()=>{active=false};
  },[boards,userId]);
+ async function changeArchive(board,archive){
+  if(busy)return;
+  if(archive&&!window.confirm('이 보드를 아카이브할까? 사진과 메모는 그대로 보관돼요.'))return;
+  setBusy(board.id);setError('');
+  try{
+   await collection.write({...board,archivedAt:archive?new Date().toISOString():null,updated_at:new Date().toISOString()});
+  }catch(e){setError((archive?'아카이브':'복원')+' 실패: '+e.message)}
+  finally{setBusy('')}
+ }
  async function createBoard(){
   const number=nextNumber();
-  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number,name:'보드'+number,position:sorted.length,slots:Array(8).fill(null),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number,name:'보드'+number,position:Math.max(-1,...categoryBoards.map(b=>Number(b.position)||0))+1,slots:Array(8).fill(null),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   setBusy('create');setError('');
   try{
    await collection.write(board);
@@ -116,9 +128,10 @@ export default function ClosetLookbook({userId}){
   finally{setBusy('')}
  }
  return <section className="closet-lookbook">
-  <div className="lookbook-heading"><h1>LOOKBOOK</h1><div className="lookbook-type-tabs" role="tablist" aria-label="룩북 분류"><button type="button" role="tab" className={boardType==='wish'?'active':''} aria-selected={boardType==='wish'} onClick={()=>{setBoardType('wish');setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Wish</button><button type="button" role="tab" className={boardType==='look'?'active':''} aria-selected={boardType==='look'} onClick={()=>{setBoardType('look');setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Look</button></div></div>
+  <div className="lookbook-heading"><h1>LOOKBOOK</h1><div className="lookbook-type-tabs" role="tablist" aria-label="룩북 분류"><button type="button" role="tab" className={boardType==='wish'?'active':''} aria-selected={boardType==='wish'} onClick={()=>{setBoardType('wish');setShowArchived(false);setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Wish</button><button type="button" role="tab" className={boardType==='look'?'active':''} aria-selected={boardType==='look'} onClick={()=>{setBoardType('look');setShowArchived(false);setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Look</button></div></div>
+  <div className="lookbook-archive-toolbar"><button type="button" className={showArchived?'active':''} aria-pressed={showArchived} onClick={()=>{setShowArchived(v=>!v);setEditing(null);setMemoTarget(null)}}><Archive size={17}/>{showArchived?'보드로 돌아가기':`아카이브 (${archivedBoards.length})`}</button></div>
   {error&&<p role="alert" className="lookbook-error">{error}</p>}
-  <div className="lookbook-scroller" ref={scrolling} aria-label="룩북 보드 가로 스크롤">
+  {!showArchived?<div className="lookbook-scroller" ref={scrolling} aria-label="룩북 보드 가로 스크롤">
    {sorted.map(board=><article key={board.id} className="lookbook-board">
     <div className="lookbook-board-heading">
      {editing===board.id?
@@ -128,6 +141,7 @@ export default function ClosetLookbook({userId}){
        <button type="button" onClick={()=>setEditing(null)} aria-label="취소"><X size={18}/></button>
       </form>
       :<button type="button" className="lookbook-board-title" onPointerDown={()=>beginPress(board)} onPointerUp={cancelPress} onPointerMove={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress} onContextMenu={e=>{e.preventDefault();setDraft(board.name);setEditing(board.id)}} onClick={()=>{longPressed.current=false}} title="길게 누르면 이름 편집">{board.name}</button>}
+     <button type="button" className="lookbook-archive-action" disabled={!!busy} onClick={()=>changeArchive(board,true)} aria-label={board.name+' 아카이브'} title="사진과 메모를 보존하고 아카이브"><Archive size={17}/></button>
     </div>
     <div className="lookbook-tiles">
      {Array.from({length:8},(_,index)=>index).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
@@ -142,7 +156,9 @@ export default function ClosetLookbook({userId}){
     </div>
    </article>)}
    <button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy}><Plus size={25}/><span>보드 추가</span></button>
-  </div>
+  </div>:<div className="lookbook-archive-list" aria-label={boardType==='wish'?'Wish 아카이브':'Look 아카이브'}>
+   {archivedBoards.length===0?<p>아카이브한 보드가 없어요.</p>:archivedBoards.map(board=><div className="lookbook-archive-item" key={board.id}><div><strong>{board.name}</strong><small>{(board.slots||[]).filter(Boolean).length}장 사진 · {board.archivedAt?.slice(0,10)}</small></div><button type="button" disabled={!!busy} onClick={()=>changeArchive(board,false)}><ArchiveRestore size={17}/> 복원</button></div>)}
+  </div>}
   {memoTarget&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setMemoTarget(null)}}>
     <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-labelledby="lookbook-memo-title">
       <div className="lookbook-memo-heading"><h2 id="lookbook-memo-title">메모</h2><button type="button" aria-label="닫기" onClick={()=>setMemoTarget(null)}><X size={21}/></button></div>
