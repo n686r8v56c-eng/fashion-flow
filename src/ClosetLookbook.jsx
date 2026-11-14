@@ -27,11 +27,12 @@ export default function ClosetLookbook({userId}){
  const fileRefs=useRef({});
  const categoryTimer=useRef(null);
  const categoryPressFired=useRef(false);
- const categoryIds=['wish','look'];
  const categoryMeta=boards.filter(b=>b.type==='lookbook-category');
+ const customCategories=categoryMeta.filter(b=>b.categoryId&&!['wish','look'].includes(b.categoryId)).sort((a,b)=>(a.position??0)-(b.position??0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+ const categoryIds=['wish','look',...customCategories.map(b=>b.categoryId)];
  const categorySettings=id=>categoryMeta.find(b=>b.id===`lookbook-category:${userId}:${id}`);
  const visibleCategories=categoryIds.filter(id=>!categorySettings(id)?.hidden);
- const categoryLabel=id=>categorySettings(id)?.name|| (id==='wish'?'Wish':'Look');
+ const categoryLabel=id=>categorySettings(id)?.name|| (id==='wish'?'Wish':id==='look'?'Look':'새 함');
  const categoryBoards=boards.filter(b=>b.type!=='lookbook-category'&&(b.boardType||'wish')===boardType);
  const activeBoards=categoryBoards.filter(b=>!b.archivedAt);
  const archivedBoards=categoryBoards.filter(b=>!!b.archivedAt).sort((a,b)=>String(b.archivedAt).localeCompare(String(a.archivedAt)));
@@ -50,7 +51,7 @@ export default function ClosetLookbook({userId}){
   return()=>{alive=false;unsubscribe();clearTimeout(pressTimer.current);clearTimeout(categoryTimer.current)};
  },[collection,userId]);
  useEffect(()=>{
-  if(!loaded||!visibleCategories.includes(boardType)||categoryBoards.length||seeding.current.has(boardType))return;
+  if(!loaded||!['wish','look'].includes(boardType)||!visibleCategories.includes(boardType)||categoryBoards.length||seeding.current.has(boardType))return;
   seeding.current.add(boardType);
   const now=new Date().toISOString();
   const first={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number:1,name:'보드1',position:0,slots:Array(8).fill(null),created_at:now,updated_at:now};
@@ -68,6 +69,16 @@ export default function ClosetLookbook({userId}){
   return()=>{active=false};
  },[boards,userId]);
  
+ async function createCategory(){
+  if(busy)return;
+  const id=`custom-${crypto.randomUUID()}`;
+  const number=Math.max(0,...customCategories.map(c=>Number(String(c.name||'').match(/^함(\\d+)$/)?.[1])||0))+1;
+  const now=new Date().toISOString();
+  const record={id:`lookbook-category:${userId}:${id}`,type:'lookbook-category',userId,categoryId:id,name:`함${number}`,hidden:false,position:customCategories.length,created_at:now,updated_at:now};
+  setBusy('category');setError('');
+  try{await collection.write(record);setBoardType(id);setShowArchived(false);setCategoryMenu(null);scrolling.current?.scrollTo({left:0});}
+  catch(e){setError('새 함 추가 실패: '+e.message)}finally{setBusy('')}
+ }
  function openCategoryMenu(id){categoryPressFired.current=true;setCategoryMenu(id);setBoardMenu(null);setEditing(null);}
  function startCategoryPress(id){clearTimeout(categoryTimer.current);categoryPressFired.current=false;categoryTimer.current=setTimeout(()=>openCategoryMenu(id),550);}
  function stopCategoryPress(){clearTimeout(categoryTimer.current);}
@@ -170,7 +181,7 @@ export default function ClosetLookbook({userId}){
   <div className="lookbook-heading"><div className="lookbook-heading-left"><h1>LOOKBOOK</h1><button type="button" className={"lookbook-archive-shortcut"+(showArchived?" active":"")} aria-label={showArchived?"보드로 돌아가기":`아카이브 ${archivedBoards.length}개 보기`} aria-pressed={showArchived} onClick={()=>{setShowArchived(v=>!v);setEditing(null);setMemoTarget(null)}}><Archive size={19}/><span>({archivedBoards.length})</span></button></div></div>
   <div className="lookbook-category-row" role="tablist" aria-label="룩북 분류">
    {visibleCategories.map(id=><button key={id} type="button" role="tab" aria-selected={boardType===id} className={"lookbook-category-label"+(boardType===id?" active":"")} onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startCategoryPress(id)}} onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerMove={stopCategoryPress} onPointerLeave={stopCategoryPress} onContextMenu={e=>{e.preventDefault();stopCategoryPress();openCategoryMenu(id)}} onClick={()=>selectCategory(id)} title="길게 눌러 이름 편집·삭제">{categoryLabel(id)}</button>)}
-   <button type="button" className="lookbook-category-plus" onClick={createBoard} disabled={!!busy||showArchived} aria-label={categoryLabel(boardType)+" 보드 추가"} title="보드 추가"><Plus size={21}/></button>
+   <button type="button" className="lookbook-category-plus" onClick={createCategory} disabled={!!busy} aria-label="새 룩북 함 추가" title="새 함 추가"><Plus size={21}/></button>
    {visibleCategories.length<categoryIds.length&&<button type="button" className="lookbook-category-restore" onClick={()=>setCategoryMenu('restore')}>숨긴 탭 복원</button>}
   </div>
   {categoryMenu&&<div className="lookbook-category-menu-backdrop" onClick={()=>{setCategoryMenu(null);setCategoryNameDraft(null)}}><div className="lookbook-category-menu" role="dialog" aria-modal="true" aria-label="룩북 분류 편집" onClick={e=>e.stopPropagation()}>
@@ -206,8 +217,8 @@ export default function ClosetLookbook({userId}){
      </div>})}
     </div>
    </article>)}
-
-  </div>:<div className="lookbook-archive-list" aria-label={boardType==='wish'?'Wish 아카이브':'Look 아카이브'}>
+   <button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy} aria-label={categoryLabel(boardType)+" 보드 추가"}><Plus size={25}/><span>보드 추가</span></button>
+  </div>:<div className="lookbook-archive-list" aria-label={categoryLabel(boardType)+' 아카이브'}>
    {archivedBoards.length===0?<p>아카이브한 보드가 없어요.</p>:archivedBoards.map(board=><div className="lookbook-archive-item" key={board.id}><div><strong>{board.name}</strong><small>{(board.slots||[]).filter(Boolean).length}장 사진 · {board.archivedAt?.slice(0,10)}</small></div><button type="button" disabled={!!busy} onClick={()=>changeArchive(board,false)}><ArchiveRestore size={17}/> 복원</button></div>)}
   </div>}
   {boardMenu&&<div className="lookbook-category-menu-backdrop" onClick={()=>setBoardMenu(null)}><div className="lookbook-category-menu" role="dialog" aria-modal="true" aria-label="보드 편집" onClick={e=>e.stopPropagation()}><strong>{boards.find(b=>b.id===boardMenu)?.name}</strong><button type="button" onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b){setDraft(b.name);setEditing(b.id)}setBoardMenu(null)}}><Pencil size={18}/> 이름 편집</button><button type="button" disabled={!!busy} onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b)deleteBoard(b)}}><Trash2 size={18}/> 보드 삭제</button><button type="button" onClick={()=>setBoardMenu(null)}><X size={18}/> 취소</button></div></div>}
