@@ -94,7 +94,7 @@ export default function ClosetLookbook({userId}){
   finally{setBusy('')}
  }
  return <section className="closet-lookbook">
-  <div className="lookbook-heading"><h1>LOOKBOOK</h1><button type="button" className="lookbook-new" disabled={!!busy} onClick={createBoard}><Plus size={17}/> 보드 추가</button></div>
+  <div className="lookbook-heading"><h1>LOOKBOOK</h1></div>
   {error&&<p role="alert" className="lookbook-error">{error}</p>}
   <div className="lookbook-scroller" ref={scrolling} aria-label="룩북 보드 가로 스크롤">
    {sorted.map(board=><article key={board.id} className="lookbook-board">
