@@ -908,3 +908,27 @@ html,body,#root{width:100%;max-width:100%;min-width:0;overflow-x:clip}
 .my-outfit-filter-row select{width:100%;min-width:0;max-width:100%;height:40px;border:1px solid #dfd0e9;border-radius:9px;padding:0 7px;background:white;color:#382943;font-size:16px}
 .my-outfit-filter-row button{height:40px;white-space:nowrap}
 .my-outfit-filters small{font-size:12px;line-height:1.4}
+
+
+/* My Outfits: directly tappable tag filters instead of dropdowns. */
+.my-outfit-tag-filter{display:grid;gap:9px;min-width:0}
+.my-outfit-tag-filter>strong{font-size:13px;color:#70518e}
+.my-outfit-tag-filter>.muted{font-size:12px;line-height:1.5}
+.my-outfit-tag-pills,.studio-tag-pills{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.my-outfit-tag-pills>button{
+ border:1px solid #dfcfef;border-radius:10px;padding:8px 13px;min-height:34px;
+ color:#77549e;background:#fff;font-size:13px;font-weight:650;
+}
+.my-outfit-tag-pills>button.selected{background:#9270c3;color:white;border-color:#9270c3}
+.my-outfit-tag-pills>button:focus-visible{outline:2px solid #654396;outline-offset:2px}
+.studio-tag-editor{display:grid;gap:9px;margin:13px 0 15px;min-width:0}
+.studio-tag-editor>strong{font-size:14px;color:#49335d}
+.studio-tag-editor>small{color:#9888a5;font-size:12px;line-height:1.5}
+.studio-tag-editor form{display:flex;gap:8px;align-items:center;min-width:0}
+.studio-tag-editor form input{
+ min-width:0;flex:1;width:100%;box-sizing:border-box;border:1px solid #ded1ed;
+ border-radius:10px;background:#fff;padding:10px;font-size:16px;color:#382943;
+}
+.studio-tag-editor form button{flex:0 0 auto;white-space:nowrap}
+.studio-tag-pills span{display:inline-flex;gap:5px;align-items:center;border-radius:9px;background:#f1e9fa;padding:6px 7px 6px 10px;color:#70509a;font-size:13px;font-weight:600}
+.studio-tag-pills span button{border:0;background:transparent;color:inherit;font-size:16px;line-height:1;padding:0 2px}
