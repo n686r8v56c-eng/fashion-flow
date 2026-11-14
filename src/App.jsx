@@ -105,8 +105,9 @@ function GenrePicker({value,onChange,userId}){
  const readArchived=()=>{try{const saved=JSON.parse(localStorage.getItem(storageKey)||'[]');return Array.isArray(saved)?saved.filter(id=>FASHION_GENRES.some(([key])=>key===id)):[]}catch{return []}};
  const [archived,setArchived]=useState(readArchived);
  const [open,setOpen]=useState(false);
+ const [showArchived,setShowArchived]=useState(false);
  const rootRef=useRef(null);
- useEffect(()=>{setArchived(readArchived());setOpen(false)},[storageKey]);
+ useEffect(()=>{setArchived(readArchived());setOpen(false);setShowArchived(false)},[storageKey]);
  useEffect(()=>{if(!open)return;const close=e=>{if(!rootRef.current?.contains(e.target))setOpen(false)};const escape=e=>{if(e.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[open]);
  const changeGenre=id=>{onChange({target:{value:id}});setOpen(false)};
  const update=id=>{
@@ -120,7 +121,7 @@ function GenrePicker({value,onChange,userId}){
  const active=FASHION_GENRES.filter(([id])=>!archived.includes(id));
  const hidden=FASHION_GENRES.filter(([id])=>archived.includes(id));
  return <div ref={rootRef} style={{position:'relative',display:'inline-flex',alignItems:'center'}}>
-  <button type="button" className="fashion-genre-picker" aria-label="장르 선택" aria-haspopup="true" aria-expanded={open} onClick={()=>setOpen(v=>!v)} style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',gap:10,cursor:'pointer'}}>
+  <button type="button" className="fashion-genre-picker" aria-label="장르 선택" aria-haspopup="true" aria-expanded={open} onClick={()=>{setOpen(v=>!v);setShowArchived(false)}} style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',gap:10,cursor:'pointer'}}>
    <span>{current}</span><ChevronDown size={15}/>
   </button>
   {open&&<div role="group" aria-label="장르 선택 및 아카이브" style={{position:'absolute',left:0,top:'calc(100% + 6px)',zIndex:1000,minWidth:260,maxWidth:'min(330px,92vw)',maxHeight:'65vh',overflowY:'auto',padding:7,background:'#fff',color:'#222',border:'1px solid #ddd',borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,.16)'}}>
@@ -129,8 +130,10 @@ function GenrePicker({value,onChange,userId}){
     <button type="button" title={name+' 아카이브'} aria-label={name+' 아카이브'} onClick={()=>update(id)} style={{flexShrink:0,padding:'7px 8px',border:0,background:'transparent',color:'#777',cursor:'pointer',fontSize:12}}><Bookmark size={15}/></button>
    </div>)}
    {hidden.length>0&&<div style={{borderTop:'1px solid #e8e8e8',marginTop:7,paddingTop:7}}>
-    <div style={{fontSize:11,color:'#777',padding:'5px 9px'}}>아카이브됨</div>
-    {hidden.map(([id,name])=><div key={id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',opacity:.85}}>
+    <button type="button" aria-expanded={showArchived} onClick={()=>setShowArchived(v=>!v)} style={{display:'flex',width:'100%',justifyContent:'space-between',alignItems:'center',padding:'9px',border:0,background:'transparent',color:'#777',fontSize:12,cursor:'pointer'}}>
+     <span>아카이브 보기 ({hidden.length})</span>{showArchived?<ChevronUp size={15}/>:<ChevronDown size={15}/>}
+    </button>
+    {showArchived&&hidden.map(([id,name])=><div key={id} style={{display:'flex',alignItems:'center',gap:6,padding:'5px 8px',opacity:.85}}>
      <span style={{flex:1,fontSize:13}}>{name}</span>
      <button type="button" aria-label={name+' 복원'} onClick={()=>update(id)} style={{border:'1px solid #ddd',borderRadius:7,padding:'5px 8px',background:'#fff',color:'#555',fontSize:12,cursor:'pointer'}}>복원</button>
     </div>)}
