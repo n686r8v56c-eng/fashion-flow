@@ -220,7 +220,7 @@ export const RESEARCH_ENRICHMENTS={
  ]
 };
 export const RESEARCH_META={
- 'script-1':{coverage:'10/10 상품 구간 분리',timeAccuracy:'스크립트에 구간별 타임스탬프 없음; 원본 영상으로 확인 필요'},
+ 'script-1':{coverage:'10/10 상품 구간 분리',timeAccuracy:'보완 전사에 00:00~16:26 블록별 타임코드 제공; 정확한 발화 종료시각은 별도 확인 필요'},
  'script-2':{coverage:'12개 상품·브랜드 사례 분리(직접 착용과 단순 소개 혼재)',timeAccuracy:'사용자 제공 시간대; 일부 브랜드명은 전사 미확인'},
  'script-3':{coverage:'13개 착장·컬러 구간 분리',timeAccuracy:'사용자 제공 시간대; 두 카비씨 카드가 서로 다른 모델인지 검증 전'}
 };
