@@ -5,3 +5,18 @@
 .dl-clickable-tags button small{font-size:10px;opacity:.75}
 .dl-results{display:grid;gap:11px;padding:12px;border:1px solid #dcc9e9;border-radius:12px;background:#fcf9ff}
 .dl-results .dl-toolbar h3{font-size:15px}
+
+/* Mobile-safe wrapping for long saved pain solutions and user notes.
+   Grid/flex children must be allowed to shrink, not force page overflow. */
+.dl-root,.dl-panel,.dl-pain-card,.dl-pain-content,.dl-pain-note{min-width:0;max-width:100%;box-sizing:border-box}
+.dl-pain-card{display:block;overflow-wrap:anywhere;word-break:normal}
+.dl-pain-card>summary{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.dl-pain-content{grid-template-columns:minmax(0,1fr)}
+.dl-pain-content>*{min-width:0;max-width:100%;box-sizing:border-box}
+.dl-pain-solution{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;font-size:1.15rem!important;font-weight:700!important;line-height:1.55!important}
+.dl-pain-card form{min-width:0;width:100%;grid-template-columns:minmax(0,1fr)}
+.dl-pain-card textarea{display:block;min-width:0;width:100%;max-width:100%;overflow-wrap:anywhere;white-space:pre-wrap}
+.dl-pain-note{display:block;overflow-wrap:anywhere;word-break:break-word}
+.dl-pain-note-summary{display:block;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl-pain-note[open]>.dl-pain-note-summary{white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+.dl-pain-note p{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%}
