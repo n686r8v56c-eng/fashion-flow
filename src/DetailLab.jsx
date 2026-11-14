@@ -3,6 +3,7 @@ import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from
 import {RESEARCH_PRODUCTS,RESEARCH_ENRICHMENTS} from './detailLabResearch.js';
 import {NARRATIVE_RESEARCH,NARRATIVE_SCHEMA} from './detailLabNarrative.js';
 import {SPEECH_TACTICS,SPEECH_QUOTES,SPEECH_SOURCE_NOTE} from './detailLabSpeech.js';
+import {PAIN_POINT_SEEDS} from './detailLabPainPoints.js';
 import './DetailLab.css';
 
 const initial=()=>({refs:[],products:[],details:[],productAdditions:{},classOverrides:{},schemaVersion:1});
@@ -115,7 +116,7 @@ export default function DetailLab({userId}){
  return <section className="dl-root">
   <div className="dl-heading"><div><h2>DETAIL LAB</h2><p>시즌 키워드 → 롱폼 레퍼런스 → 상품별 디테일 → 설득 역조합</p></div><span className="dl-pill">연구 1차</span></div>
   <div className="dl-status"><strong>Market Flow 원본 200개</strong><span>봄 50 · 여름 50 · 가을 50 · 겨울 50</span><small>정적 키워드 스냅샷 · 실시간 동기화 아님 · 로컬 IndexedDB 저장</small></div>
-  <nav className="dl-tabs" aria-label="DETAIL LAB 탭">{['키워드','레퍼런스','상품 분석','디테일 사전','콘텐츠 구조','실제 발화','역조합'].map(t=><button type="button" key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+  <nav className="dl-tabs" aria-label="DETAIL LAB 탭">{['키워드','레퍼런스','상품 분석','디테일 사전','콘텐츠 구조','실제 발화','페인포인트','역조합'].map(t=><button type="button" key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}</nav>
   {tab==='키워드'&&<div className="dl-panel">
    <div className="dl-row dl-season">{SEASONS.map(s=><button key={s} className={season===s?'selected':''} onClick={()=>{setSeason(s);setGroup('전체')}}>{s} · 50</button>)}</div>
    <div className="dl-filters"><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="키워드 검색"/><select aria-label="대분류" value={group} onChange={e=>setGroup(e.target.value)}><option>전체</option>{GROUPS.map(g=><option key={g}>{g}</option>)}</select></div>
@@ -194,6 +195,27 @@ export default function DetailLab({userId}){
    </article>)}
    {!visibleSpeech.length&&<p className="dl-muted">이 조건에서 등록된 실제 발화가 없어. 해당 전술이 쓰이지 않았다고 확정하는 의미는 아니야.</p>}
    <button type="button" onClick={()=>clickDownload('fashion-detail-lab-speech-'+speechSource+'.json',{format:'fashion-detail-lab-verbatim-speech-v1',sourceId:speechSource,sourceNote:SPEECH_SOURCE_NOTE,categories:SPEECH_TACTICS,quotes:visibleSpeech})}>현재 검색 결과 JSON 다운로드</button>
+  </div>}
+  {tab==='페인포인트'&&<div className="dl-panel">
+   <div className="dl-toolbar"><h3>{keyword} · 소비자 페인포인트 사전</h3><span>{PAIN_POINT_SEEDS.filter(p=>p.keyword===undefined&&keyword==='경량패딩').length}개 연구 가설</span></div>
+   <p className="dl-muted">경량패딩 3개 영상에서 진행자가 제기한 불편을 모았어. 실제 시장의 소비자 불만·제품 효과가 입증된 것은 아니야. 원본 발화와 제품 기획 가설을 분리해 보관해.</p>
+   {keyword==='경량패딩'?<>
+    {PAIN_POINT_SEEDS.map((pain,i)=><article className="dl-card" key={pain.id}>
+     <div className="dl-between"><strong>{i+1}. {pain.title}</strong><span className="dl-pill">검증 전 가설</span></div>
+     <p><strong>PAIN · 현재 불편</strong></p><p>{pain.pain}</p>
+     <p><strong>NEED · 원하는 변화</strong></p><p>{pain.need}</p>
+     <p><strong>SOLUTION · 검토할 디테일</strong></p><p>{pain.solution}</p>
+     <p><strong>MESSAGE · 콘텐츠 카피 가설</strong></p><p>“{pain.message}”</p>
+     <h4>스크립트 실제 발화 근거</h4>
+     {pain.evidence.map(([sourceId,time],j)=>{const found=SPEECH_QUOTES.find(q=>q.sourceId===sourceId&&q.time===time);const source=NARRATIVE_RESEARCH.find(n=>n.id===sourceId);return <div className="dl-feature" key={sourceId+time+j}>
+      <strong>{source?.title||sourceId} · {time}</strong>
+      {found?<p style={{whiteSpace:'pre-wrap'}}>“{found.quote}”</p>:<p className="dl-muted">해당 타임코드 원문 발췌 미등록 · 원문 재확인 필요</p>}
+     </div>})}
+     <div className="dl-tags">{pain.tactics.map(code=>{const name=SPEECH_TACTICS.flatMap(c=>c.tactics).find(t=>t.id===code)?.name;return <span key={code}>{code} {name||'분류 미확인'}</span>})}</div>
+     <p className="dl-muted">검증 필요: {pain.validation}</p>
+    </article>)}
+    <button type="button" onClick={()=>clickDownload('fashion-detail-lab-painpoints-'+keyword+'.json',{format:'fashion-detail-lab-painpoints-v1',keyword,origin:'사용자 제공 경량패딩 스크립트 3편 분석',verification:'진행자 발화 기반 소비자 불편 가설, 독립 시장검증 전',painPoints:PAIN_POINT_SEEDS})}>페인포인트 자료 JSON 다운로드</button>
+   </>:<p className="dl-muted">아직 {keyword}에 등록된 페인포인트가 없어. 기본 연구 자료는 경량패딩에만 추가되어 있어.</p>}
   </div>}
   {tab==='역조합'&&<div className="dl-panel"><h3>{keyword} · 설득 역조합</h3><p className="dl-muted">상품의 디테일·관찰·주관적 평가를 연결한 AI 작업 지시문을 생성해. 자동 생성 결과가 검증된 사실은 아니야.</p><label>출력 형식<select value={format} onChange={e=>setFormat(e.target.value)}>{['최종 셀링 카피 시뮬레이션','유튜브 롱폼 비교 구성','숏폼 리뷰 스크립트','Threads 텍스트','상세페이지','촬영 컷리스트'].map(x=><option key={x}>{x}</option>)}</select></label><h4>디테일 선택</h4><div className="dl-checks">{options.map(d=><label key={d}><input type="checkbox" checked={picked.includes(d)} onChange={e=>setPicked(v=>e.target.checked?[...v,d]:v.filter(x=>x!==d))}/>{d}</label>)}</div><div className="dl-row"><button onClick={copyPrompt}>AI 지시문 복사</button><button onClick={()=>setDraft(prompt)}>지시문 보기</button></div>{draft&&<textarea readOnly rows={14} value={draft} onFocus={e=>e.target.select()}/>}</div>}
   <div className="dl-footer"><button type="button" onClick={()=>clickDownload('fashion-detail-lab-'+new Date().toISOString().slice(0,10)+'.json',{format:'fashion-detail-lab-v1',exportedAt:dateNow(),payload:data})}>JSON 백업</button><label className="dl-import">JSON 병합 가져오기<input type="file" accept="application/json,.json" onChange={handleFile} disabled={!ready||importing}/></label><small>원본 키워드와 초기 경량패딩 샘플은 기본 제공 · 사용자 추가 기록은 이 기기에 저장</small></div>
