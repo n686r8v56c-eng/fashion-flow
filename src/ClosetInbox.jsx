@@ -45,7 +45,7 @@ async function importWorkbench(event){
 
 return <section className="closet-inbox">
 <div className="heading"><h1>{title}</h1></div>
-{photosOnly&&<div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:16}}><a href="https://outfit-search-workbench.gpmjbzmtcz.chatgpt.site" target="_blank" rel="noopener noreferrer" className="light">착장 분석 워크벤치 ↗</a><label className="light" style={{cursor:'pointer'}}>분석 파일 가져오기<input type="file" accept="application/json,.json" disabled={busy} style={{display:'none'}} onChange={importWorkbench}/></label></div>}
+
 
 {error&&<p role="alert">{error}</p>}{tagNotice&&<p className="closet-inbox-tag-notice" role="status" onClick={()=>setTagNotice('')}>{tagNotice}</p>}
 {<>
