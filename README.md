@@ -79,3 +79,5 @@ React + Vite + Supabase + Cloudflare Pages. 한국어 의류 인벤토리 & 코�
 - 네이버 연관도 검색 최대 8개 안에서 양수 상품가를 낮은 순으로 정렬해 2개를 표시합니다. 전체 최저가 또는 배송비 포함 최저가가 아닙니다. 배송비·쿠폰·옵션·재고와 실제 사진 일치는 판매 페이지에서 확인해야 합니다.
 - 기존 Cloudflare Pages 서버 환경변수 `OPENAI_API_KEY`, `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `VITE_SUPABASE_URL`/`SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`/`SUPABASE_ANON_KEY`를 사용합니다. 비밀 키는 프런트엔드 VITE 변수에 넣지 마세요. 로그인된 사용자만 호출할 수 있습니다.
 - 사진·결과는 서버 DB에 저장하지 않고 화면에만 유지합니다. AI 요청은 `store:false`이며 API 제공사의 보관 정책은 별도 적용됩니다. 탭을 나가면 초기화됩니다. 실제 서비스 연결 검증은 운영 환경의 키와 로그인 세션이 필요합니다.
+
+<!-- Cloudflare Pages redeploy trigger: 2026-11-14; documentation-only change, app source unchanged. -->
