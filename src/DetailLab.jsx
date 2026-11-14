@@ -216,16 +216,16 @@ function PainNoteCard({pain,index,notes,ready,onSave,onDelete}){
  const [input,setInput]=useState('');
  const cardRef=useRef(null);
  const submit=e=>{e.preventDefault();const value=clean(input);if(!value||!ready)return;onSave(value);setInput('');if(cardRef.current)cardRef.current.open=false};
- return <details ref={cardRef} className="dl-card" style={{marginBottom:10}}>
+ return <details ref={cardRef} className="dl-card dl-pain-card" style={{marginBottom:10}}>
   <summary style={{cursor:'pointer',fontWeight:600,lineHeight:1.5}}>{index}. {pain.title}</summary>
-  <div style={{marginTop:14,display:'grid',gap:12}}>
-   <p style={{fontSize:'1.15rem',fontWeight:700,lineHeight:1.55,margin:0,whiteSpace:'pre-wrap'}}>{pain.solution}</p>
+  <div className="dl-pain-content" style={{marginTop:14,display:'grid',gap:12}}>
+   <p className="dl-pain-solution" style={{fontSize:'1.15rem',fontWeight:700,lineHeight:1.55,margin:0,whiteSpace:'pre-wrap'}}>{pain.solution}</p>
    <form onSubmit={submit} style={{display:'grid',gap:8}}>
     <textarea rows={2} aria-label={pain.title+' 메모 입력'} placeholder="여기에 붙여넣기 · 메모 입력" value={input} onChange={e=>setInput(e.target.value)} style={{fontSize:'1rem'}}/>
     <button type="submit" disabled={!ready||!clean(input)}>저장</button>
    </form>
-   {notes.map(n=><details key={n.id} style={{border:'1px solid var(--dl-border, #e3d6ea)',borderRadius:10,padding:'10px 12px',fontSize:'1rem'}}>
-     <summary style={{cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:400,fontSize:'1rem'}}>{n.text.split('\n')[0]||n.text}</summary>
+   {notes.map(n=><details key={n.id} className="dl-pain-note" style={{border:'1px solid var(--dl-border, #e3d6ea)',borderRadius:10,padding:'10px 12px',fontSize:'1rem'}}>
+     <summary className="dl-pain-note-summary" style={{cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:400,fontSize:'1rem'}}>{n.text.split('\n')[0]||n.text}</summary>
      <p style={{whiteSpace:'pre-wrap',fontSize:'1rem',lineHeight:1.6,overflowWrap:'anywhere'}}>{n.text}</p>
      <button type="button" onClick={()=>onDelete(n.id)}>메모 삭제</button>
     </details>)}
