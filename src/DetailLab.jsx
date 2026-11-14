@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useState,useRef} from 'react';
 import {SEASONS,GROUPS,KEYWORDS,DETAIL_SEEDS,REFERENCE_SEEDS,PRODUCT_SEEDS} from './detailLabData.js';
 import {RESEARCH_PRODUCTS,RESEARCH_ENRICHMENTS} from './detailLabResearch.js';
 import {NARRATIVE_RESEARCH,NARRATIVE_SCHEMA} from './detailLabNarrative.js';
@@ -214,10 +214,8 @@ export default function DetailLab({userId}){
 }
 function PainNoteCard({pain,index,notes,ready,onSave,onDelete}){
  const [input,setInput]=useState('');
- const [editing,setEditing]=useState(false);
- const [expanded,setExpanded]=useState(false);
  const cardRef=useRef(null);
- const submit=e=>{e.preventDefault();const value=clean(input);if(!value||!ready)return;onSave(value);setInput('');setEditing(false);setExpanded(false);if(cardRef.current)cardRef.current.open=false};
+ const submit=e=>{e.preventDefault();const value=clean(input);if(!value||!ready)return;onSave(value);setInput('');if(cardRef.current)cardRef.current.open=false};
  return <details ref={cardRef} className="dl-card" style={{marginBottom:10}}>
   <summary style={{cursor:'pointer',fontWeight:600,lineHeight:1.5}}>{index}. {pain.title}</summary>
   <div style={{marginTop:14,display:'grid',gap:12}}>
@@ -227,7 +225,7 @@ function PainNoteCard({pain,index,notes,ready,onSave,onDelete}){
     <button type="submit" disabled={!ready||!clean(input)}>저장</button>
    </form>
    {notes.map(n=><details key={n.id} style={{border:'1px solid var(--dl-border, #e3d6ea)',borderRadius:10,padding:'10px 12px',fontSize:'1rem'}}>
-     <summary style={{cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:400,fontSize:'1rem'}}>{n.text.split('\\n')[0]||n.text}</summary>
+     <summary style={{cursor:'pointer',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:400,fontSize:'1rem'}}>{n.text.split('\n')[0]||n.text}</summary>
      <p style={{whiteSpace:'pre-wrap',fontSize:'1rem',lineHeight:1.6,overflowWrap:'anywhere'}}>{n.text}</p>
      <button type="button" onClick={()=>onDelete(n.id)}>메모 삭제</button>
     </details>)}
