@@ -199,7 +199,6 @@ export default function DetailLab({userId}){
   </div>}
   {tab==='페인포인트'&&<div className="dl-panel">
    <div className="dl-toolbar"><h3>{keyword} · 페인포인트</h3><span>{(keyword==='경량패딩'?PAIN_POINT_SEEDS.length:0)+arrays(data.painPoints).filter(p=>p.keyword===keyword).length}개 항목</span></div>
-   <p className="dl-muted">문제와 해결책을 한눈에 모아봐. 기본 연구 항목은 영상 발화를 바탕으로 한 가설이며 실제 시장 수요나 효과는 검증 전이야. 제목을 누르면 상세 근거가 펼쳐져.</p>
    <form className="dl-form" onSubmit={e=>{e.preventDefault();const title=clean(painForm.title),pain=clean(painForm.pain),solution=clean(painForm.solution);if(!title||!solution){setNotice('문제 제목과 해결책을 입력해 줘.');return}const entry={id:editingPain||id(),keyword,title,pain:pain||title,solution,createdAt:dateNow()};commit(x=>({...x,painPoints:editingPain?arrays(x.painPoints).map(p=>p.id===editingPain?{...p,...entry,createdAt:p.createdAt||entry.createdAt}:p):[...arrays(x.painPoints),entry]}));setPainForm({title:'',pain:'',solution:''});setEditingPain('')}}>
     <h4>{editingPain?'내 문제 수정':'+ 문제 직접 등록'}</h4>
     <label>문제 제목<input value={painForm.title} onChange={e=>setPainForm(f=>({...f,title:e.target.value}))} placeholder="예: 소매가 불편하다" required/></label>
@@ -209,17 +208,8 @@ export default function DetailLab({userId}){
    </form>
    {[...(keyword==='경량패딩'?PAIN_POINT_SEEDS:[]),...arrays(data.painPoints).filter(p=>p.keyword===keyword)].map((pain,i)=><details className="dl-card" key={pain.id} style={{marginBottom:10}}>
     <summary style={{cursor:'pointer',fontWeight:600,lineHeight:1.5}}>{i+1}. {pain.title}</summary>
-    <div style={{marginTop:12,display:'grid',gap:10}}>
-     <div><strong>PAIN</strong><p style={{fontSize:'inherit',margin:'4px 0 0'}}>{pain.pain||pain.title}</p></div>
-     <div><strong>SOLUTION</strong><p style={{fontSize:'inherit',margin:'4px 0 0'}}>{pain.solution}</p></div>
-     {arrays(pain.evidence).length>0&&<details className="dl-feature"><summary style={{cursor:'pointer'}}>스크립트 실제 발화 근거 ({pain.evidence.length})</summary>
-      {pain.evidence.map(([sourceId,time],j)=>{const found=SPEECH_QUOTES.find(q=>q.sourceId===sourceId&&q.time===time);const source=NARRATIVE_RESEARCH.find(n=>n.id===sourceId);return <div key={sourceId+time+j} style={{marginTop:10}}>
-       <strong>{source?.title||sourceId} · {time}</strong>
-       <p>{found?'“'+found.quote+'”':'해당 원문 재확인 필요'}</p>
-      </div>})}
-     </details>}
-     {arrays(pain.tactics).length>0&&<div className="dl-tags">{pain.tactics.map(code=>{const tactic=SPEECH_TACTICS.flatMap(c=>c.tactics).find(t=>t.id===code);return <span key={code}>{code} {tactic?.name||'미확인'}</span>})}</div>}
-     {pain.validation&&<p className="dl-muted">검증 필요: {pain.validation}</p>}
+    <div style={{marginTop:14,display:'grid',gap:12}}>
+     <p style={{fontSize:'1.15rem',fontWeight:700,lineHeight:1.55,margin:0,whiteSpace:'pre-wrap'}}>{pain.solution}</p>
      {arrays(data.painPoints).some(p=>p.id===pain.id)&&<div className="dl-row">
        <button type="button" onClick={()=>{setEditingPain(pain.id);setPainForm({title:pain.title,pain:pain.pain||'',solution:pain.solution||''})}}>수정</button>
        <button type="button" onClick={()=>{if(window.confirm('이 수동 등록 문제를 삭제할까?'))commit(x=>({...x,painPoints:arrays(x.painPoints).filter(p=>p.id!==pain.id)}))}}>삭제</button>
