@@ -20,3 +20,16 @@
 .lookbook-error{color:#ae3653;font-size:13px}
 @media(min-width:700px){.lookbook-board{flex-basis:390px}}
 @media(max-width:380px){.lookbook-board{flex-basis:84vw}.lookbook-scroller{gap:10px}}
+
+
+.lookbook-memo{position:absolute;right:7px;bottom:7px;z-index:2;width:30px;height:30px;display:grid;place-items:center;border:1px solid #e4d7ee;border-radius:50%;background:rgba(255,255,255,.94);color:#8663b3;box-shadow:0 2px 6px #3b25521c}
+.lookbook-memo.has-memo{background:#8f6ac0;border-color:#8f6ac0;color:white}
+.lookbook-memo-overlay{position:fixed;inset:0;z-index:10000;background:#33254366;display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box}
+.lookbook-memo-dialog{background:#fff;width:min(100%,420px);border-radius:20px;padding:20px;box-sizing:border-box;box-shadow:0 14px 45px #2e193d35;display:grid;gap:17px}
+.lookbook-memo-heading{display:flex;justify-content:space-between;align-items:center}
+.lookbook-memo-heading h2{font-size:20px;margin:0;color:#423050}
+.lookbook-memo-heading button{background:transparent;border:0;color:#917ca4;padding:5px}
+.lookbook-memo-dialog textarea{width:100%;min-width:0;box-sizing:border-box;font-size:16px;line-height:1.55;font-family:inherit;resize:vertical;min-height:150px;border:1px solid #e2d2f0;border-radius:13px;background:#fbf9fe;color:#382846;padding:14px;outline-color:#8f6ac0}
+.lookbook-memo-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.lookbook-memo-actions button{border-radius:11px;padding:12px;font-size:15px;font-weight:700;border:1px solid #ddccec;color:#8760b4;background:#f8f3fd}
+.lookbook-memo-actions button:last-child{background:#8f6ac0;color:white;border-color:#8f6ac0}
