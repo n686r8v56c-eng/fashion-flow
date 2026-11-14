@@ -44,9 +44,9 @@
 
 /* Reversible Wish / Look board archive. Keep the existing photo grid untouched. */
 .lookbook-archive-toolbar{display:flex;justify-content:flex-end;margin:-4px 1px 13px}
-.lookbook-archive-toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #e4d6ef;border-radius:10px;padding:7px 10px;background:#faf7fe;color:#805da6;font-size:13px;font-weight:700;cursor:pointer}
-.lookbook-archive-toolbar button.active{background:#eee5f9;color:#65418f}
-.lookbook-archive-action{border:1px solid #e4d6ef;background:#fff;color:#8566ac;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;width:33px;height:33px;flex:none;cursor:pointer}
+.lookbook-archive-toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:0;border-radius:0;padding:4px 0;background:transparent;color:#4a395d;font-size:13px;font-weight:700;cursor:pointer;box-shadow:none}
+.lookbook-archive-toolbar button.active{background:transparent;color:#4a395d}
+.lookbook-archive-action{border:0;background:transparent;color:#4a395d;border-radius:0;display:inline-flex;align-items:center;justify-content:center;width:26px;height:30px;padding:2px;flex:none;cursor:pointer;box-shadow:none}
 .lookbook-archive-action:disabled,.lookbook-archive-item button:disabled{opacity:.5}
 .lookbook-archive-list{display:grid;gap:10px;padding:4px 2px 20px}
 .lookbook-archive-list>p{color:#907da2;font-size:14px;margin:10px 0}
@@ -55,3 +55,9 @@
 .lookbook-archive-item strong{font-size:15px;color:#422e54;overflow-wrap:anywhere}
 .lookbook-archive-item small{color:#9a87ae;font-size:12px}
 .lookbook-archive-item button{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid #e0cfed;border-radius:9px;color:#7854a6;background:#f6f0fd;font-size:13px;font-weight:700;padding:9px;cursor:pointer}
+
+/* Keep the board archive glyph visually attached to its title. */
+.lookbook-board-heading{justify-content:flex-start;gap:2px}
+.lookbook-board-title{padding-right:1px}
+.lookbook-archive-action svg,.lookbook-archive-toolbar button svg{width:18px;height:18px;stroke-width:2.1;color:inherit;flex:none}
+.lookbook-archive-action:focus-visible,.lookbook-archive-toolbar button:focus-visible{outline:2px solid #9070be;outline-offset:2px;border-radius:4px}
