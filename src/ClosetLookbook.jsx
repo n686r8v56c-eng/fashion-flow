@@ -13,6 +13,7 @@ export default function ClosetLookbook({userId}){
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
  const scrolling=useRef(null);
+ const seeded=useRef(false);
  const pressTimer=useRef(null);
  const longPressed=useRef(false);
  const fileRefs=useRef({});
@@ -20,7 +21,17 @@ export default function ClosetLookbook({userId}){
  const nextNumber=()=>Math.max(0,...boards.map(b=>Number(b.number)||0))+1;
  useEffect(()=>{
   let alive=true;
-  const reload=()=>collection.read().then(rows=>{if(alive)setBoards(rows.filter(r=>r.userId===userId))}).catch(e=>{if(alive)setError(e.message)});
+  const reload=()=>collection.read().then(async rows=>{
+   if(!alive)return;
+   const mine=rows.filter(r=>r.userId===userId);
+   setBoards(mine);
+   if(mine.length===0&&!seeded.current){
+    seeded.current=true;
+    const now=new Date().toISOString();
+    const first={id:crypto.randomUUID(),userId,type:'lookbook-board',number:1,name:'보드1',position:0,slots:[null,null,null,null],created_at:now,updated_at:now};
+    try{await collection.write(first)}catch(e){if(alive)setError('첫 보드 저장 실패: '+e.message)}
+   }
+  }).catch(e=>{if(alive)setError(e.message)});
   reload();
   const unsubscribe=collection.subscribe(reload);
   return()=>{alive=false;unsubscribe();clearTimeout(pressTimer.current)};
