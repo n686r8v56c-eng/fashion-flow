@@ -87,3 +87,9 @@
 .lookbook-category-menu form{display:flex;flex-direction:column;gap:8px}
 .lookbook-category-menu input{width:100%;box-sizing:border-box;border:1px solid #dfcfeb;border-radius:10px;padding:10px 12px;font:inherit;font-size:16px}
 @media(max-width:380px){.lookbook-category-row{gap:12px}.lookbook-category-label{font-size:16px}}
+
+
+/* Keep newly created Wish/Look-style collections on a single swipeable row. */
+.lookbook-category-row{min-width:0;width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;white-space:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.lookbook-category-row::-webkit-scrollbar{display:none}
+.lookbook-category-label,.lookbook-category-plus,.lookbook-category-restore{flex:0 0 auto}
