@@ -7,6 +7,8 @@ import './ClosetLookbook.css';
 export default function ClosetLookbook({userId}){
  const collection=useLocalCollection('closet-lookbook-boards');
  const [boards,setBoards]=useState([]);
+ const [boardType,setBoardType]=useState('wish');
+ const [loaded,setLoaded]=useState(false);
  const [pictures,setPictures]=useState({});
  const [busy,setBusy]=useState('');
  const [editing,setEditing]=useState(null);
@@ -15,29 +17,32 @@ export default function ClosetLookbook({userId}){
  const [memoTarget,setMemoTarget]=useState(null);
  const [memoDraft,setMemoDraft]=useState('');
  const scrolling=useRef(null);
- const seeded=useRef(false);
+ const seeding=useRef(new Set());
  const pressTimer=useRef(null);
  const longPressed=useRef(false);
  const fileRefs=useRef({});
- const sorted=[...boards].sort((a,b)=>(a.position??0)-(b.position??0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
- const nextNumber=()=>Math.max(0,...boards.map(b=>Number(b.number)||0))+1;
+ const activeBoards=boards.filter(b=>(b.boardType||'wish')===boardType);
+ const sorted=[...activeBoards].sort((a,b)=>(a.position??0)-(b.position??0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+ const nextNumber=()=>Math.max(0,...activeBoards.map(b=>Number(b.number)||0))+1;
  useEffect(()=>{
   let alive=true;
   const reload=()=>collection.read().then(async rows=>{
    if(!alive)return;
    const mine=rows.filter(r=>r.userId===userId);
    setBoards(mine);
-   if(mine.length===0&&!seeded.current){
-    seeded.current=true;
-    const now=new Date().toISOString();
-    const first={id:crypto.randomUUID(),userId,type:'lookbook-board',number:1,name:'보드1',position:0,slots:Array(8).fill(null),created_at:now,updated_at:now};
-    try{await collection.write(first)}catch(e){if(alive)setError('첫 보드 저장 실패: '+e.message)}
-   }
+   setLoaded(true);
   }).catch(e=>{if(alive)setError(e.message)});
   reload();
   const unsubscribe=collection.subscribe(reload);
   return()=>{alive=false;unsubscribe();clearTimeout(pressTimer.current)};
  },[collection,userId]);
+ useEffect(()=>{
+  if(!loaded||activeBoards.length||seeding.current.has(boardType))return;
+  seeding.current.add(boardType);
+  const now=new Date().toISOString();
+  const first={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number:1,name:'보드1',position:0,slots:Array(8).fill(null),created_at:now,updated_at:now};
+  collection.write(first).catch(e=>{setError('첫 보드 저장 실패: '+e.message);seeding.current.delete(boardType)});
+ },[loaded,boardType,activeBoards.length,collection,userId]);
  useEffect(()=>{
   let active=true;
   (async()=>{
@@ -51,7 +56,7 @@ export default function ClosetLookbook({userId}){
  },[boards,userId]);
  async function createBoard(){
   const number=nextNumber();
-  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',number,name:'보드'+number,position:sorted.length,slots:Array(8).fill(null),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+  const board={id:crypto.randomUUID(),userId,type:'lookbook-board',boardType,number,name:'보드'+number,position:sorted.length,slots:Array(8).fill(null),created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   setBusy('create');setError('');
   try{
    await collection.write(board);
@@ -111,7 +116,7 @@ export default function ClosetLookbook({userId}){
   finally{setBusy('')}
  }
  return <section className="closet-lookbook">
-  <div className="lookbook-heading"><h1>LOOKBOOK</h1></div>
+  <div className="lookbook-heading"><h1>LOOKBOOK</h1><div className="lookbook-type-tabs" role="tablist" aria-label="룩북 분류"><button type="button" role="tab" className={boardType==='wish'?'active':''} aria-selected={boardType==='wish'} onClick={()=>{setBoardType('wish');setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Wish</button><button type="button" role="tab" className={boardType==='look'?'active':''} aria-selected={boardType==='look'} onClick={()=>{setBoardType('look');setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0})}}>Look</button></div></div>
   {error&&<p role="alert" className="lookbook-error">{error}</p>}
   <div className="lookbook-scroller" ref={scrolling} aria-label="룩북 보드 가로 스크롤">
    {sorted.map(board=><article key={board.id} className="lookbook-board">
