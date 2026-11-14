@@ -30,3 +30,13 @@
 .closet-notes-modal-actions button{background:#f4eefb;color:#825caa;border:1px solid #e2d3ef;border-radius:10px;padding:11px;font-weight:700}
 .closet-notes-modal-actions button:last-child{background:#906fc0;border-color:#906fc0;color:white}
 @media(max-width:370px){.closet-notes-section{padding:12px 8px}.closet-notes-entry{gap:4px}.closet-notes-section-title{font-size:15px}}
+
+
+/* Unlimited two-column rows and whole-section archive controls. */
+.closet-notes-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;min-width:0;margin-bottom:16px}
+.closet-notes-section-header .closet-notes-section-title{flex:1 1 0;min-width:0;margin-bottom:0}
+.closet-notes-section-header .closet-notes-rename{flex:1 1 0;min-width:0;margin-bottom:0}
+.closet-notes-section-archive{flex:0 0 auto;border:0;background:transparent;color:#a38abf;padding:3px;display:grid;place-items:center;border-radius:7px}
+.closet-notes-section-archive:focus-visible,.closet-notes-add-row:focus-visible{outline:2px solid #9172bf;outline-offset:2px}
+.closet-notes-add-row{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:14px;padding:12px 15px;border:1px solid #dfd2ea;border-radius:12px;background:#f4eefb;color:#805ca8;font-size:15px;font-weight:750}
+.closet-notes-add-row:disabled{opacity:.5}
