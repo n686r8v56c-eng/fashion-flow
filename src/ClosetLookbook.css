@@ -33,3 +33,10 @@
 .lookbook-memo-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .lookbook-memo-actions button{border-radius:11px;padding:12px;font-size:15px;font-weight:700;border:1px solid #ddccec;color:#8760b4;background:#f8f3fd}
 .lookbook-memo-actions button:last-child{background:#8f6ac0;color:white;border-color:#8f6ac0}
+
+
+/* Compact Wish / Look switcher; each category keeps its own boards. */
+.lookbook-type-tabs{display:flex;gap:3px;align-items:center;padding:3px;border:1px solid #e4d6ef;border-radius:10px;background:#f7f2fc;flex:0 0 auto}
+.lookbook-type-tabs button{border:0;border-radius:7px;background:transparent;color:#846ba3;font-size:13px;line-height:1.2;font-weight:700;padding:7px 12px;min-height:30px}
+.lookbook-type-tabs button.active{color:white;background:#9070be}
+.lookbook-type-tabs button:focus-visible{outline:2px solid #7555a4;outline-offset:2px}
