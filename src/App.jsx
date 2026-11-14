@@ -225,11 +225,14 @@ return <LocalSyncProvider key={uid} userId={uid} client={supabase}><div classNam
 {genre==='closet'&&tab==='studio'&&outfitSub==='studio'&&(editor?<Studio key={editor.id||'new'} value={editor} items={items} urls={urls} references={references} referenceUrls={referenceUrls} realizationRefs={realizationRefs} initialReference={selectedReference} onBack={()=>setEditor(null)} onSave={saveOutfit} onDuplicate={duplicate} onDelete={removeOutfit} busy={busy}/>:<><div className="heading studio-list-heading"><div><h1>내코디</h1><p className="muted">저장된 코디 {outfits.length}개 · 즐겨찾기 {outfits.filter(o=>o.favorite).length}개</p></div><button className="primary" onClick={()=>setEditor({title:'새 코디',season:'사계절',elements:[],favorite:false})}><Plus size={16}/> 새 코디</button></div>
 <div className="my-outfit-filters" role="search" aria-label="저장한 코디 필터">
  <label className="my-outfit-search"><Search size={17}/><input type="search" aria-label="코디 이름 및 메모 검색" placeholder="코디 이름 · 메모 검색" value={outfitQuery} onChange={e=>setOutfitQuery(e.target.value)}/></label>
- <div className="my-outfit-filter-row">
-  <label>태그<select aria-label="내코디 태그 필터" value={outfitTagFilter} onChange={e=>setOutfitTagFilter(e.target.value)}><option value="전체">전체 태그</option>{outfitTags.map(tag=><option key={tag} value={tag}>#{tag}</option>)}</select></label>
-  <button className="light" type="button" onClick={()=>{setOutfitQuery('');setOutfitTagFilter('전체')}}>초기화</button>
+ <div className="my-outfit-tag-filter" aria-label="코디 태그 필터">
+  <strong>태그</strong>
+  <div className="my-outfit-tag-pills">
+   <button type="button" className={outfitTagFilter==='전체'?'selected':''} aria-pressed={outfitTagFilter==='전체'} onClick={()=>setOutfitTagFilter('전체')}>전체</button>
+   {outfitTags.map(tag=><button type="button" key={tag} className={outfitTagFilter===tag?'selected':''} aria-pressed={outfitTagFilter===tag} onClick={()=>setOutfitTagFilter(current=>current===tag?'전체':tag)}>#{tag}</button>)}
+  </div>
+  {!outfitTags.length&&<span className="muted">코디 정보에 태그를 추가하면 여기에 버튼이 생겨요.</span>}
  </div>
- {outfitTags.length>0&&<div className="my-outfit-tag-pills" aria-label="저장된 코디 태그">{outfitTags.map(tag=><button type="button" key={tag} className={outfitTagFilter===tag?'selected':''} aria-pressed={outfitTagFilter===tag} onClick={()=>setOutfitTagFilter(current=>current===tag?'전체':tag)}>#{tag}</button>)}</div>}
  <small className="muted">검색 결과 {filteredOutfits.length}개 · 코디 정보에서 직접 저장한 태그로 필터링해요.</small>
 </div>
 {filteredOutfits.length?<OutfitGrid compact outfits={filteredOutfits} items={items} urls={urls} onOpen={setEditor}/>:<p className="muted" role="status">조건에 맞는 코디가 없어요. 필터를 바꾸거나 초기화해 주세요.</p>}</>)}
