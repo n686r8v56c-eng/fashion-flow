@@ -205,8 +205,11 @@ if(genre==='pet-wear-studio')return <div className="app"><header><div className=
 if(genre==='shoot-flow')return <div className="app"><header><div className="fashion-brandgroup"><GenrePicker value={genre} userId={uid} onChange={e=>{const next=e.target.value;setGenre(next);setTab(next==='closet'?'inbox':next==='studio-flow'?'studio-products':next==='shoot-flow'?'shoot-home':'scene-home');setEditor(null);setEditItem(null);setCalendarOpen(false)}}/></div><div className="header-right"><button className="iconbtn" title="로그아웃" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/></button></div></header><ShootStandalone/></div>;
 if(genre==='cosmetic')return <div className="fashion-cosmetic-shell"><header><div className="fashion-brandgroup"></div><div className="header-right"><GenrePicker value={genre} userId={uid} onChange={e=>{const next=e.target.value;setGenre(next);setTab(next==='closet'?'inbox':next==='studio-flow'?'studio-products':'scene-home');setEditor(null);setEditItem(null);setOutfitSub('studio');setCalendarOpen(false);setPhotoSearchOpen(false);setItgirlOpen(false)}}/><button className="iconbtn" title="로그아웃" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/></button></div></header><div className="cosmetic-embedded"><CosmeticApp/></div></div>;
 const outfitTags=[...new Set(outfits.flatMap(o=>o.tags||[]))].sort((a,b)=>a.localeCompare(b,'ko'));
+const untaggedOutfitCount=outfits.filter(o=>!(o.tags||[]).length).length;
 const filteredOutfits=outfits.filter(o=>{
- return outfitTagFilter==='전체'||(o.tags||[]).includes(outfitTagFilter);
+ if(outfitTagFilter==='전체')return true;
+ if(outfitTagFilter==='__untagged__')return !(o.tags||[]).length;
+ return (o.tags||[]).includes(outfitTagFilter);
 });
 const filtered=items.filter(i=>(category==='전체'||i.category===category)&&`${i.title} ${i.color} ${i.brand} ${i.subcategory}`.toLowerCase().includes(search.toLowerCase()));
 const NAV=genre==='closet'?[['inbox',ImagePlus,'사진'],['collect',Video,'영상'],['wardrobe',Shirt,'내옷'],['studio',Layers,'내코디'],['realize',Check,'살꺼']]:genre==='studio-flow'?[['studio-products',Shirt,'상품'],['studio-generate',ImagePlus,'생성'],['studio-lookbook',Layers,'룩북'],['studio-details',BookOpen,'상세'],['studio-archive',Bookmark,'아카이브']]:[['scene-home',House,'홈'],['outfit-analysis',Shirt,'착장AI'],['place-analysis',MapPin,'장소AI'],['scene-people',UserRound,'인물'],['scene-shoot',ImagePlus,'촬영'],['scene-realize',Check,'실현']];
@@ -224,8 +227,9 @@ return <LocalSyncProvider key={uid} userId={uid} client={supabase}><div classNam
  <div className="my-outfit-tag-filter" aria-label="코디 태그 필터">
   <strong>태그</strong>
   <div className="my-outfit-tag-pills">
-   <button type="button" className={outfitTagFilter==='전체'?'selected':''} aria-pressed={outfitTagFilter==='전체'} onClick={()=>setOutfitTagFilter('전체')}>전체</button>
-   {outfitTags.map(tag=><button type="button" key={tag} className={outfitTagFilter===tag?'selected':''} aria-pressed={outfitTagFilter===tag} onClick={()=>setOutfitTagFilter(current=>current===tag?'전체':tag)}>#{tag}</button>)}
+   <button type="button" className={outfitTagFilter==='전체'?'selected':''} aria-pressed={outfitTagFilter==='전체'} onClick={()=>setOutfitTagFilter('전체')}>전체 {outfits.length}</button>
+   <button type="button" className={outfitTagFilter==='__untagged__'?'selected':''} aria-pressed={outfitTagFilter==='__untagged__'} onClick={()=>setOutfitTagFilter(current=>current==='__untagged__'?'전체':'__untagged__')}>미분류 {untaggedOutfitCount}</button>
+   {outfitTags.map(tag=><button type="button" key={tag} className={outfitTagFilter===tag?'selected':''} aria-pressed={outfitTagFilter===tag} onClick={()=>setOutfitTagFilter(current=>current===tag?'전체':tag)}>#{tag} {outfits.filter(o=>(o.tags||[]).includes(tag)).length}</button>)}
   </div>
  </div>
 </div>
