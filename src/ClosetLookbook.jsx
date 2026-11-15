@@ -191,7 +191,7 @@ export default function ClosetLookbook({userId}){
    const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
    setCropZoom(Math.max(1,Math.min(5,g.zoom*distance/Math.max(1,g.distance))));
   }else if(pts.length===1&&g.pts.length===1){
-   const factor=100/Math.max(1,rect.width)*(g.zoom/(Math.max(.05,g.zoom-1)));
+   const factor=100/Math.max(1,rect.width)*Math.min(4,g.zoom/Math.max(.25,g.zoom-1));
    setCropX(Math.max(0,Math.min(100,g.x-(pts[0].x-g.pts[0].x)*factor)));
    setCropY(Math.max(0,Math.min(100,g.y-(pts[0].y-g.pts[0].y)*factor*rect.width/Math.max(1,rect.height))));
   }
