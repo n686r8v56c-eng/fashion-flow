@@ -103,15 +103,48 @@ export default function FashionCollection({genre='fashion'}){
  const [showArchived,setShowArchived]=useState(false);
  const [viewMode,setViewMode]=useState('gallery');
  const [categories,setCategories]=useState([]);
- const seasons=['겨울','봄','여름','가을'];
+ const defaultSeasons=['겨울','봄','여름','가을'];
+ const [seasonMenu,setSeasonMenu]=useState(null),[seasonDraft,setSeasonDraft]=useState('');
+ const seasonRecords=categories.filter(c=>c.type==='video-season');
+ const seasons=[...defaultSeasons,...seasonRecords.filter(c=>!c.hidden&&!defaultSeasons.includes(c.name)).sort((a,b)=>(a.position||0)-(b.position||0)).map(c=>c.name)];
+ async function addSeason(){
+  const name=window.prompt('새 상위함 이름을 입력해줘.');
+  if(name===null)return;
+  const trimmed=name.trim().slice(0,30);
+  if(!trimmed){setError('상위함 이름을 입력해줘.');return}
+  if([...defaultSeasons,...seasonRecords.map(c=>c.name)].includes(trimmed)){setError('같은 이름의 상위함이 있어.');return}
+  try{await save({id:'video-season-'+crypto.randomUUID(),type:'video-season',genre,name:trimmed,position:seasonRecords.length,hidden:false,createdAt:Date.now()});await reload();setSeason(trimmed);setCategoryId(null)}
+  catch(e){setError('상위함 추가 실패: '+e.message)}
+ }
+ async function renameSeason(){
+  const name=seasonDraft.trim().slice(0,30);
+  if(!name||!seasonMenu)return;
+  if([...defaultSeasons,...seasonRecords.filter(c=>c.id!==seasonMenu.id).map(c=>c.name)].includes(name)){setError('같은 이름의 상위함이 있어.');return}
+  try{
+   const old=seasonMenu.name;
+   await save({...seasonMenu,name,updatedAt:Date.now()});
+   for(const folder of categories.filter(c=>c.type==='video-folder'&&c.season===old))await save({...folder,season:name,updatedAt:Date.now()});
+   await reload();setSeason(name);setSeasonMenu(null);
+  }catch(e){setError('상위함 이름 수정 실패: '+e.message)}
+ }
+ async function hideSeason(){
+  if(!seasonMenu||!window.confirm('이 상위함을 숨길까? 아래 보드와 영상은 그대로 보존돼.'))return;
+  try{await save({...seasonMenu,hidden:true,updatedAt:Date.now()});await reload();setSeason('겨울');setCategoryId(defaultFolderId);setSeasonMenu(null)}
+  catch(e){setError('상위함 숨기기 실패: '+e.message)}
+ }
+ async function restoreSeason(id){
+  const row=seasonRecords.find(c=>c.id===id);if(!row)return;
+  try{await save({...row,hidden:false,updatedAt:Date.now()});await reload();setSeason(row.name);setCategoryId(null)}
+  catch(e){setError('상위함 복원 실패: '+e.message)}
+ }
  const [season,setSeason]=useState('겨울');
  const defaultFolderId='video-default-'+genre;
  const [categoryId,setCategoryId]=useState(defaultFolderId);
  const [categoryMenu,setCategoryMenu]=useState(null);
  const [categoryDraft,setCategoryDraft]=useState('');
  const categoryTimer=useRef(null),categoryLongPress=useRef(false);
- const categoryRows=categories.filter(c=>!c.hidden&&(c.season||'겨울')===season).sort((a,b)=>(a.position||0)-(b.position||0));
- const allVisibleFolders=categories.filter(c=>!c.hidden);
+ const categoryRows=categories.filter(c=>c.type==='video-folder'&&!c.hidden&&(c.season||'겨울')===season).sort((a,b)=>(a.position||0)-(b.position||0));
+ const allVisibleFolders=categories.filter(c=>c.type==='video-folder'&&!c.hidden);
  const archivedItems=items.filter(x=>!!x.archivedAt);
  const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||(id===defaultFolderId?'경량패딩':'영상함');
  async function persistCategory(record){await save(record);await reload()}
@@ -125,7 +158,7 @@ export default function FashionCollection({genre='fashion'}){
  function stopCategoryPress(){clearTimeout(categoryTimer.current)}
  async function renameCategory(){
   const name=categoryDraft.trim();if(!name)return;
-  const row=categories.find(c=>c.categoryId===categoryMenu);if(!row)return;
+  const row=categories.find(c=>c.type==='video-folder'&&c.categoryId===categoryMenu);if(!row)return;
   try{await persistCategory({...row,name,updatedAt:Date.now()});setCategoryMenu(null)}
   catch(e){setError('이름 편집 실패: '+e.message)}
  }
@@ -136,20 +169,20 @@ export default function FashionCollection({genre='fashion'}){
   catch(e){setError('상위함 삭제 실패: '+e.message)}
  }
  async function restoreCategory(id){
-  const row=categories.find(c=>c.categoryId===id);if(!row)return;
+  const row=categories.find(c=>c.type==='video-folder'&&c.categoryId===id);if(!row)return;
   try{await persistCategory({...row,hidden:false,updatedAt:Date.now()});setCategoryId(id);setCategoryMenu(null)}
   catch(e){setError('상위함 복원 실패: '+e.message)}
  }
  async function reload(){
   const rows=await read()||[];
   const belongs=x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre);
-  const folders=rows.filter(x=>x.type==='video-folder'&&x.genre===genre);
+  const folders=rows.filter(x=>(x.type==='video-folder'||x.type==='video-season')&&x.genre===genre);
   if(!folders.some(x=>x.categoryId===defaultFolderId)){
    await save({id:defaultFolderId,type:'video-folder',genre,categoryId:defaultFolderId,name:'경량패딩',position:-1,season:'겨울',hidden:false,createdAt:Date.now()});
    return;
   }
   setCategories(folders);
-  setItems(rows.filter(x=>x.type!=='video-folder'&&belongs(x)).sort((a,b)=>b.createdAt-a.createdAt));
+  setItems(rows.filter(x=>x.type!=='video-folder'&&x.type!=='video-season'&&belongs(x)).sort((a,b)=>b.createdAt-a.createdAt));
  }
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
  async function addFromClipboard(){
@@ -206,11 +239,13 @@ export default function FashionCollection({genre='fashion'}){
    </div>
   </div>
   {!showArchived&&<><div className="video-season-row" role="tablist" aria-label="영상 계절 분류">
-   {seasons.map(value=><button key={value} type="button" role="tab" aria-selected={season===value} className={'video-season-tab'+(season===value?' active':'')} onClick={()=>{
+   {seasons.map(value=><button key={value} type="button" role="tab" aria-selected={season===value} className={'video-season-tab'+(season===value?' active':'')} onContextMenu={e=>{const row=seasonRecords.find(c=>c.name===value);if(row){e.preventDefault();setSeasonDraft(row.name);setSeasonMenu(row)}}} onClick={()=>{
     setSeason(value);
-    const first=categories.filter(c=>!c.hidden&&(c.season||'겨울')===value).sort((a,b)=>(a.position||0)-(b.position||0))[0];
+    const first=categories.filter(c=>c.type==='video-folder'&&!c.hidden&&(c.season||'겨울')===value).sort((a,b)=>(a.position||0)-(b.position||0))[0];
     setCategoryId(first?.categoryId||null);
    }}>{value}</button>)}
+   <button type="button" className="video-season-tab video-season-add" aria-label="상위함 추가" onClick={addSeason}><Plus size={20}/></button>
+   {seasonRecords.some(c=>c.hidden)&&<button type="button" className="video-season-tab" onClick={()=>setSeasonMenu('restore')}>복원</button>}
   </div>
   <div className="video-folder-row" role="tablist" aria-label="영상 상위함">
    {categoryRows.map(c=><React.Fragment key={c.id}><button type="button" role="tab" aria-selected={categoryId===c.categoryId} className={'video-folder-tab'+(categoryId===c.categoryId?' active':'')}
@@ -243,6 +278,15 @@ export default function FashionCollection({genre='fashion'}){
      <button type="button" onClick={()=>restoreClip(item)}><ArchiveRestore size={17}/> 복원</button>
     </article>)}
    </div>}
+  {seasonMenu&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSeasonMenu(null)}}>
+   <div className="collect-search-modal video-folder-dialog" role="dialog" aria-modal="true" aria-label="상위함 관리">
+    <div className="collect-search-modal-head"><strong>{seasonMenu==='restore'?'숨긴 상위함 복원':seasonMenu.name}</strong><button type="button" onClick={()=>setSeasonMenu(null)} aria-label="닫기"><X size={20}/></button></div>
+    {seasonMenu==='restore'?seasonRecords.filter(c=>c.hidden).map(c=><button key={c.id} type="button" onClick={()=>{restoreSeason(c.id);setSeasonMenu(null)}}>{c.name} 복원</button>):<>
+     <form onSubmit={e=>{e.preventDefault();renameSeason()}}><input aria-label="상위함 이름" maxLength={30} value={seasonDraft} onChange={e=>setSeasonDraft(e.target.value)}/><button type="submit"><Check size={17}/> 이름 저장</button></form>
+     <button type="button" onClick={hideSeason}><Trash2 size={17}/> 상위함 숨기기</button>
+    </>}
+   </div>
+  </div>}
   {categoryMenu&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCategoryMenu(null)}}>
    <div className="collect-search-modal video-folder-dialog" role="dialog" aria-modal="true" aria-label="영상 상위함 편집">
     <div className="collect-search-modal-head"><strong>{categoryMenu==='restore'?'숨긴 상위함 복원':categoryName(categoryMenu)}</strong><button type="button" onClick={()=>setCategoryMenu(null)} aria-label="닫기"><X size={20}/></button></div>
