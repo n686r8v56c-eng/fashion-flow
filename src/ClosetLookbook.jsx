@@ -6,8 +6,8 @@ import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
 
-async function inventoryIdFor(boardId,index,userId){
- const input=new TextEncoder().encode('fashion-lookbook-inventory-v1:'+userId+':'+boardId+':'+index);
+async function inventoryIdFor(boardId,index,userId,path){
+ const input=new TextEncoder().encode('fashion-lookbook-inventory-v1:'+userId+':'+boardId+':'+index+':'+path);
  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',input)).slice(0,16);
  digest[6]=(digest[6]&15)|80;digest[8]=(digest[8]&63)|128;
  const hex=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
@@ -263,7 +263,9 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
    const path=await uploadPhoto(file,userId);
    const slots=[...(board.slots||Array(8).fill(null))];
    slots[target.index]=path;
-   await collection.write({...board,slots,updated_at:new Date().toISOString()});
+   const photoMeta={...(board.photoMeta||{})};
+   delete photoMeta[target.index];
+   await collection.write({...board,slots,photoMeta,updated_at:new Date().toISOString()});
    closeCrop();
   }catch(e){setError('사진 크롭 저장 실패: '+e.message)}
   finally{setBusy('')}
@@ -343,7 +345,7 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
   setBusy(key+':inventory');setError('');setPhotoNotice('');
   let copiedPath=null,inserted=false;
   try{
-   const id=await inventoryIdFor(current.id,index,userId);
+   const id=await inventoryIdFor(current.id,index,userId,path);
    const existing=await supabase.from('wardrobe_items').select('id').eq('user_id',userId).eq('id',id).maybeSingle();
    if(existing.error)throw existing.error;
    if(!existing.data){
@@ -375,7 +377,14 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
  async function purchaseAction(board,index){
   const current=(boards.find(b=>b.id===board.id)||board);
   if((current.photoMeta||{})[index]?.purchased){
-   onOpenInventory?.();
+   if(busy)return;
+   setBusy(current.id+':'+index+':inventory');setError('');
+   try{
+    const newest=(await collection.read()).find(b=>b.id===current.id)||current;
+    const fields={...(newest.photoMeta||{}),[index]:{...((newest.photoMeta||{})[index]||{}),purchased:false}};
+    await collection.write({...newest,photoMeta:fields,updated_at:new Date().toISOString()});
+    setPhotoNotice('체크 해제했어. 인벤토리에 복사된 아이템은 그대로 보관돼.');
+   }catch(e){setError('체크 해제 실패: '+e.message)}finally{setBusy('')}
    return;
   }
   await registerPurchase(current,index);
@@ -383,8 +392,10 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
  async function clearSlot(board,index){
   const slots=[...(board.slots||Array(8).fill(null))];
   slots[index]=null;
+  const photoMeta={...(board.photoMeta||{})};delete photoMeta[index];
+  const pinnedSlots=(board.pinnedSlots||[]).filter(i=>i!==index);
   setBusy(board.id+':'+index);
-  try{await collection.write({...board,slots,updated_at:new Date().toISOString()})}
+  try{await collection.write({...board,slots,photoMeta,pinnedSlots,updated_at:new Date().toISOString()})}
   catch(e){setError('사진 제거 실패: '+e.message)}
   finally{setBusy('')}
  }
@@ -428,7 +439,7 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
        <button type="button" title={(board.photoMeta||{})[index]?.link||'링크 없음'} aria-label="저장된 링크 열기" disabled={!!busy||!(board.photoMeta||{})[index]?.link} onClick={()=>visitPhotoLink(board,index)} className={(board.photoMeta||{})[index]?.link?'has-value':''}><Link2 size={17}/></button>
        <button type="button" title={(board.photoMeta||{})[index]?.price?'₩'+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR'):'가격 입력'} aria-label={(board.photoMeta||{})[index]?.price?'가격 '+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR')+'원, 편집':'가격 입력'} disabled={!!busy} className={(board.photoMeta||{})[index]?.price?'has-value':''} onClick={()=>openPhotoEditor(board,index,'price',(board.photoMeta||{})[index]?.price)}><DollarSign size={17}/></button>
       </div>}
-      {path&&<button type="button" className={'lookbook-purchased'+((board.photoMeta||{})[index]?.purchased?' is-purchased':'')} disabled={!!busy} title={(board.photoMeta||{})[index]?.purchased?'인벤토리 보기':'구매 완료 · 인벤토리에 복사'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.photoMeta||{})[index]?.purchased?'인벤토리 보기':'구매 완료하고 인벤토리에 복사')} onClick={()=>purchaseAction(board,index)}><Check size={15} strokeWidth={2.7}/></button>}
+      {path&&<button type="button" className={'lookbook-purchased'+((board.photoMeta||{})[index]?.purchased?' is-purchased':'')} disabled={!!busy} title={(board.photoMeta||{})[index]?.purchased?'구매 체크 해제 · 인벤토리 기록 유지':'구매 완료 · 인벤토리에 복사'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.photoMeta||{})[index]?.purchased?'구매 체크 해제 (인벤토리 유지)':'구매 완료하고 인벤토리에 복사')} onClick={()=>purchaseAction(board,index)}><Check size={15} strokeWidth={2.7}/></button>}
       {path&&<button type="button" className={'lookbook-pin'+((board.pinnedSlots||[]).includes(index)?' is-pinned':'')} title={(board.pinnedSlots||[]).includes(index)?'고정 해제':'맨 위에 고정'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.pinnedSlots||[]).includes(index)?'고정 해제':'상단 고정')} disabled={!!busy} onClick={()=>togglePhotoPin(board,index)}><Pin size={15} fill={(board.pinnedSlots||[]).includes(index)?'currentColor':'none'}/></button>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>
