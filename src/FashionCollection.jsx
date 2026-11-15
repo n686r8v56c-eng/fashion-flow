@@ -213,12 +213,11 @@ export default function FashionCollection({genre='fashion'}){
    }}>{value}</button>)}
   </div>
   <div className="video-folder-row" role="tablist" aria-label="영상 상위함">
-   {categoryRows.map(c=><button key={c.id} type="button" role="tab" aria-selected={categoryId===c.categoryId} className={'video-folder-tab'+(categoryId===c.categoryId?' active':'')}
+   {categoryRows.map(c=><React.Fragment key={c.id}><button type="button" role="tab" aria-selected={categoryId===c.categoryId} className={'video-folder-tab'+(categoryId===c.categoryId?' active':'')}
     onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startCategoryPress(c.categoryId)}}
     onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerLeave={stopCategoryPress} onPointerMove={stopCategoryPress}
     onContextMenu={e=>{e.preventDefault();stopCategoryPress();setCategoryDraft(c.name);setCategoryMenu(c.categoryId)}}
-    onClick={()=>{if(categoryLongPress.current){categoryLongPress.current=false;return}setCategoryId(c.categoryId)}} title="길게 눌러 편집·삭제">{c.name}</button>)}
-   {categoryId&&<button type="button" className="video-folder-archive" aria-label={categoryName(categoryId)+' 영상 아카이브'} title="현재 함 영상 아카이브" disabled={busy} onClick={archiveFolder}><Archive size={19}/></button>}
+    onClick={()=>{if(categoryLongPress.current){categoryLongPress.current=false;return}setCategoryId(c.categoryId)}} title="길게 눌러 편집·삭제">{c.name}</button>{categoryId===c.categoryId&&<button type="button" className="video-folder-archive" aria-label={c.name+' 영상 아카이브'} title="현재 함 영상 아카이브" disabled={busy} onClick={archiveFolder}><Archive size={19}/></button>}</React.Fragment>)}
    <button type="button" className="video-folder-plus" aria-label="상위함 추가" onClick={createCategory}><Plus size={20}/></button>
    {categories.some(c=>c.hidden)&&<button type="button" className="video-folder-restore" onClick={()=>setCategoryMenu('restore')}>숨긴 함 복원</button>}
   </div>
