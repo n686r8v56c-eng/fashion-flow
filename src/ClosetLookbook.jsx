@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Check,X,Copy,Link2,DollarSign,Archive,ArchiveRestore,Pencil,Trash2} from 'lucide-react';
+import {Plus,Check,X,Copy,Link2,DollarSign,Archive,ArchiveRestore,Pencil,Trash2,Pin} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
@@ -144,6 +144,16 @@ export default function ClosetLookbook({userId}){
   setBusy(board.id);
   try{await collection.write({...board,name,updated_at:new Date().toISOString()});setEditing(null)}
   catch(e){setError('보드 이름 저장 실패: '+e.message)}
+  finally{setBusy('')}
+ }
+ async function togglePhotoPin(board,index){
+  if(busy)return;
+  const current=boards.find(b=>b.id===board.id)||board;
+  const pins=Array.isArray(current.pinnedSlots)?current.pinnedSlots:[];
+  const pinnedSlots=pins.includes(index)?pins.filter(i=>i!==index):[...pins,index];
+  setBusy(board.id+':pin');setError('');
+  try{await collection.write({...current,pinnedSlots,updated_at:new Date().toISOString()})}
+  catch(e){setError('사진 고정 저장 실패: '+e.message)}
   finally{setBusy('')}
  }
  async function upload(board,index,event){
@@ -328,7 +338,7 @@ export default function ClosetLookbook({userId}){
      <button type="button" className="lookbook-archive-action" disabled={!!busy} onClick={()=>changeArchive(board,true)} aria-label={board.name+' 아카이브'} title="사진과 메모를 보존하고 아카이브"><Archive size={17}/></button>
     </div>
     <div className="lookbook-tiles">
-     {Array.from({length:8},(_,index)=>index).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
+     {Array.from({length:Math.max(8,(board.slots||[]).length)},(_,index)=>index).sort((a,b)=>Number((board.pinnedSlots||[]).includes(b)&&!!(board.slots||[])[b])-Number((board.pinnedSlots||[]).includes(a)&&!!(board.slots||[])[a])||a-b).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
       <input ref={el=>{if(el)fileRefs.current[key]=el;else delete fileRefs.current[key]}} type="file" accept="image/*" aria-label={board.name+' '+(index+1)+'번 사진 선택'} onChange={e=>upload(board,index,e)} hidden/>
       <button type="button" className="lookbook-photo-button" disabled={!!busy} aria-label={board.name+' '+(index+1)+'번 사진 '+(path?'교체':'추가')} onClick={()=>fileRefs.current[key]?.click()}>
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
@@ -339,6 +349,7 @@ export default function ClosetLookbook({userId}){
        <button type="button" title={(board.photoMeta||{})[index]?.link||'링크 없음'} aria-label="저장된 링크 열기" disabled={!!busy||!(board.photoMeta||{})[index]?.link} onClick={()=>visitPhotoLink(board,index)} className={(board.photoMeta||{})[index]?.link?'has-value':''}><Link2 size={17}/></button>
        <button type="button" title={(board.photoMeta||{})[index]?.price?'₩'+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR'):'가격 입력'} aria-label={(board.photoMeta||{})[index]?.price?'가격 '+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR')+'원, 편집':'가격 입력'} disabled={!!busy} className={(board.photoMeta||{})[index]?.price?'has-value':''} onClick={()=>openPhotoEditor(board,index,'price',(board.photoMeta||{})[index]?.price)}><DollarSign size={17}/></button>
       </div>}
+      {path&&<button type="button" className={'lookbook-pin'+((board.pinnedSlots||[]).includes(index)?' is-pinned':'')} title={(board.pinnedSlots||[]).includes(index)?'고정 해제':'맨 위에 고정'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.pinnedSlots||[]).includes(index)?'고정 해제':'상단 고정')} disabled={!!busy} onClick={()=>togglePhotoPin(board,index)}><Pin size={15} fill={(board.pinnedSlots||[]).includes(index)?'currentColor':'none'}/></button>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>})}
     </div>
