@@ -24,6 +24,9 @@ export default function ClosetLookbook({userId}){
  const [cropZoom,setCropZoom]=useState(1);
  const [cropX,setCropX]=useState(50);
  const [cropY,setCropY]=useState(50);
+ const [cropRatio,setCropRatio]=useState('1:1');
+ const cropPointers=useRef(new Map());
+ const cropGesture=useRef(null);
  const [photoDraft,setPhotoDraft]=useState('');
  const [photoNotice,setPhotoNotice]=useState('');
  const scrolling=useRef(null);
@@ -152,19 +155,52 @@ export default function ClosetLookbook({userId}){
   if(!file.type.startsWith('image/')){setError('사진 파일만 등록할 수 있어요.');return}
   const url=URL.createObjectURL(file);
   setCropTarget({boardId:board.id,index,file,url});
-  setCropZoom(1);setCropX(50);setCropY(50);
+  setCropZoom(1);setCropX(50);setCropY(50);setCropRatio('1:1');
+ }
+ const cropAspect=cropRatio==='free'?null:cropRatio==='3:4'?3/4:1;
+ function cropGeometry(w,h,zoom,x,y){
+  const aspect=cropAspect||w/h;
+  let cw=Math.min(w,h*aspect),ch=cw/aspect;
+  cw/=zoom;ch/=zoom;
+  return {sx:(w-cw)*x/100,sy:(h-ch)*y/100,cw,ch,aspect};
  }
  useEffect(()=>{
   if(!cropTarget||!cropCanvas.current)return;
-  const canvas=cropCanvas.current;const img=new Image();
+  const canvas=cropCanvas.current,img=new Image();
   img.onload=()=>{
-   const side=Math.min(img.naturalWidth,img.naturalHeight)/cropZoom;
-   const sx=(img.naturalWidth-side)*cropX/100,sy=(img.naturalHeight-side)*cropY/100;
+   const {sx,sy,cw,ch,aspect}=cropGeometry(img.naturalWidth,img.naturalHeight,cropZoom,cropX,cropY);
+   canvas.width=480;canvas.height=Math.round(480/aspect);
    const ctx=canvas.getContext('2d');
-   if(ctx){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,sx,sy,side,side,0,0,canvas.width,canvas.height)}
+   if(ctx){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,sx,sy,cw,ch,0,0,canvas.width,canvas.height)}
   };
   img.src=cropTarget.url;
- },[cropTarget,cropZoom,cropX,cropY]);
+ },[cropTarget,cropZoom,cropX,cropY,cropRatio]);
+ function cropPointerDown(e){
+  if(busy)return;
+  e.currentTarget.setPointerCapture(e.pointerId);
+  cropPointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const pts=[...cropPointers.current.values()];
+  cropGesture.current={pts,zoom:cropZoom,x:cropX,y:cropY,distance:pts.length===2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):0};
+ }
+ function cropPointerMove(e){
+  if(!cropPointers.current.has(e.pointerId)||!cropGesture.current)return;
+  cropPointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const pts=[...cropPointers.current.values()],g=cropGesture.current;
+  const rect=e.currentTarget.getBoundingClientRect();
+  if(pts.length===2&&g.pts.length===2){
+   const distance=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+   setCropZoom(Math.max(1,Math.min(5,g.zoom*distance/Math.max(1,g.distance))));
+  }else if(pts.length===1&&g.pts.length===1){
+   const factor=100/Math.max(1,rect.width)*(g.zoom/(Math.max(.05,g.zoom-1)));
+   setCropX(Math.max(0,Math.min(100,g.x-(pts[0].x-g.pts[0].x)*factor)));
+   setCropY(Math.max(0,Math.min(100,g.y-(pts[0].y-g.pts[0].y)*factor*rect.width/Math.max(1,rect.height))));
+  }
+ }
+ function cropPointerEnd(e){
+  cropPointers.current.delete(e.pointerId);
+  const pts=[...cropPointers.current.values()];
+  cropGesture.current={pts,zoom:cropZoom,x:cropX,y:cropY,distance:pts.length===2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):0};
+ }
  function closeCrop(){if(cropTarget)URL.revokeObjectURL(cropTarget.url);setCropTarget(null)}
  async function saveCrop(){
   if(!cropTarget||busy)return;
@@ -176,12 +212,10 @@ export default function ClosetLookbook({userId}){
   try{
    const image=new Image();image.src=target.url;
    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;if(image.complete&&image.naturalWidth)resolve()});
-   const side=Math.min(image.naturalWidth,image.naturalHeight)/cropZoom;
-   const sx=(image.naturalWidth-side)*cropX/100;
-   const sy=(image.naturalHeight-side)*cropY/100;
-   const canvas=document.createElement('canvas');canvas.width=900;canvas.height=900;
+   const {sx,sy,cw,ch,aspect}=cropGeometry(image.naturalWidth,image.naturalHeight,cropZoom,cropX,cropY);
+   const canvas=document.createElement('canvas');canvas.width=900;canvas.height=Math.round(900/aspect);
    const context=canvas.getContext('2d');if(!context)throw Error('이미지 편집을 사용할 수 없어');
-   context.drawImage(image,sx,sy,side,side,0,0,900,900);
+   context.drawImage(image,sx,sy,cw,ch,0,0,canvas.width,canvas.height);
    const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('이미지 변환 실패')),'image/jpeg',0.9));
    const file=new File([blob],'lookbook-crop.jpg',{type:'image/jpeg'});
    const path=await uploadPhoto(file,userId);
@@ -296,10 +330,13 @@ export default function ClosetLookbook({userId}){
   {cropTarget&&<div className="lookbook-crop-backdrop" onClick={e=>{if(e.target===e.currentTarget&&!busy)closeCrop()}}>
    <section className="lookbook-crop-dialog" role="dialog" aria-modal="true" aria-label="사진 크롭">
     <div className="lookbook-crop-head"><strong>사진 크롭</strong><button type="button" onClick={closeCrop} disabled={!!busy} aria-label="닫기"><X size={21}/></button></div>
-    <canvas ref={cropCanvas} className="lookbook-crop-preview" width="480" height="480" aria-label="정사각형 크롭 미리보기"/>
+    <div className="lookbook-crop-ratios" role="group" aria-label="크롭 비율">
+     {['1:1','3:4','free'].map(r=><button key={r} type="button" className={cropRatio===r?'active':''} onClick={()=>{setCropRatio(r);setCropZoom(1);setCropX(50);setCropY(50)}}>{r==='free'?'자유 비율':r}</button>)}
+    </div>
+    <canvas ref={cropCanvas} className="lookbook-crop-preview" width="480" height="480" aria-label="손가락으로 이동하거나 두 손가락으로 확대하는 크롭 미리보기" onPointerDown={cropPointerDown} onPointerMove={cropPointerMove} onPointerUp={cropPointerEnd} onPointerCancel={cropPointerEnd}/>
+    <small className="lookbook-crop-help">사진을 손가락으로 이동 · 두 손가락으로 확대/축소</small>
     <label>확대 <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={e=>setCropZoom(Number(e.target.value))}/></label>
-    <label>좌우 위치 <input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))}/></label>
-    <label>상하 위치 <input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))}/></label>
+
     <div className="lookbook-crop-actions"><button type="button" onClick={closeCrop} disabled={!!busy}>취소</button><button type="button" onClick={saveCrop} disabled={!!busy}>{busy?'저장 중…':'크롭해서 저장'}</button></div>
    </section>
   </div>}
