@@ -145,3 +145,7 @@
 .lookbook-crop-handle.sw{left:-4px;bottom:-4px;border-width:0 0 5px 5px}
 .lookbook-crop-handle.se{right:-4px;bottom:-4px;border-width:0 5px 5px 0}
 .lookbook-crop-touch{position:absolute;inset:0;touch-action:none;cursor:crosshair}
+
+.lookbook-pin{position:absolute;left:6px;top:6px;display:grid;place-items:center;width:26px;height:26px;border:1px solid #e3d4f2;border-radius:50%;background:rgba(255,255,255,.94);color:#7955a4;z-index:2;cursor:pointer}
+.lookbook-pin.is-pinned{background:#8058ad;color:#fff;border-color:#8058ad}
+.lookbook-pin:disabled{opacity:.55;cursor:wait}
