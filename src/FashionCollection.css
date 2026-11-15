@@ -15,3 +15,39 @@
 .collect-search input{flex:1;min-width:0;height:45px;border:0;outline:none;background:transparent;color:#342b3d;font-size:16px}
 .collect-search button{display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:#937da6;padding:7px;cursor:pointer}
 .collect-search:focus-within{border-color:#996dbd;box-shadow:0 0 0 2px #9460d61a}
+
+
+/* Compact collection heading and search modal. */
+.collect-header{margin:0 0 14px}
+.collect-title-row{display:flex;align-items:center;gap:8px}
+.collect-title-row h1{margin:6px 0}
+.collect-search-trigger{position:relative;display:inline-flex;align-items:center;justify-content:center;border:0;box-shadow:none;background:transparent;color:#4a395d;padding:5px;cursor:pointer}
+.collect-search-indicator{position:absolute;right:3px;top:2px;width:6px;height:6px;border-radius:50%;background:#9067be}
+.collect-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 2px 10px;min-height:38px}
+.collect-count{color:#786c82;font-size:14px;font-weight:700}
+.collect-view-toggle{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #e4d6ef;border-radius:11px;background:#faf7fe}
+.collect-view-toggle button{width:34px;height:32px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;color:#9b8ca9;cursor:pointer}
+.collect-view-toggle button.active{color:#7654a5;background:#ece2f8}
+.collect-search-overlay{position:fixed;inset:0;z-index:11000;display:flex;align-items:flex-start;justify-content:center;padding:calc(80px + env(safe-area-inset-top,0px)) 16px 16px;box-sizing:border-box;background:#22172e66}
+.collect-search-modal{width:min(100%,420px);padding:16px;box-sizing:border-box;background:#fff;border-radius:17px;box-shadow:0 14px 38px #24163330}
+.collect-search-modal-head{display:flex;align-items:center;justify-content:space-between;color:#493358}
+.collect-search-modal-head strong{font-size:17px}
+.collect-search-modal-head button{border:0;background:transparent;color:#79628f;padding:6px;display:grid;place-items:center;cursor:pointer}
+.collect-search-modal .collect-search{margin:12px 0}
+.collect-search-footer{display:flex;justify-content:flex-end}
+.collect-search-footer button{border:0;border-radius:9px;padding:9px 12px;background:#855db1;color:#fff;font-size:14px;font-weight:700}
+.collect-search-trigger:focus-visible,.collect-view-toggle button:focus-visible{outline:2px solid #8e6aba;outline-offset:2px}
+
+/* Thumbnail-first gallery; same stored cards and edits as list. */
+.collect-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.collect-card-gallery{min-width:0;padding:8px}
+.collect-card-gallery .collect-item-main{display:flex;flex-direction:column;gap:8px}
+.collect-card-gallery .collect-photo-wrap{width:100%;height:auto;aspect-ratio:1/1;flex-shrink:0}
+.collect-card-gallery .collect-info{width:100%;min-width:0;gap:6px}
+.collect-card-gallery .collect-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.4;width:100%}
+.collect-card-gallery .collect-url{width:100%}
+.collect-card-gallery .collect-tags{width:100%}
+.collect-card-gallery .collect-tags-edit{flex-wrap:wrap}
+.collect-card-gallery .collect-tags-edit input{flex-basis:100%}
+.collect-card-gallery .collect-actions{flex-wrap:wrap}
+@media(max-width:380px){.collect-grid{gap:7px}.collect-card-gallery{padding:6px}.collect-card-gallery .collect-title{font-size:12px}}
