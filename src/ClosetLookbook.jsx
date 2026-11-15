@@ -301,6 +301,17 @@ export default function ClosetLookbook({userId}){
   if(photoDraft.trim()&&!value){setPhotoNotice('올바른 값을 입력해 줘.');return}
   if(await updatePhotoMeta(board,photoEditor.index,photoEditor.field,value)){setPhotoEditor(null);setPhotoNotice('저장했어.')}
  }
+ async function addPhotoRow(board){
+  if(busy)return;
+  const current=boards.find(b=>b.id===board.id)||board;
+  const slots=[...(current.slots||Array(8).fill(null))];
+  if(slots.length%2)slots.push(null);
+  slots.push(null,null);
+  setBusy(current.id+':add-row');setError('');
+  try{await collection.write({...current,slots,updated_at:new Date().toISOString()})}
+  catch(e){setError('사진 행 추가 실패: '+e.message)}
+  finally{setBusy('')}
+ }
  async function clearSlot(board,index){
   const slots=[...(board.slots||Array(8).fill(null))];
   slots[index]=null;
@@ -353,6 +364,7 @@ export default function ClosetLookbook({userId}){
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>})}
     </div>
+    <button type="button" className="lookbook-add-row" disabled={!!busy} onClick={()=>addPhotoRow(board)} aria-label={board.name+' 사진 행 추가'}><Plus size={18}/><span>행 추가</span></button>
    </article>)}
    <button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy} aria-label={categoryLabel(boardType)+" 보드 추가"}><Plus size={25}/><span>보드 추가</span></button>
   </div>:<div className="lookbook-archive-list" aria-label={categoryLabel(boardType)+' 아카이브'}>
