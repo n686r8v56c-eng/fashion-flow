@@ -160,3 +160,9 @@
 .lookbook-photo-caption.has-memo{color:#4a395d}
 .lookbook-photo-caption span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lookbook-photo-caption:focus-visible{outline:2px solid #9070be;outline-offset:1px}
+
+/* One-tap purchase: visual check at lower-left, independent of pinned ordering. */
+.lookbook-purchased{position:absolute;left:6px;bottom:7px;z-index:4;width:28px;height:28px;display:grid;place-items:center;border:1px solid #e2d3ed;border-radius:50%;background:rgba(255,255,255,.96);color:#8c6aaf;cursor:pointer;box-shadow:0 2px 6px #3b25521c}
+.lookbook-purchased.is-purchased{background:#8f6ac0;border-color:#8f6ac0;color:#fff}
+.lookbook-purchased:disabled{opacity:.55;cursor:wait}
+.lookbook-purchased:focus-visible{outline:2px solid #704a9e;outline-offset:2px}
