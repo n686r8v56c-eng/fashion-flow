@@ -65,3 +65,16 @@
 .collect-clipboard-add{display:grid;place-items:center;width:39px;height:39px;flex-shrink:0;border:0;border-radius:10px;background:#8056ad;color:#fff;cursor:pointer}
 .collect-clipboard-add:disabled{opacity:.6;cursor:wait}
 .collect-clipboard-add:focus-visible{outline:2px solid #8056ad;outline-offset:2px}
+
+/* Lookbook-style video collection folders */
+.video-folder-row{display:flex;align-items:center;gap:17px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;padding:8px 2px 12px;margin:0 0 8px}
+.video-folder-row::-webkit-scrollbar{display:none}
+.video-folder-tab{border:0;background:none;color:#9785a6;font-weight:750;font-size:17px;padding:5px 0;cursor:pointer;flex-shrink:0}
+.video-folder-tab.active{color:#4b315c}
+.video-folder-plus,.video-folder-restore{display:inline-flex;align-items:center;justify-content:center;border:0;background:none;color:#4b315c;cursor:pointer;flex-shrink:0;padding:5px}
+.video-folder-restore{font-size:12px;color:#8766a8}
+.video-folder-dialog{display:flex;flex-direction:column;gap:12px}
+.video-folder-dialog form{display:flex;gap:8px}
+.video-folder-dialog input{min-width:0;flex:1;border:1px solid #d8c8e6;border-radius:8px;padding:9px;font-size:16px}
+.video-folder-dialog button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:8px;padding:9px;color:#674a87;background:#f4ecfa;cursor:pointer}
+.video-folder-dialog form button{background:#8056ad;color:white}
