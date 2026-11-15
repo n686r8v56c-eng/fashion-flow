@@ -103,3 +103,14 @@
 .video-folder-row{margin-top:0;margin-bottom:10px}
 .video-season-tab:focus-visible{outline:2px solid #9070be;outline-offset:3px;border-radius:4px}
 @media(max-width:380px){.video-season-row{gap:12px}}
+
+/* Video archive shortcuts mirror Lookbook archive affordances. */
+.video-archive-shortcut{display:inline-flex;align-items:center;gap:3px;flex:none;border:0;background:transparent;box-shadow:none;padding:3px 1px;color:#4a395d;font:inherit;font-size:13px;font-weight:700;line-height:1;cursor:pointer}
+.video-archive-shortcut svg{width:19px;height:19px;stroke-width:2.1}
+.video-folder-archive{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:26px;height:30px;padding:2px;border:0;background:transparent;color:#4a395d;cursor:pointer}
+.video-folder-archive svg{width:18px;height:18px;stroke-width:2.1}
+.video-folder-archive:disabled{opacity:.5}
+.video-archive-list{display:grid;gap:10px;padding:12px 2px 20px}
+.video-archive-item{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e7dcef;background:white;border-radius:13px;padding:13px}
+.video-archive-item span{min-width:0;overflow-wrap:anywhere;font-size:14px;color:#422e54}
+.video-archive-item button{display:inline-flex;align-items:center;gap:6px;flex:none;border:1px solid #e0cfed;border-radius:9px;color:#7854a6;background:#f6f0fd;font-size:13px;font-weight:700;padding:9px;cursor:pointer}
