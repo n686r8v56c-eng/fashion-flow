@@ -19,6 +19,8 @@ export default function ClosetLookbook({userId}){
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
  const [photoEditor,setPhotoEditor]=useState(null);
+ const [memoTarget,setMemoTarget]=useState(null);
+ const [memoDraft,setMemoDraft]=useState('');
  const cropCanvas=useRef(null);
  const [cropTarget,setCropTarget]=useState(null);
  const [cropRatio,setCropRatio]=useState('free');
@@ -275,6 +277,17 @@ export default function ClosetLookbook({userId}){
   setPhotoEditor({boardId:board.id,index,field:'price'});
   setPhotoDraft(String(initial||''));setPhotoNotice('');
  }
+ function openMemo(board,index){
+  setMemoTarget({boardId:board.id,index});
+  setMemoDraft(String((board.photoMeta||{})[index]?.memo||''));
+ }
+ async function saveMemo(event){
+  event.preventDefault();
+  if(!memoTarget||busy)return;
+  const board=boards.find(b=>b.id===memoTarget.boardId);
+  if(!board)return;
+  if(await updatePhotoMeta(board,memoTarget.index,'memo',memoDraft.trim()))setMemoTarget(null);
+ }
  async function pastePhotoLink(board,index){
   setPhotoNotice('');
   try{
@@ -349,7 +362,7 @@ export default function ClosetLookbook({userId}){
      <button type="button" className="lookbook-archive-action" disabled={!!busy} onClick={()=>changeArchive(board,true)} aria-label={board.name+' 아카이브'} title="사진과 메모를 보존하고 아카이브"><Archive size={17}/></button>
     </div>
     <div className="lookbook-tiles">
-     {Array.from({length:Math.max(8,(board.slots||[]).length)},(_,index)=>index).sort((a,b)=>Number((board.pinnedSlots||[]).includes(b)&&!!(board.slots||[])[b])-Number((board.pinnedSlots||[]).includes(a)&&!!(board.slots||[])[a])||a-b).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-tile" key={index}>
+     {Array.from({length:Math.max(8,(board.slots||[]).length)},(_,index)=>index).sort((a,b)=>Number((board.pinnedSlots||[]).includes(b)&&!!(board.slots||[])[b])-Number((board.pinnedSlots||[]).includes(a)&&!!(board.slots||[])[a])||a-b).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-photo-cell" key={index}><div className="lookbook-tile">
       <input ref={el=>{if(el)fileRefs.current[key]=el;else delete fileRefs.current[key]}} type="file" accept="image/*" aria-label={board.name+' '+(index+1)+'번 사진 선택'} onChange={e=>upload(board,index,e)} hidden/>
       <button type="button" className="lookbook-photo-button" disabled={!!busy} aria-label={board.name+' '+(index+1)+'번 사진 '+(path?'교체':'추가')} onClick={()=>fileRefs.current[key]?.click()}>
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
@@ -362,6 +375,8 @@ export default function ClosetLookbook({userId}){
       </div>}
       {path&&<button type="button" className={'lookbook-pin'+((board.pinnedSlots||[]).includes(index)?' is-pinned':'')} title={(board.pinnedSlots||[]).includes(index)?'고정 해제':'맨 위에 고정'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.pinnedSlots||[]).includes(index)?'고정 해제':'상단 고정')} disabled={!!busy} onClick={()=>togglePhotoPin(board,index)}><Pin size={15} fill={(board.pinnedSlots||[]).includes(index)?'currentColor':'none'}/></button>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
+     </div>
+      {path&&<button type="button" className={'lookbook-photo-caption'+((board.photoMeta||{})[index]?.memo?' has-memo':'')} onClick={()=>openMemo(board,index)} title={(board.photoMeta||{})[index]?.memo||'사진 메모 추가'} aria-label={board.name+' '+(index+1)+'번 사진 메모 '+((board.photoMeta||{})[index]?.memo?'보기 및 수정':'추가')}><span>{(board.photoMeta||{})[index]?.memo||'＋ 메모 추가'}</span></button>}
      </div>})}
     </div>
     <button type="button" className="lookbook-add-row" disabled={!!busy} onClick={()=>addPhotoRow(board)} aria-label={board.name+' 사진 행 추가'}><Plus size={18}/><span>행 추가</span></button>
@@ -390,6 +405,16 @@ export default function ClosetLookbook({userId}){
    </section>
   </div>}
   {photoNotice&&<div className="lookbook-photo-notice" role="status" onClick={()=>setPhotoNotice('')}>{photoNotice}</div>}
+  {memoTarget&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setMemoTarget(null)}}>
+    <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-label="사진 메모" onMouseDown={e=>e.stopPropagation()}>
+      <div className="lookbook-memo-heading"><h2>사진 메모</h2><button type="button" aria-label="닫기" disabled={!!busy} onClick={()=>setMemoTarget(null)}><X size={21}/></button></div>
+      <form className="lookbook-photo-form" onSubmit={saveMemo}>
+       <textarea autoFocus rows={4} maxLength={500} aria-label="사진 메모 내용" placeholder="이 모자를 저장한 이유, 어울리는 옷 등을 적어 봐." value={memoDraft} onChange={e=>setMemoDraft(e.target.value)}/>
+       <small>사진 아래에는 한 줄만 표시돼요. 길게 적어도 여기서 전체 내용을 보고 수정할 수 있어요.</small>
+       <div className="lookbook-memo-actions"><button type="button" disabled={!!busy} onClick={()=>setMemoTarget(null)}>취소</button><button type="submit" disabled={!!busy}>{busy?'저장 중…':'저장'}</button></div>
+      </form>
+    </section>
+  </div>}
   {photoEditor&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setPhotoEditor(null)}}>
     <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-label="사진 가격" onMouseDown={e=>e.stopPropagation()}>
       <div className="lookbook-memo-heading"><h2>가격 입력</h2><button type="button" aria-label="닫기" onClick={()=>setPhotoEditor(null)}><X size={21}/></button></div>
