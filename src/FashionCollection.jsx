@@ -34,7 +34,7 @@ async function resize(file){
   return blob;
  }finally{URL.revokeObjectURL(url)}
 }
-function CollectionCard({item,onUpdate,onDelete,viewMode='list'}){
+function CollectionCard({item,onUpdate,onDelete,viewMode='list',folders=[]}){
  const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||''),[editingTags,setEditingTags]=useState(false),[tagDraft,setTagDraft]=useState('');
  const [thumbFailed,setThumbFailed]=useState(false),fileRef=useRef(null);
  const [localUrl,setLocalUrl]=useState('');
@@ -82,6 +82,12 @@ function CollectionCard({item,onUpdate,onDelete,viewMode='list'}){
       <button type="button" onClick={addTags} aria-label="태그 추가 저장"><Check size={16}/> 추가</button>
       <button type="button" onClick={()=>{setEditingTags(false);setTagDraft('')}} aria-label="태그 추가 취소">취소</button>
     </div>}
+    <label className="video-folder-move">상위함
+     <select aria-label="영상 상위함 이동" value={item.folderId||'all'} onChange={e=>onUpdate(item,{folderId:e.target.value==='all'?null:e.target.value})}>
+      <option value="all">전체</option>
+      {folders.map(folder=><option key={folder.id} value={folder.categoryId}>{folder.name}</option>)}
+     </select>
+    </label>
     <div className="collect-actions">
      <button type="button" onClick={()=>{setEdit(!edit);setTitle(item.title||'')}}><Pencil size={14}/> 제목</button>
      <button type="button" onClick={()=>onDelete(item)}><Trash2 size={14}/> 삭제</button>
@@ -104,7 +110,7 @@ export default function FashionCollection({genre='fashion'}){
  const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||'영상함';
  async function persistCategory(record){await save(record);await reload()}
  async function createCategory(){
-  const number=Math.max(0,...categories.map(c=>Number(String(c.name||'').match(/^함(\\d+)$/)?.[1])||0))+1;
+  const number=Math.max(0,...categories.map(c=>Number(String(c.name||'').match(/^함(\d+)$/)?.[1])||0))+1;
   const id='video-folder-'+crypto.randomUUID();
   try{await persistCategory({id,type:'video-folder',genre,categoryId:id,name:'함'+number,position:categories.length,hidden:false,createdAt:Date.now()});setCategoryId(id)}
   catch(e){setError('상위함 추가 실패: '+e.message)}
@@ -195,7 +201,7 @@ export default function FashionCollection({genre='fashion'}){
     <button type="button" className="collect-clipboard-add" aria-label="클립보드 링크 바로 수집" title="클립보드 링크 수집" disabled={busy} onClick={addFromClipboard}><Plus size={21}/></button>
    </div>
   </div>
-  <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode}/>)}</div>
+  <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode} folders={categoryRows}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
   {items.length>0&&filtered.length===0&&<p className="collect-empty">검색 결과가 없어.</p>}
   {categoryMenu&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCategoryMenu(null)}}>
