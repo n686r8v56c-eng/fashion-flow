@@ -177,3 +177,27 @@
 .lookbook-search-count{font-size:12px;margin:4px 2px 9px;color:#806a90}
 .lookbook-search-category{font-size:11px;color:#8060a0;border-radius:6px;background:#f2eafb;padding:3px 6px;white-space:nowrap}
 .lookbook-search-empty{color:#806a90;font-size:14px;padding:20px 12px}
+
+/* Mobile compact one-row search: override broad app form/input rules. */
+.closet-lookbook .lookbook-search-box{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  flex-wrap:nowrap!important;gap:8px!important;
+  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+  margin:0 0 10px!important;padding:0 10px!important;
+  height:44px;min-height:44px;background:#faf7fd;border:1px solid #e5d6f0;border-radius:12px;
+}
+.closet-lookbook .lookbook-search-box input[type="search"]{
+  display:block!important;flex:1 1 0!important;min-width:0!important;
+  width:0!important;max-width:100%!important;height:40px!important;
+  min-height:0!important;padding:0!important;margin:0!important;
+  border:0!important;box-shadow:none!important;background:transparent!important;
+  font-size:15px!important;line-height:normal!important;outline:none!important;
+  -webkit-appearance:none;appearance:none;
+}
+.closet-lookbook .lookbook-search-box input[type="search"]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.closet-lookbook .lookbook-search-box button{
+  display:grid!important;flex:0 0 30px!important;align-items:center!important;justify-items:center!important;
+  width:30px!important;height:34px!important;min-width:30px!important;
+  padding:0!important;margin:0!important;border:0!important;background:transparent!important;color:#75598e!important;
+}
+.closet-lookbook .lookbook-search-count{margin:0 2px 9px!important;font-size:12px!important}
