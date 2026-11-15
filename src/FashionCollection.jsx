@@ -92,14 +92,23 @@ function CollectionCard({item,onUpdate,onDelete,viewMode='list'}){
 }
 export default function FashionCollection({genre='fashion'}){
  const {read,write:save,remove,subscribe}=useLocalCollection('collection');
- const [url,setUrl]=useState(''),[search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [searchOpen,setSearchOpen]=useState(false);
  const [viewMode,setViewMode]=useState('gallery');
  async function reload(){setItems((await read()||[]).filter(x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre)).sort((a,b)=>b.createdAt-a.createdAt))}
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
- async function add(e){
-  e.preventDefault();setError('');setNotice('');
-  const parsed=canonicalize(url);
+ async function addFromClipboard(){
+  if(busy)return;
+  setError('');setNotice('');
+  let clipboardText='';
+  try{
+   if(!navigator.clipboard?.readText)throw Error('clipboard unavailable');
+   clipboardText=await navigator.clipboard.readText();
+  }catch{
+   setError('클립보드 읽기가 허용되지 않았어. 브라우저에서 붙여넣기 권한을 허용한 뒤 다시 눌러줘.');
+   return;
+  }
+  const parsed=canonicalize(clipboardText);
   if(!parsed){setError('유튜브 영상 또는 인스타그램 게시물 링크를 입력해줘.');return}
   if(items.some(x=>x.url===parsed.url)){setError('이미 수집한 링크야.');return}
   setBusy(true);
@@ -109,7 +118,7 @@ export default function FashionCollection({genre='fashion'}){
    const title=parsed.platform==='youtube'?String(info.title||'').trim().slice(0,250):'';
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
    await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,createdAt:Date.now()});
-   await reload();setUrl('');
+   await reload();
    setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 제목과 태그를 추가할 수 있어.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
   finally{setBusy(false)}
@@ -121,20 +130,20 @@ export default function FashionCollection({genre='fashion'}){
  return <section className="collect">
   <div className="collect-header">
    <div className="collect-title-row">
-    <h1>수집</h1>
+    <h1>영상</h1>
     <button type="button" className="collect-search-trigger" onClick={()=>setSearchOpen(true)} aria-label="수집 목록 검색 열기" aria-haspopup="dialog"><Search size={22}/>{search&&<span className="collect-search-indicator" aria-hidden="true"/>}</button>
    </div>
   </div>
-  <form className="collect-entry" onSubmit={add}>
-   <div><input aria-label="수집할 URL" type="url" required placeholder="유튜브 또는 인스타그램 링크 붙여넣기" value={url} onChange={e=>setUrl(e.target.value)} /><button type="submit" disabled={busy}><Plus size={17}/>{busy?'불러오는 중':'수집'}</button></div>
-  </form>
   {error&&<p className="collect-error" role="alert">{error}</p>}
   {notice&&<p className="collect-notice" role="status">{notice}</p>}
   <div className="collect-toolbar">
    <span className="collect-count">{keyword?filtered.length+' / '+items.length:items.length}개</span>
-   <div className="collect-view-toggle" role="group" aria-label="보기 방식">
-    <button type="button" className={viewMode==='gallery'?'active':''} aria-label="갤러리 보기" aria-pressed={viewMode==='gallery'} onClick={()=>setViewMode('gallery')}><LayoutGrid size={19}/></button>
-    <button type="button" className={viewMode==='list'?'active':''} aria-label="목록 보기" aria-pressed={viewMode==='list'} onClick={()=>setViewMode('list')}><List size={19}/></button>
+   <div className="collect-toolbar-actions">
+    <div className="collect-view-toggle" role="group" aria-label="보기 방식">
+     <button type="button" className={viewMode==='gallery'?'active':''} aria-label="갤러리 보기" aria-pressed={viewMode==='gallery'} onClick={()=>setViewMode('gallery')}><LayoutGrid size={19}/></button>
+     <button type="button" className={viewMode==='list'?'active':''} aria-label="목록 보기" aria-pressed={viewMode==='list'} onClick={()=>setViewMode('list')}><List size={19}/></button>
+    </div>
+    <button type="button" className="collect-clipboard-add" aria-label="클립보드 링크 바로 수집" title="클립보드 링크 수집" disabled={busy} onClick={addFromClipboard}><Plus size={21}/></button>
    </div>
   </div>
   <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode}/>)}</div>
