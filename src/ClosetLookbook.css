@@ -118,3 +118,10 @@
 .lookbook-crop-actions button{border:1px solid #e0d0eb;background:#f8f2fc;color:#694c86;border-radius:10px;padding:10px 13px;font-weight:700}
 .lookbook-crop-actions button:last-child{background:#8056ad;color:#fff;border-color:#8056ad}
 .lookbook-crop-actions button:disabled{opacity:.5}
+
+.lookbook-crop-preview{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;max-height:46dvh;object-fit:contain}
+.lookbook-crop-preview:active{cursor:grabbing}
+.lookbook-crop-ratios{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.lookbook-crop-ratios button{border:1px solid #d9c8e9;background:white;color:#775c93;border-radius:9px;padding:8px 12px;font-weight:700}
+.lookbook-crop-ratios button.active{background:#8056ad;border-color:#8056ad;color:white}
+.lookbook-crop-help{text-align:center;color:#856e9c;font-size:12px}
