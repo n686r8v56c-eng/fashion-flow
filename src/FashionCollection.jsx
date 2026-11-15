@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X,LayoutGrid,List,ArchiveRestore,PencilLine} from 'lucide-react';
+import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X,LayoutGrid,List,ArchiveRestore,Archive,PencilLine} from 'lucide-react';
 import './FashionCollection.css';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 
@@ -100,6 +100,7 @@ export default function FashionCollection({genre='fashion'}){
  const {read,write:save,remove,subscribe}=useLocalCollection('collection');
  const [search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [searchOpen,setSearchOpen]=useState(false);
+ const [showArchived,setShowArchived]=useState(false);
  const [viewMode,setViewMode]=useState('gallery');
  const [categories,setCategories]=useState([]);
  const seasons=['겨울','봄','여름','가을'];
@@ -111,6 +112,7 @@ export default function FashionCollection({genre='fashion'}){
  const categoryTimer=useRef(null),categoryLongPress=useRef(false);
  const categoryRows=categories.filter(c=>!c.hidden&&(c.season||'겨울')===season).sort((a,b)=>(a.position||0)-(b.position||0));
  const allVisibleFolders=categories.filter(c=>!c.hidden);
+ const archivedItems=items.filter(x=>!!x.archivedAt);
  const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||(id===defaultFolderId?'경량패딩':'영상함');
  async function persistCategory(record){await save(record);await reload()}
  async function createCategory(){
@@ -177,18 +179,33 @@ export default function FashionCollection({genre='fashion'}){
   finally{setBusy(false)}
  }
  async function update(item,patch){try{await save({...item,...patch,updatedAt:Date.now()});await reload()}catch(err){setError('저장 실패: '+err.message)}}
+ async function archiveFolder(){
+  if(!categoryId)return;
+  const folderItems=items.filter(item=>!item.archivedAt&&(item.folderId||defaultFolderId)===categoryId);
+  if(!folderItems.length){setNotice('아카이브할 영상이 없어.');return}
+  if(!confirm(categoryName(categoryId)+' 영상 '+folderItems.length+'개를 아카이브할까? 나중에 복원할 수 있어.'))return;
+  setBusy(true);setError('');
+  try{
+   const archivedAt=new Date().toISOString();
+   for(const item of folderItems)await save({...item,archivedAt,updatedAt:Date.now()});
+   await reload();setNotice(folderItems.length+'개 영상을 보관했어.');
+  }catch(e){setError('아카이브 실패: '+e.message)}
+  finally{setBusy(false)}
+ }
+ async function restoreClip(item){await update(item,{archivedAt:null})}
  async function del(item){if(!confirm('이 수집 링크를 삭제할까?'))return;try{await remove(item.id);await reload()}catch(err){setError('삭제 실패: '+err.message)}}
  const keyword=search.trim().replace(/^#/,'').toLocaleLowerCase();
- const scoped=items.filter(item=>(item.folderId||defaultFolderId)===categoryId);
+ const scoped=items.filter(item=>!item.archivedAt&&(item.folderId||defaultFolderId)===categoryId);
  const filtered=keyword?scoped.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):scoped;
  return <section className="collect">
   <div className="collect-header">
    <div className="collect-title-row">
     <h1>영상</h1>
     <button type="button" className="collect-search-trigger" onClick={()=>setSearchOpen(true)} aria-label="수집 목록 검색 열기" aria-haspopup="dialog"><Search size={22}/>{search&&<span className="collect-search-indicator" aria-hidden="true"/>}</button>
+    <button type="button" className={'video-archive-shortcut'+(showArchived?' active':'')} onClick={()=>setShowArchived(v=>!v)} aria-label={showArchived?'영상 목록으로 돌아가기':'아카이브 '+archivedItems.length+'개 보기'} aria-pressed={showArchived}><Archive size={19}/><span>({archivedItems.length})</span></button>
    </div>
   </div>
-  <div className="video-season-row" role="tablist" aria-label="영상 계절 분류">
+  {!showArchived&&<><div className="video-season-row" role="tablist" aria-label="영상 계절 분류">
    {seasons.map(value=><button key={value} type="button" role="tab" aria-selected={season===value} className={'video-season-tab'+(season===value?' active':'')} onClick={()=>{
     setSeason(value);
     const first=categories.filter(c=>!c.hidden&&(c.season||'겨울')===value).sort((a,b)=>(a.position||0)-(b.position||0))[0];
@@ -201,12 +218,14 @@ export default function FashionCollection({genre='fashion'}){
     onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerLeave={stopCategoryPress} onPointerMove={stopCategoryPress}
     onContextMenu={e=>{e.preventDefault();stopCategoryPress();setCategoryDraft(c.name);setCategoryMenu(c.categoryId)}}
     onClick={()=>{if(categoryLongPress.current){categoryLongPress.current=false;return}setCategoryId(c.categoryId)}} title="길게 눌러 편집·삭제">{c.name}</button>)}
+   {categoryId&&<button type="button" className="video-folder-archive" aria-label={categoryName(categoryId)+' 영상 아카이브'} title="현재 함 영상 아카이브" disabled={busy} onClick={archiveFolder}><Archive size={19}/></button>}
    <button type="button" className="video-folder-plus" aria-label="상위함 추가" onClick={createCategory}><Plus size={20}/></button>
    {categories.some(c=>c.hidden)&&<button type="button" className="video-folder-restore" onClick={()=>setCategoryMenu('restore')}>숨긴 함 복원</button>}
   </div>
+  </>}
   {error&&<p className="collect-error" role="alert">{error}</p>}
   {notice&&<p className="collect-notice" role="status">{notice}</p>}
-  <div className="collect-toolbar">
+  {!showArchived?<><div className="collect-toolbar">
    <span className="collect-count" aria-hidden="true"></span>
    <div className="collect-toolbar-actions">
     <div className="collect-view-toggle" role="group" aria-label="보기 방식">
@@ -219,6 +238,12 @@ export default function FashionCollection({genre='fashion'}){
   <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode} folders={allVisibleFolders}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
   {items.length>0&&filtered.length===0&&<p className="collect-empty">{keyword?'검색 결과가 없어.':'이 함에 수집한 영상이 없어.'}</p>}
+  </>:<div className="video-archive-list">
+    {archivedItems.length===0?<p className="collect-empty">아카이브된 영상이 없어.</p>:archivedItems.map(item=><article className="video-archive-item" key={item.id}>
+     <span>{item.title||item.url}</span>
+     <button type="button" onClick={()=>restoreClip(item)}><ArchiveRestore size={17}/> 복원</button>
+    </article>)}
+   </div>}
   {categoryMenu&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCategoryMenu(null)}}>
    <div className="collect-search-modal video-folder-dialog" role="dialog" aria-modal="true" aria-label="영상 상위함 편집">
     <div className="collect-search-modal-head"><strong>{categoryMenu==='restore'?'숨긴 상위함 복원':categoryName(categoryMenu)}</strong><button type="button" onClick={()=>setCategoryMenu(null)} aria-label="닫기"><X size={20}/></button></div>
