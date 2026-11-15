@@ -143,6 +143,7 @@ export default function FashionCollection({genre='fashion'}){
  const [categoryMenu,setCategoryMenu]=useState(null);
  const [categoryDraft,setCategoryDraft]=useState('');
  const categoryTimer=useRef(null),categoryLongPress=useRef(false);
+ const seasonTimer=useRef(null),seasonLongPress=useRef(false);
  const categoryRows=categories.filter(c=>c.type==='video-folder'&&!c.hidden&&(c.season||'겨울')===season).sort((a,b)=>(a.position||0)-(b.position||0));
  const allVisibleFolders=categories.filter(c=>c.type==='video-folder'&&!c.hidden);
  const archivedItems=items.filter(x=>!!x.archivedAt);
@@ -239,7 +240,7 @@ export default function FashionCollection({genre='fashion'}){
    </div>
   </div>
   {!showArchived&&<><div className="video-season-row" role="tablist" aria-label="영상 계절 분류">
-   {seasons.map(value=><button key={value} type="button" role="tab" aria-selected={season===value} className={'video-season-tab'+(season===value?' active':'')} onContextMenu={e=>{const row=seasonRecords.find(c=>c.name===value);if(row){e.preventDefault();setSeasonDraft(row.name);setSeasonMenu(row)}}} onClick={()=>{
+   {seasons.map(value=><button key={value} type="button" role="tab" aria-selected={season===value} className={'video-season-tab'+(season===value?' active':'')} onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;const row=seasonRecords.find(c=>c.name===value);if(row){clearTimeout(seasonTimer.current);seasonLongPress.current=false;seasonTimer.current=setTimeout(()=>{seasonLongPress.current=true;setSeasonDraft(row.name);setSeasonMenu(row)},550)}}} onPointerUp={()=>clearTimeout(seasonTimer.current)} onPointerCancel={()=>clearTimeout(seasonTimer.current)} onPointerLeave={()=>clearTimeout(seasonTimer.current)} onPointerMove={()=>clearTimeout(seasonTimer.current)} onContextMenu={e=>{const row=seasonRecords.find(c=>c.name===value);if(row){e.preventDefault();clearTimeout(seasonTimer.current);setSeasonDraft(row.name);setSeasonMenu(row)}}} onClick={()=>{if(seasonLongPress.current){seasonLongPress.current=false;return}
     setSeason(value);
     const first=categories.filter(c=>c.type==='video-folder'&&!c.hidden&&(c.season||'겨울')===value).sort((a,b)=>(a.position||0)-(b.position||0))[0];
     setCategoryId(first?.categoryId||null);
