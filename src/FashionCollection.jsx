@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X,LayoutGrid,List} from 'lucide-react';
+import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X,LayoutGrid,List,ArchiveRestore,PencilLine} from 'lucide-react';
 import './FashionCollection.css';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 
@@ -95,7 +95,45 @@ export default function FashionCollection({genre='fashion'}){
  const [search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [searchOpen,setSearchOpen]=useState(false);
  const [viewMode,setViewMode]=useState('gallery');
- async function reload(){setItems((await read()||[]).filter(x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre)).sort((a,b)=>b.createdAt-a.createdAt))}
+ const [categories,setCategories]=useState([]);
+ const [categoryId,setCategoryId]=useState('all');
+ const [categoryMenu,setCategoryMenu]=useState(null);
+ const [categoryDraft,setCategoryDraft]=useState('');
+ const categoryTimer=useRef(null),categoryLongPress=useRef(false);
+ const categoryRows=categories.filter(c=>!c.hidden).sort((a,b)=>(a.position||0)-(b.position||0));
+ const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||'영상함';
+ async function persistCategory(record){await save(record);await reload()}
+ async function createCategory(){
+  const number=Math.max(0,...categories.map(c=>Number(String(c.name||'').match(/^함(\\d+)$/)?.[1])||0))+1;
+  const id='video-folder-'+crypto.randomUUID();
+  try{await persistCategory({id,type:'video-folder',genre,categoryId:id,name:'함'+number,position:categories.length,hidden:false,createdAt:Date.now()});setCategoryId(id)}
+  catch(e){setError('상위함 추가 실패: '+e.message)}
+ }
+ function startCategoryPress(id){clearTimeout(categoryTimer.current);categoryLongPress.current=false;categoryTimer.current=setTimeout(()=>{categoryLongPress.current=true;setCategoryMenu(id);setCategoryDraft(categoryName(id))},550)}
+ function stopCategoryPress(){clearTimeout(categoryTimer.current)}
+ async function renameCategory(){
+  const name=categoryDraft.trim();if(!name)return;
+  const row=categories.find(c=>c.categoryId===categoryMenu);if(!row)return;
+  try{await persistCategory({...row,name,updatedAt:Date.now()});setCategoryMenu(null)}
+  catch(e){setError('이름 편집 실패: '+e.message)}
+ }
+ async function hideCategory(){
+  const row=categories.find(c=>c.categoryId===categoryMenu);if(!row)return;
+  if(!confirm('이 상위함을 숨길까? 저장된 영상은 삭제되지 않고 전체에서 계속 볼 수 있어.'))return;
+  try{await persistCategory({...row,hidden:true,updatedAt:Date.now()});setCategoryId('all');setCategoryMenu(null)}
+  catch(e){setError('상위함 삭제 실패: '+e.message)}
+ }
+ async function restoreCategory(id){
+  const row=categories.find(c=>c.categoryId===id);if(!row)return;
+  try{await persistCategory({...row,hidden:false,updatedAt:Date.now()});setCategoryId(id);setCategoryMenu(null)}
+  catch(e){setError('상위함 복원 실패: '+e.message)}
+ }
+ async function reload(){
+  const rows=await read()||[];
+  const belongs=x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre);
+  setCategories(rows.filter(x=>x.type==='video-folder'&&x.genre===genre));
+  setItems(rows.filter(x=>x.type!=='video-folder'&&belongs(x)).sort((a,b)=>b.createdAt-a.createdAt));
+ }
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
  async function addFromClipboard(){
   if(busy)return;
@@ -117,7 +155,7 @@ export default function FashionCollection({genre='fashion'}){
    try{const res=await fetch('/api/collect-metadata?url='+encodeURIComponent(parsed.url));if(res.ok)info=await res.json()}catch{}
    const title=parsed.platform==='youtube'?String(info.title||'').trim().slice(0,250):'';
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
-   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,createdAt:Date.now()});
+   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,folderId:categoryId==='all'?null:categoryId,createdAt:Date.now()});
    await reload();
    setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 제목과 태그를 추가할 수 있어.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
@@ -126,7 +164,8 @@ export default function FashionCollection({genre='fashion'}){
  async function update(item,patch){try{await save({...item,...patch,updatedAt:Date.now()});await reload()}catch(err){setError('저장 실패: '+err.message)}}
  async function del(item){if(!confirm('이 수집 링크를 삭제할까?'))return;try{await remove(item.id);await reload()}catch(err){setError('삭제 실패: '+err.message)}}
  const keyword=search.trim().replace(/^#/,'').toLocaleLowerCase();
- const filtered=keyword?items.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):items;
+ const scoped=categoryId==='all'?items:items.filter(item=>item.folderId===categoryId);
+ const filtered=keyword?scoped.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):scoped;
  return <section className="collect">
   <div className="collect-header">
    <div className="collect-title-row">
@@ -134,10 +173,20 @@ export default function FashionCollection({genre='fashion'}){
     <button type="button" className="collect-search-trigger" onClick={()=>setSearchOpen(true)} aria-label="수집 목록 검색 열기" aria-haspopup="dialog"><Search size={22}/>{search&&<span className="collect-search-indicator" aria-hidden="true"/>}</button>
    </div>
   </div>
+  <div className="video-folder-row" role="tablist" aria-label="영상 상위함">
+   <button type="button" role="tab" aria-selected={categoryId==='all'} className={'video-folder-tab'+(categoryId==='all'?' active':'')} onClick={()=>setCategoryId('all')}>전체</button>
+   {categoryRows.map(c=><button key={c.id} type="button" role="tab" aria-selected={categoryId===c.categoryId} className={'video-folder-tab'+(categoryId===c.categoryId?' active':'')}
+    onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startCategoryPress(c.categoryId)}}
+    onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerLeave={stopCategoryPress} onPointerMove={stopCategoryPress}
+    onContextMenu={e=>{e.preventDefault();stopCategoryPress();setCategoryDraft(c.name);setCategoryMenu(c.categoryId)}}
+    onClick={()=>{if(categoryLongPress.current){categoryLongPress.current=false;return}setCategoryId(c.categoryId)}} title="길게 눌러 편집·삭제">{c.name}</button>)}
+   <button type="button" className="video-folder-plus" aria-label="상위함 추가" onClick={createCategory}><Plus size={20}/></button>
+   {categories.some(c=>c.hidden)&&<button type="button" className="video-folder-restore" onClick={()=>setCategoryMenu('restore')}>숨긴 함 복원</button>}
+  </div>
   {error&&<p className="collect-error" role="alert">{error}</p>}
   {notice&&<p className="collect-notice" role="status">{notice}</p>}
   <div className="collect-toolbar">
-   <span className="collect-count">{keyword?filtered.length+' / '+items.length:items.length}개</span>
+   <span className="collect-count" aria-hidden="true"></span>
    <div className="collect-toolbar-actions">
     <div className="collect-view-toggle" role="group" aria-label="보기 방식">
      <button type="button" className={viewMode==='gallery'?'active':''} aria-label="갤러리 보기" aria-pressed={viewMode==='gallery'} onClick={()=>setViewMode('gallery')}><LayoutGrid size={19}/></button>
@@ -149,6 +198,15 @@ export default function FashionCollection({genre='fashion'}){
   <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
   {items.length>0&&filtered.length===0&&<p className="collect-empty">검색 결과가 없어.</p>}
+  {categoryMenu&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCategoryMenu(null)}}>
+   <div className="collect-search-modal video-folder-dialog" role="dialog" aria-modal="true" aria-label="영상 상위함 편집">
+    <div className="collect-search-modal-head"><strong>{categoryMenu==='restore'?'숨긴 상위함 복원':categoryName(categoryMenu)}</strong><button type="button" onClick={()=>setCategoryMenu(null)} aria-label="닫기"><X size={20}/></button></div>
+    {categoryMenu==='restore'?categories.filter(c=>c.hidden).map(c=><button type="button" key={c.id} onClick={()=>restoreCategory(c.categoryId)}><ArchiveRestore size={17}/>{c.name} 복원</button>):<>
+     <form onSubmit={e=>{e.preventDefault();renameCategory()}}><input aria-label="상위함 이름" maxLength={40} value={categoryDraft} onChange={e=>setCategoryDraft(e.target.value)}/><button type="submit"><Check size={17}/> 이름 저장</button></form>
+     <button type="button" onClick={hideCategory}><Trash2 size={17}/> 상위함 삭제</button>
+    </>}
+   </div>
+  </div>}
   {searchOpen&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSearchOpen(false)}}>
    <div className="collect-search-modal" role="dialog" aria-modal="true" aria-label="수집 검색">
     <div className="collect-search-modal-head"><strong>검색</strong><button type="button" aria-label="검색 닫기" onClick={()=>setSearchOpen(false)}><X size={20}/></button></div>
