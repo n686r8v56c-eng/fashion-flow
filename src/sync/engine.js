@@ -6,14 +6,30 @@ const TABLE='fashion_sync_events';
 const SERVER_COLLECTIONS=new Set(['candidates','collection','products']);
 const needsWireKey=collection=>!SERVER_COLLECTIONS.has(collection);
 const WIRE_PREFIX='~fashion-closet-v1~';
-function wireKey(collection,id){
- return needsWireKey(collection)?{collection:'collection',item_id:WIRE_PREFIX+collection+'~'+id}:{collection,item_id:id};
+const HASH_PREFIX='~fashion-wire-v2~';
+const WIRE_META='__fashion_wire_v2';
+async function wireKey(collection,id){
+ const normal=needsWireKey(collection)?{collection:'collection',item_id:WIRE_PREFIX+collection+'~'+id}:{collection,item_id:id};
+ if(Array.from(normal.item_id).length<=100)return {...normal,wrapped:false};
+ // A stable digest avoids truncation collisions. Store the full logical key in
+ // every payload (including deletion tombstones) for lossless cross-device restore.
+ const bytes=new TextEncoder().encode(JSON.stringify([collection,id]));
+ const digest=await crypto.subtle.digest('SHA-256',bytes);
+ const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+ return {collection:'collection',item_id:HASH_PREFIX+hash,wrapped:true};
 }
 function localEvent(event){
+ if(event?.collection==='collection'&&event.item_id?.startsWith(HASH_PREFIX)){
+  const meta=event.payload?.[WIRE_META]?.key;
+  if(meta&&typeof meta.collection==='string'&&typeof meta.id==='string')
+   return {...event,collection:meta.collection,item_id:meta.id};
+  throw Error('긴 동기화 ID의 복원 정보를 찾지 못했어요. 서버 기록은 유지됩니다.');
+ }
  if(event?.collection!=='collection'||!event.item_id?.startsWith(WIRE_PREFIX))return event;
  const rest=event.item_id.slice(WIRE_PREFIX.length),separator=rest.indexOf('~'),collection=rest.slice(0,separator);
  return separator>0&&needsWireKey(collection)&&rest.slice(separator+1)?{...event,collection,item_id:rest.slice(separator+1)}:event;
 }
+const wirePayload=event=>event?.item_id?.startsWith(HASH_PREFIX)?event.payload?.[WIRE_META]?.data:event.payload;
 
 const keyFor=(owner,collection,id)=>JSON.stringify([owner,collection,id]);
 const uid=()=>crypto.randomUUID();
@@ -60,7 +76,7 @@ export async function createSyncEngine({client,userId,dbName='fashion-local-sync
   const cursorKey='cursor:'+userId;let cursor=await metaGet(cursorKey)||0;
   while(!stopped){
    const {data,error}=await client.from(TABLE).select('seq,collection,item_id,payload,deleted,mutation_id').eq('user_id',userId).gt('seq',cursor).order('seq').limit(100);if(error)throw error;
-   for(const event of data||[]){if(stopped)return;const payload=event.deleted?{}:await unpack(event.payload,db);await merge(localEvent(event),payload);cursor=event.seq;await metaPut(cursorKey,cursor)}
+   for(const event of data||[]){if(stopped)return;const local=localEvent(event),payload=event.deleted?{}:await unpack(wirePayload(event),db);await merge(local,payload);cursor=event.seq;await metaPut(cursorKey,cursor)}
    if((data||[]).length<100)break;
   }
  }
@@ -68,11 +84,11 @@ export async function createSyncEngine({client,userId,dbName='fashion-local-sync
   const pending=(await all()).filter(row=>row.dirty&&!row.conflict);
   for(let offset=0;offset<pending.length&&!stopped;offset+=20){
    const batch=pending.slice(offset,offset+20),changes=[];
-   for(const row of batch)changes.push({...wireKey(row.collection,row.id),payload:row.deleted?{}:await pack(row.payload,db),deleted:row.deleted,base_seq:row.seq,mutation_id:row.mutationId});
+   for(const row of batch){const {wrapped,...key}=await wireKey(row.collection,row.id),data=row.deleted?{}:await pack(row.payload,db);changes.push({...key,payload:wrapped?{[WIRE_META]:{key:{collection:row.collection,id:row.id},data}}:data,deleted:row.deleted,base_seq:row.seq,mutation_id:row.mutationId});}
    if(stopped)return;
    const {data,error}=await client.rpc('fashion_sync_push',{changes});if(error)throw error;
    for(const result of data||[]){const original=batch.find(row=>row.mutationId===result.mutation_id);if(!original)continue;
-    if(result.status==='conflict'){const event=localEvent(result.event);await merge(event,event.deleted?{}:await unpack(event.payload,db));continue}
+    if(result.status==='conflict'){const event=localEvent(result.event);await merge(event,event.deleted?{}:await unpack(wirePayload(result.event),db));continue}
     await transaction(db,['records'],'readwrite',tx=>{const store=tx.objectStore('records'),r=store.get(original.key);r.onsuccess=()=>{const current=r.result;if(!current)return;if(current.mutationId===original.mutationId)store.put({...current,seq:result.seq,dirty:false,conflict:undefined});else if(!current.conflict)store.put({...current,seq:result.seq})}});
    }
   }
