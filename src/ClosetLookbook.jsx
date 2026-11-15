@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Check,X,Copy,Link2,DollarSign,Archive,ArchiveRestore,Pencil,Trash2,Pin} from 'lucide-react';
+import {Plus,Check,X,Copy,Link2,DollarSign,Archive,ArchiveRestore,Pencil,Trash2,Pin,Search} from 'lucide-react';
 import {supabase} from './supabase.js';
 import {closetEncode} from './closetData.js';
 import {useLocalCollection} from './sync/LocalSync.jsx';
@@ -21,6 +21,8 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
  const [categoryNameDraft,setCategoryNameDraft]=useState(null);
  const [boardMenu,setBoardMenu]=useState(null);
  const [showArchived,setShowArchived]=useState(false);
+ const [searchOpen,setSearchOpen]=useState(false);
+ const [searchText,setSearchText]=useState('');
  const [loaded,setLoaded]=useState(false);
  const [pictures,setPictures]=useState({});
  const [busy,setBusy]=useState('');
@@ -72,6 +74,9 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
  const activeBoards=categoryBoards.filter(b=>!b.archivedAt);
  const archivedBoards=categoryBoards.filter(b=>!!b.archivedAt).sort((a,b)=>String(b.archivedAt).localeCompare(String(a.archivedAt)));
  const sorted=[...activeBoards].sort((a,b)=>(a.position??0)-(b.position??0)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+ const query=searchText.trim().toLocaleLowerCase('ko-KR');
+ const searching=searchOpen&&!!query;
+ const displayBoards=searching?boards.filter(b=>b.type!=='lookbook-category'&&!b.archivedAt&&([b.name,...Object.values(b.photoMeta||{}).map(meta=>meta?.memo||'')].some(v=>String(v||'').toLocaleLowerCase('ko-KR').includes(query)))).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ko-KR')):sorted;
  const nextNumber=()=>Math.max(0,...categoryBoards.map(b=>Number(b.number)||0))+1;
  useEffect(()=>{
   let alive=true;
@@ -96,13 +101,13 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
   let active=true;
   (async()=>{
    const next={};
-   await Promise.all(sorted.flatMap(board=>(board.slots||[]).map(async(path,index)=>{
+   await Promise.all(displayBoards.flatMap(board=>(board.slots||[]).map(async(path,index)=>{
     if(path){const url=await photoUrl(path);if(url)next[board.id+':'+index]=url}
    })));
    if(active)setPictures(next);
   })().catch(e=>{if(active)setError('사진 불러오기 실패: '+e.message)});
   return()=>{active=false};
- },[boards,userId]);
+ },[boards,userId,searchOpen,searchText,boardType]);
  
  async function createCategory(){
   if(busy)return;
@@ -417,7 +422,9 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
   finally{setBusy('')}
  }
  return <section className="closet-lookbook">
-  <div className="lookbook-heading"><div className="lookbook-heading-left"><h1>LOOKBOOK</h1><button type="button" className={"lookbook-archive-shortcut"+(showArchived?" active":"")} aria-label={showArchived?"보드로 돌아가기":`아카이브 ${archivedBoards.length}개 보기`} aria-pressed={showArchived} onClick={()=>{setShowArchived(v=>!v);setEditing(null);setMemoTarget(null)}}><Archive size={19}/><span>({archivedBoards.length})</span></button></div></div>
+  <div className="lookbook-heading"><div className="lookbook-heading-left"><h1>LOOKBOOK</h1><button type="button" className={"lookbook-search-trigger"+(searchOpen?" active":"")} aria-label={searchOpen?"룩북 검색 닫기":"룩북 보드 검색"} aria-expanded={searchOpen} onClick={()=>{setSearchOpen(v=>!v);setSearchText("");setShowArchived(false)}}><Search size={21}/></button><button type="button" className={"lookbook-archive-shortcut"+(showArchived?" active":"")} aria-label={showArchived?"보드로 돌아가기":`아카이브 ${archivedBoards.length}개 보기`} aria-pressed={showArchived} onClick={()=>{setShowArchived(v=>!v);setEditing(null);setMemoTarget(null)}}><Archive size={19}/><span>({archivedBoards.length})</span></button></div></div>
+  {searchOpen&&<div className="lookbook-search-box"><Search size={18}/><input autoFocus type="search" placeholder="보드 이름 검색 · 예: 베이지" aria-label="룩북 보드 검색어" value={searchText} onChange={e=>setSearchText(e.target.value)}/>{searchText&&<button type="button" aria-label="검색어 지우기" onClick={()=>setSearchText("")}><X size={17}/></button>}</div>}
+  {searching&&<p className="lookbook-search-count" role="status">전체 룩북에서 <strong>{displayBoards.length}개 보드</strong> 검색됨</p>}
   <div className="lookbook-category-row" role="tablist" aria-label="룩북 분류">
    {visibleCategories.map(id=><button key={id} type="button" role="tab" aria-selected={boardType===id} className={"lookbook-category-label"+(boardType===id?" active":"")} onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startCategoryPress(id)}} onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerMove={stopCategoryPress} onPointerLeave={stopCategoryPress} onContextMenu={e=>{e.preventDefault();stopCategoryPress();openCategoryMenu(id)}} onClick={()=>selectCategory(id)} title="길게 눌러 이름 편집·삭제">{categoryLabel(id)}</button>)}
    <button type="button" className="lookbook-category-plus" onClick={createCategory} disabled={!!busy} aria-label="새 룩북 함 추가" title="새 함 추가"><Plus size={21}/></button>
@@ -433,8 +440,9 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
   </div></div>}
   {error&&<p role="alert" className="lookbook-error">{error}</p>}
   {!showArchived?<div className="lookbook-scroller" ref={scrolling} aria-label="룩북 보드 가로 스크롤">
-   {sorted.map(board=><article key={board.id} className="lookbook-board">
+   {displayBoards.map(board=><article key={board.id} className="lookbook-board">
     <div className="lookbook-board-heading">
+     {searching&&<span className="lookbook-search-category">{categoryLabel(board.boardType||"wish")}</span>}
      {editing===board.id?
       <form className="lookbook-rename" onSubmit={e=>{e.preventDefault();saveName(board)}}>
        <input aria-label="보드 이름" autoFocus maxLength={40} value={draft} onChange={e=>setDraft(e.target.value)}/>
@@ -465,7 +473,8 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
     </div>
     <button type="button" className="lookbook-add-row" disabled={!!busy} onClick={()=>addPhotoRow(board)} aria-label={board.name+' 사진 행 추가'}><Plus size={18}/><span>행 추가</span></button>
    </article>)}
-   <button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy} aria-label={categoryLabel(boardType)+" 보드 추가"}><Plus size={25}/><span>보드 추가</span></button>
+   {!searching&&<button type="button" className="lookbook-add-board" onClick={createBoard} disabled={!!busy} aria-label={categoryLabel(boardType)+" 보드 추가"}><Plus size={25}/><span>보드 추가</span></button>}
+   {searching&&displayBoards.length===0&&<p className="lookbook-search-empty">일치하는 보드가 없어요. 다른 검색어를 입력해 봐.</p>}
   </div>:<div className="lookbook-archive-list" aria-label={categoryLabel(boardType)+' 아카이브'}>
    {archivedBoards.length===0?<p>아카이브한 보드가 없어요.</p>:archivedBoards.map(board=><div className="lookbook-archive-item" key={board.id}><div><strong>{board.name}</strong><small>{(board.slots||[]).filter(Boolean).length}장 사진 · {board.archivedAt?.slice(0,10)}</small></div><button type="button" disabled={!!busy} onClick={()=>changeArchive(board,false)}><ArchiveRestore size={17}/> 복원</button></div>)}
   </div>}
