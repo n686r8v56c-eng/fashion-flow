@@ -92,6 +92,32 @@ test('nonstandard collections survive DB constraint, retry and cross-device roun
  for(const name of names.slice(1))assert.equal((await resumed.list(name))[0].title,name);
  resumed.close();b.close();
 });
+test('long item IDs stay within server limit and restore, update, delete across devices',async()=>{
+ const srv=server(),a=await device(srv,'long-id-a'),b=await device(srv,'long-id-b');
+ const longId='photo-'+('한글-and-ascii-'.repeat(18));
+ const collection='closet-lookbook-boards';
+ await a.save(collection,{id:longId,title:'원본',note:'keep'});
+ await a.sync();
+ assert.equal(a.getStatus().pending,0);
+ assert.ok(srv.events.every(e=>Array.from(e.item_id).length<=100));
+ assert.equal(srv.events[0].payload.__fashion_wire_v2.key.id,longId);
+ await b.sync();assert.equal((await b.list(collection))[0].title,'원본');
+ await b.save(collection,{id:longId,title:'변경'});await b.sync();await a.sync();
+ assert.equal((await a.list(collection))[0].title,'변경');
+ await a.remove(collection,longId);await a.sync();await b.sync();
+ assert.deepEqual(await b.list(collection),[]);
+ assert.equal(srv.events.at(-1).payload.__fashion_wire_v2.key.id,longId);
+ a.close();b.close();
+});
+test('long native collection IDs also use the reversible wire format',async()=>{
+ const srv=server(),a=await device(srv,'long-native-a'),b=await device(srv,'long-native-b');
+ const id='p'.repeat(150);await a.save('products',{id,name:'긴 상품 ID'});
+ await a.sync();await b.sync();
+ assert.equal(srv.events[0].collection,'collection');
+ assert.ok(srv.events[0].item_id.length<=100);
+ assert.equal((await b.list('products'))[0].id,id);
+ a.close();b.close();
+});
 test('closet conflict events decode back into the logical collection',async()=>{
  const srv=server(),a=await device(srv,'closet-conflict-a'),b=await device(srv,'closet-conflict-b'),collection='closet-inventory-outfits';
  await a.save(collection,{id:'look',title:'초안'});await a.sync();await b.sync();
