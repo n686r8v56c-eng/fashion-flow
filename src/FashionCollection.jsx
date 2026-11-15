@@ -84,7 +84,7 @@ function CollectionCard({item,onUpdate,onDelete,viewMode='list',folders=[]}){
     </div>}
     <label className="video-folder-move">상위함
      <select aria-label="영상 상위함 이동" value={item.folderId||'all'} onChange={e=>onUpdate(item,{folderId:e.target.value==='all'?null:e.target.value})}>
-      <option value="all">전체</option>
+      <option value="all">경량패딩</option>
       {folders.map(folder=><option key={folder.id} value={folder.categoryId}>{folder.name}</option>)}
      </select>
     </label>
@@ -102,12 +102,13 @@ export default function FashionCollection({genre='fashion'}){
  const [searchOpen,setSearchOpen]=useState(false);
  const [viewMode,setViewMode]=useState('gallery');
  const [categories,setCategories]=useState([]);
- const [categoryId,setCategoryId]=useState('all');
+ const defaultFolderId='video-default-'+genre;
+ const [categoryId,setCategoryId]=useState(defaultFolderId);
  const [categoryMenu,setCategoryMenu]=useState(null);
  const [categoryDraft,setCategoryDraft]=useState('');
  const categoryTimer=useRef(null),categoryLongPress=useRef(false);
  const categoryRows=categories.filter(c=>!c.hidden).sort((a,b)=>(a.position||0)-(b.position||0));
- const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||'영상함';
+ const categoryName=id=>categories.find(c=>c.categoryId===id)?.name||(id===defaultFolderId?'경량패딩':'영상함');
  async function persistCategory(record){await save(record);await reload()}
  async function createCategory(){
   const number=Math.max(0,...categories.map(c=>Number(String(c.name||'').match(/^함(\d+)$/)?.[1])||0))+1;
@@ -126,7 +127,7 @@ export default function FashionCollection({genre='fashion'}){
  async function hideCategory(){
   const row=categories.find(c=>c.categoryId===categoryMenu);if(!row)return;
   if(!confirm('이 상위함을 숨길까? 저장된 영상은 삭제되지 않고 전체에서 계속 볼 수 있어.'))return;
-  try{await persistCategory({...row,hidden:true,updatedAt:Date.now()});setCategoryId('all');setCategoryMenu(null)}
+  try{await persistCategory({...row,hidden:true,updatedAt:Date.now()});setCategoryId(defaultFolderId);setCategoryMenu(null)}
   catch(e){setError('상위함 삭제 실패: '+e.message)}
  }
  async function restoreCategory(id){
@@ -137,7 +138,12 @@ export default function FashionCollection({genre='fashion'}){
  async function reload(){
   const rows=await read()||[];
   const belongs=x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre);
-  setCategories(rows.filter(x=>x.type==='video-folder'&&x.genre===genre));
+  const folders=rows.filter(x=>x.type==='video-folder'&&x.genre===genre);
+  if(!folders.some(x=>x.categoryId===defaultFolderId)){
+   await save({id:defaultFolderId,type:'video-folder',genre,categoryId:defaultFolderId,name:'경량패딩',position:-1,hidden:false,createdAt:Date.now()});
+   return;
+  }
+  setCategories(folders);
   setItems(rows.filter(x=>x.type!=='video-folder'&&belongs(x)).sort((a,b)=>b.createdAt-a.createdAt));
  }
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
@@ -161,7 +167,7 @@ export default function FashionCollection({genre='fashion'}){
    try{const res=await fetch('/api/collect-metadata?url='+encodeURIComponent(parsed.url));if(res.ok)info=await res.json()}catch{}
    const title=parsed.platform==='youtube'?String(info.title||'').trim().slice(0,250):'';
    const thumb=parsed.platform==='youtube'?'https://i.ytimg.com/vi/'+parsed.id+'/hqdefault.jpg':(String(info.thumbnail||'').startsWith('https://')?info.thumbnail:'');
-   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,folderId:categoryId==='all'?null:categoryId,createdAt:Date.now()});
+   await save({id:crypto.randomUUID(),platform:parsed.platform,url:parsed.url,title,tags:[],thumbnail:thumb,genre,folderId:categoryId,createdAt:Date.now()});
    await reload();
    setNotice(parsed.platform==='instagram'?'인스타그램 링크 수집 완료! 카드에서 제목과 태그를 추가할 수 있어.':title?'유튜브 수집 완료!':'유튜브 링크 수집 완료! 제목은 수정할 수 있어.');
   }catch(err){setError('수집 실패: '+err.message)}
@@ -170,7 +176,7 @@ export default function FashionCollection({genre='fashion'}){
  async function update(item,patch){try{await save({...item,...patch,updatedAt:Date.now()});await reload()}catch(err){setError('저장 실패: '+err.message)}}
  async function del(item){if(!confirm('이 수집 링크를 삭제할까?'))return;try{await remove(item.id);await reload()}catch(err){setError('삭제 실패: '+err.message)}}
  const keyword=search.trim().replace(/^#/,'').toLocaleLowerCase();
- const scoped=categoryId==='all'?items:items.filter(item=>item.folderId===categoryId);
+ const scoped=items.filter(item=>(item.folderId||defaultFolderId)===categoryId);
  const filtered=keyword?scoped.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):scoped;
  return <section className="collect">
   <div className="collect-header">
@@ -180,7 +186,6 @@ export default function FashionCollection({genre='fashion'}){
    </div>
   </div>
   <div className="video-folder-row" role="tablist" aria-label="영상 상위함">
-   <button type="button" role="tab" aria-selected={categoryId==='all'} className={'video-folder-tab'+(categoryId==='all'?' active':'')} onClick={()=>setCategoryId('all')}>전체</button>
    {categoryRows.map(c=><button key={c.id} type="button" role="tab" aria-selected={categoryId===c.categoryId} className={'video-folder-tab'+(categoryId===c.categoryId?' active':'')}
     onPointerDown={e=>{if(e.pointerType==='mouse'&&e.button!==0)return;startCategoryPress(c.categoryId)}}
     onPointerUp={stopCategoryPress} onPointerCancel={stopCategoryPress} onPointerLeave={stopCategoryPress} onPointerMove={stopCategoryPress}
