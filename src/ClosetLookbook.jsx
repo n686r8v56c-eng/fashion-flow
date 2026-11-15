@@ -19,6 +19,10 @@ export default function ClosetLookbook({userId}){
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
  const [photoEditor,setPhotoEditor]=useState(null);
+ const [cropTarget,setCropTarget]=useState(null);
+ const [cropZoom,setCropZoom]=useState(1);
+ const [cropX,setCropX]=useState(50);
+ const [cropY,setCropY]=useState(50);
  const [photoDraft,setPhotoDraft]=useState('');
  const [photoNotice,setPhotoNotice]=useState('');
  const scrolling=useRef(null);
@@ -145,14 +149,35 @@ export default function ClosetLookbook({userId}){
   event.currentTarget.value='';
   if(!file)return;
   if(!file.type.startsWith('image/')){setError('사진 파일만 등록할 수 있어요.');return}
-  const key=board.id+':'+index;
+  const url=URL.createObjectURL(file);
+  setCropTarget({boardId:board.id,index,file,url});
+  setCropZoom(1);setCropX(50);setCropY(50);
+ }
+ function closeCrop(){if(cropTarget)URL.revokeObjectURL(cropTarget.url);setCropTarget(null)}
+ async function saveCrop(){
+  if(!cropTarget||busy)return;
+  const target=cropTarget;
+  const board=boards.find(b=>b.id===target.boardId);
+  if(!board){setError('보드를 찾을 수 없어.');return}
+  const key=board.id+':'+target.index;
   setBusy(key);setError('');
   try{
+   const image=new Image();image.src=target.url;
+   await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;if(image.complete&&image.naturalWidth)resolve()});
+   const side=Math.min(image.naturalWidth,image.naturalHeight)/cropZoom;
+   const sx=(image.naturalWidth-side)*cropX/100;
+   const sy=(image.naturalHeight-side)*cropY/100;
+   const canvas=document.createElement('canvas');canvas.width=900;canvas.height=900;
+   const context=canvas.getContext('2d');if(!context)throw Error('이미지 편집을 사용할 수 없어');
+   context.drawImage(image,sx,sy,side,side,0,0,900,900);
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('이미지 변환 실패')),'image/jpeg',0.9));
+   const file=new File([blob],'lookbook-crop.jpg',{type:'image/jpeg'});
    const path=await uploadPhoto(file,userId);
    const slots=[...(board.slots||Array(8).fill(null))];
-   slots[index]=path;
+   slots[target.index]=path;
    await collection.write({...board,slots,updated_at:new Date().toISOString()});
-  }catch(e){setError('사진 저장 실패: '+e.message)}
+   closeCrop();
+  }catch(e){setError('사진 크롭 저장 실패: '+e.message)}
   finally{setBusy('')}
  }
  function safeLink(value){
@@ -256,6 +281,18 @@ export default function ClosetLookbook({userId}){
    {archivedBoards.length===0?<p>아카이브한 보드가 없어요.</p>:archivedBoards.map(board=><div className="lookbook-archive-item" key={board.id}><div><strong>{board.name}</strong><small>{(board.slots||[]).filter(Boolean).length}장 사진 · {board.archivedAt?.slice(0,10)}</small></div><button type="button" disabled={!!busy} onClick={()=>changeArchive(board,false)}><ArchiveRestore size={17}/> 복원</button></div>)}
   </div>}
   {boardMenu&&<div className="lookbook-category-menu-backdrop" onClick={()=>setBoardMenu(null)}><div className="lookbook-category-menu" role="dialog" aria-modal="true" aria-label="보드 편집" onClick={e=>e.stopPropagation()}><strong>{boards.find(b=>b.id===boardMenu)?.name}</strong><button type="button" onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b){setDraft(b.name);setEditing(b.id)}setBoardMenu(null)}}><Pencil size={18}/> 이름 편집</button><button type="button" disabled={!!busy} onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b)deleteBoard(b)}}><Trash2 size={18}/> 보드 삭제</button><button type="button" onClick={()=>setBoardMenu(null)}><X size={18}/> 취소</button></div></div>}
+  {cropTarget&&<div className="lookbook-crop-backdrop" onClick={e=>{if(e.target===e.currentTarget&&!busy)closeCrop()}}>
+   <section className="lookbook-crop-dialog" role="dialog" aria-modal="true" aria-label="사진 크롭">
+    <div className="lookbook-crop-head"><strong>사진 크롭</strong><button type="button" onClick={closeCrop} disabled={!!busy} aria-label="닫기"><X size={21}/></button></div>
+    <div className="lookbook-crop-preview" style={{backgroundImage:`url("${cropTarget.url}")`,backgroundSize:`${cropZoom*100*Math.max(1,1)}% auto`}}>
+     <img src={cropTarget.url} alt="크롭 미리보기" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`${cropX}% ${cropY}%`,transform:`scale(${cropZoom})`,transformOrigin:`${cropX}% ${cropY}%`}}/>
+    </div>
+    <label>확대 <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={e=>setCropZoom(Number(e.target.value))}/></label>
+    <label>좌우 위치 <input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))}/></label>
+    <label>상하 위치 <input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))}/></label>
+    <div className="lookbook-crop-actions"><button type="button" onClick={closeCrop} disabled={!!busy}>취소</button><button type="button" onClick={saveCrop} disabled={!!busy}>{busy?'저장 중…':'크롭해서 저장'}</button></div>
+   </section>
+  </div>}
   {photoNotice&&<div className="lookbook-photo-notice" role="status" onClick={()=>setPhotoNotice('')}>{photoNotice}</div>}
   {photoEditor&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setPhotoEditor(null)}}>
     <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-label="사진 가격" onMouseDown={e=>e.stopPropagation()}>
