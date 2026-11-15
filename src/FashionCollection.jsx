@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X} from 'lucide-react';
+import {Plus,Trash2,ExternalLink,ImagePlus,Check,Pencil,Search,X,LayoutGrid,List} from 'lucide-react';
 import './FashionCollection.css';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 
@@ -34,7 +34,7 @@ async function resize(file){
   return blob;
  }finally{URL.revokeObjectURL(url)}
 }
-function CollectionCard({item,onUpdate,onDelete}){
+function CollectionCard({item,onUpdate,onDelete,viewMode='list'}){
  const [edit,setEdit]=useState(false),[title,setTitle]=useState(item.title||''),[editingTags,setEditingTags]=useState(false),[tagDraft,setTagDraft]=useState('');
  const [thumbFailed,setThumbFailed]=useState(false),fileRef=useRef(null);
  const [localUrl,setLocalUrl]=useState('');
@@ -55,7 +55,7 @@ function CollectionCard({item,onUpdate,onDelete}){
  async function deleteTag(tag){
   await onUpdate(item,{tags:(item.tags||[]).filter(x=>x!==tag)});
  }
- return <article className="collect-card">
+ return <article className={"collect-card"+(viewMode==="gallery"?" collect-card-gallery":"")}>
   <div className="collect-item-main">
    <div className="collect-photo-wrap">
     {item.platform==='instagram'?<button className="collect-photo-trigger" type="button" aria-label="인스타그램 썸네일 사진 선택" onClick={()=>fileRef.current?.click()}>
@@ -88,6 +88,8 @@ function CollectionCard({item,onUpdate,onDelete}){
 export default function FashionCollection({genre='fashion'}){
  const {read,write:save,remove,subscribe}=useLocalCollection('collection');
  const [url,setUrl]=useState(''),[search,setSearch]=useState(''),[items,setItems]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ const [searchOpen,setSearchOpen]=useState(false);
+ const [viewMode,setViewMode]=useState('list');
  async function reload(){setItems((await read()||[]).filter(x=>(genre==='closet'?['fashion','closet'].includes(x.genre||'fashion'):(x.genre||'fashion')===genre)).sort((a,b)=>b.createdAt-a.createdAt))}
  useEffect(()=>{const refresh=()=>reload().catch(e=>setError('저장 기록을 읽지 못했어: '+e.message));refresh();return subscribe(refresh)},[read,genre,subscribe]);
  async function add(e){
@@ -112,17 +114,33 @@ export default function FashionCollection({genre='fashion'}){
  const keyword=search.trim().replace(/^#/,'').toLocaleLowerCase();
  const filtered=keyword?items.filter(item=>[item.title,item.url,item.platform,...(Array.isArray(item.tags)?item.tags:[])].some(value=>String(value||'').toLocaleLowerCase().includes(keyword))):items;
  return <section className="collect">
-  <div className="collect-header"><h1>수집</h1><p>유튜브 · 인스타그램 링크를 모아두는 공간</p></div>
-  <div className="collect-search"><Search size={18}/><input type="search" aria-label="수집 목록 검색" placeholder="제목 · 태그 · 링크 검색" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" aria-label="검색어 지우기" onClick={()=>setSearch('')}><X size={17}/></button>}</div>
+  <div className="collect-header">
+   <div className="collect-title-row">
+    <h1>수집</h1>
+    <button type="button" className="collect-search-trigger" onClick={()=>setSearchOpen(true)} aria-label="수집 목록 검색 열기" aria-haspopup="dialog"><Search size={22}/>{search&&<span className="collect-search-indicator" aria-hidden="true"/>}</button>
+   </div>
+  </div>
   <form className="collect-entry" onSubmit={add}>
    <div><input aria-label="수집할 URL" type="url" required placeholder="유튜브 또는 인스타그램 링크 붙여넣기" value={url} onChange={e=>setUrl(e.target.value)} /><button type="submit" disabled={busy}><Plus size={17}/>{busy?'불러오는 중':'수집'}</button></div>
   </form>
   {error&&<p className="collect-error" role="alert">{error}</p>}
   {notice&&<p className="collect-notice" role="status">{notice}</p>}
-  <div className="collect-counter">수집한 링크 <strong>{keyword?filtered.length+' / '+items.length:items.length}개</strong></div>
-  <div className="collect-list">{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del}/>)}</div>
+  <div className="collect-toolbar">
+   <span className="collect-count">{keyword?filtered.length+' / '+items.length:items.length}개</span>
+   <div className="collect-view-toggle" role="group" aria-label="보기 방식">
+    <button type="button" className={viewMode==='gallery'?'active':''} aria-label="갤러리 보기" aria-pressed={viewMode==='gallery'} onClick={()=>setViewMode('gallery')}><LayoutGrid size={19}/></button>
+    <button type="button" className={viewMode==='list'?'active':''} aria-label="목록 보기" aria-pressed={viewMode==='list'} onClick={()=>setViewMode('list')}><List size={19}/></button>
+   </div>
+  </div>
+  <div className={viewMode==='gallery'?'collect-grid':'collect-list'}>{filtered.map(item=><CollectionCard key={item.id} item={item} onUpdate={update} onDelete={del} viewMode={viewMode}/>)}</div>
   {!items.length&&<p className="collect-empty">링크를 하나 붙여넣으면 여기에 쌓여 💜</p>}
   {items.length>0&&filtered.length===0&&<p className="collect-empty">검색 결과가 없어.</p>}
-  <p className="collect-foot">YouTube 제목은 공개 정보를 사용하고, YouTube와 Instagram 모두 태그를 직접 붙일 수 있어. Instagram도 제목을 직접 입력할 수 있고 썸네일을 수동 등록할 수 있어. 수집 링크와 수동 사진은 기기에 먼저 저장되고 변경분만 동기화돼.</p>
+  {searchOpen&&<div className="collect-search-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSearchOpen(false)}}>
+   <div className="collect-search-modal" role="dialog" aria-modal="true" aria-label="수집 검색">
+    <div className="collect-search-modal-head"><strong>검색</strong><button type="button" aria-label="검색 닫기" onClick={()=>setSearchOpen(false)}><X size={20}/></button></div>
+    <div className="collect-search"><Search size={18}/><input autoFocus type="search" aria-label="제목 태그 링크 검색" placeholder="제목 · 태그 · 링크 검색" value={search} onChange={e=>setSearch(e.target.value)} onKeyDown={e=>{if(e.key==='Escape')setSearchOpen(false)}}/>{search&&<button type="button" aria-label="검색어 지우기" onClick={()=>setSearch('')}><X size={17}/></button>}</div>
+    <div className="collect-search-footer"><button type="button" onClick={()=>setSearchOpen(false)}>결과 보기 ({filtered.length}개)</button></div>
+   </div>
+  </div>}
  </section>
 }
