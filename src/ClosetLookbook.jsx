@@ -1,10 +1,19 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Plus,Check,X,Copy,Link2,DollarSign,Archive,ArchiveRestore,Pencil,Trash2,Pin} from 'lucide-react';
+import {supabase} from './supabase.js';
+import {closetEncode} from './closetData.js';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
 
-export default function ClosetLookbook({userId}){
+async function inventoryIdFor(boardId,index,userId){
+ const input=new TextEncoder().encode('fashion-lookbook-inventory-v1:'+userId+':'+boardId+':'+index);
+ const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',input)).slice(0,16);
+ digest[6]=(digest[6]&15)|80;digest[8]=(digest[8]&63)|128;
+ const hex=Array.from(digest,b=>b.toString(16).padStart(2,'0')).join('');
+ return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
+}
+export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}){
  const collection=useLocalCollection('closet-lookbook-boards');
  const [boards,setBoards]=useState([]);
  const [boardType,setBoardType]=useState('wish');
@@ -325,6 +334,52 @@ export default function ClosetLookbook({userId}){
   catch(e){setError('사진 행 추가 실패: '+e.message)}
   finally{setBusy('')}
  }
+ async function registerPurchase(board,index){
+  if(busy||!supabase)return;
+  const current=boards.find(b=>b.id===board.id)||board;
+  const path=(current.slots||[])[index];if(!path)return;
+  const key=current.id+':'+index;
+  const previous=(current.photoMeta||{})[index]||{};
+  setBusy(key+':inventory');setError('');setPhotoNotice('');
+  let copiedPath=null,inserted=false;
+  try{
+   const id=await inventoryIdFor(current.id,index,userId);
+   const existing=await supabase.from('wardrobe_items').select('id').eq('user_id',userId).eq('id',id).maybeSingle();
+   if(existing.error)throw existing.error;
+   if(!existing.data){
+    const ext=String(path).split('.').pop()?.replace(/[^a-z0-9]/gi,'').slice(0,5)||'jpg';
+    copiedPath=userId+'/'+crypto.randomUUID()+'.'+ext;
+    const copy=await supabase.storage.from('wardrobe').copy(path,copiedPath);
+    if(copy.error)throw copy.error;
+    const label=current.name||'룩북 아이템';
+    const note=[previous.memo||'',previous.link?'원본 링크: '+previous.link:'',previous.price?'후보 표시 가격: '+Number(previous.price).toLocaleString('ko-KR')+'원 (실제 구매가 미입력)':''].filter(Boolean).join('\n');
+    const payload={id,user_id:userId,title:label+' '+(index+1),category:/모자|캡|cap/i.test(label)?'모자':'기타',subcategory:'',color:'',season:'사계절',style:'',brand:'',notes:closetEncode(note),image_path:copiedPath,updated_at:new Date().toISOString()};
+    const created=await supabase.from('wardrobe_items').insert(payload).select('id').single();
+    if(created.error){
+     if(created.error.code==='23505'){
+      const found=await supabase.from('wardrobe_items').select('id').eq('user_id',userId).eq('id',id).maybeSingle();
+      if(found.error||!found.data)throw created.error;
+     }else throw created.error;
+    }else inserted=true;
+   }
+   const newest=(await collection.read()).find(b=>b.id===current.id)||current;
+   const fields={...(newest.photoMeta||{}),[index]:{...((newest.photoMeta||{})[index]||{}),purchased:true,inventoryItemId:id}};
+   await collection.write({...newest,photoMeta:fields,updated_at:new Date().toISOString()});
+   setPhotoNotice('✓ 인벤토리 등록 완료! 아이템 정보는 인벤토리에서 채워 줘.');
+   onInventoryAdded?.();
+  }catch(e){
+   if(copiedPath&&!inserted){try{await supabase.storage.from('wardrobe').remove([copiedPath])}catch{}}
+   setError('인벤토리 등록 실패: '+(e.message||String(e)));
+  }finally{setBusy('')}
+ }
+ async function purchaseAction(board,index){
+  const current=(boards.find(b=>b.id===board.id)||board);
+  if((current.photoMeta||{})[index]?.purchased){
+   onOpenInventory?.();
+   return;
+  }
+  await registerPurchase(current,index);
+ }
  async function clearSlot(board,index){
   const slots=[...(board.slots||Array(8).fill(null))];
   slots[index]=null;
@@ -373,6 +428,7 @@ export default function ClosetLookbook({userId}){
        <button type="button" title={(board.photoMeta||{})[index]?.link||'링크 없음'} aria-label="저장된 링크 열기" disabled={!!busy||!(board.photoMeta||{})[index]?.link} onClick={()=>visitPhotoLink(board,index)} className={(board.photoMeta||{})[index]?.link?'has-value':''}><Link2 size={17}/></button>
        <button type="button" title={(board.photoMeta||{})[index]?.price?'₩'+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR'):'가격 입력'} aria-label={(board.photoMeta||{})[index]?.price?'가격 '+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR')+'원, 편집':'가격 입력'} disabled={!!busy} className={(board.photoMeta||{})[index]?.price?'has-value':''} onClick={()=>openPhotoEditor(board,index,'price',(board.photoMeta||{})[index]?.price)}><DollarSign size={17}/></button>
       </div>}
+      {path&&<button type="button" className={'lookbook-purchased'+((board.photoMeta||{})[index]?.purchased?' is-purchased':'')} disabled={!!busy} title={(board.photoMeta||{})[index]?.purchased?'인벤토리 보기':'구매 완료 · 인벤토리에 복사'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.photoMeta||{})[index]?.purchased?'인벤토리 보기':'구매 완료하고 인벤토리에 복사')} onClick={()=>purchaseAction(board,index)}><Check size={15} strokeWidth={2.7}/></button>}
       {path&&<button type="button" className={'lookbook-pin'+((board.pinnedSlots||[]).includes(index)?' is-pinned':'')} title={(board.pinnedSlots||[]).includes(index)?'고정 해제':'맨 위에 고정'} aria-label={board.name+' '+(index+1)+'번 사진 '+((board.pinnedSlots||[]).includes(index)?'고정 해제':'상단 고정')} disabled={!!busy} onClick={()=>togglePhotoPin(board,index)}><Pin size={15} fill={(board.pinnedSlots||[]).includes(index)?'currentColor':'none'}/></button>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>
