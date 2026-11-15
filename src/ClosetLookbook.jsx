@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Plus,Check,X,NotebookPen,Archive,ArchiveRestore,Pencil,Trash2} from 'lucide-react';
+import {Plus,Check,X,ClipboardPaste,Link2,Tag,Archive,ArchiveRestore,Pencil,Trash2} from 'lucide-react';
 import {useLocalCollection} from './sync/LocalSync.jsx';
 import {uploadPhoto,photoUrl} from './supabase.js';
 import './ClosetLookbook.css';
@@ -18,8 +18,9 @@ export default function ClosetLookbook({userId}){
  const [editing,setEditing]=useState(null);
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
- const [memoTarget,setMemoTarget]=useState(null);
- const [memoDraft,setMemoDraft]=useState('');
+ const [photoEditor,setPhotoEditor]=useState(null);
+ const [photoDraft,setPhotoDraft]=useState('');
+ const [photoNotice,setPhotoNotice]=useState('');
  const scrolling=useRef(null);
  const seeding=useRef(new Set());
  const pressTimer=useRef(null);
@@ -82,7 +83,7 @@ export default function ClosetLookbook({userId}){
  function openCategoryMenu(id){categoryPressFired.current=true;setCategoryMenu(id);setBoardMenu(null);setEditing(null);}
  function startCategoryPress(id){clearTimeout(categoryTimer.current);categoryPressFired.current=false;categoryTimer.current=setTimeout(()=>openCategoryMenu(id),550);}
  function stopCategoryPress(){clearTimeout(categoryTimer.current);}
- function selectCategory(id){if(categoryPressFired.current){categoryPressFired.current=false;return;}setBoardType(id);setShowArchived(false);setEditing(null);setMemoTarget(null);scrolling.current?.scrollTo({left:0});}
+ function selectCategory(id){if(categoryPressFired.current){categoryPressFired.current=false;return;}setBoardType(id);setShowArchived(false);setEditing(null);setPhotoEditor(null);scrolling.current?.scrollTo({left:0});}
  async function persistCategory(id,changes){
   const existing=categorySettings(id);
   const record={id:`lookbook-category:${userId}:${id}`,type:'lookbook-category',userId,categoryId:id,name:categoryLabel(id),hidden:false,...existing,...changes,updated_at:new Date().toISOString()};
@@ -154,20 +155,50 @@ export default function ClosetLookbook({userId}){
   }catch(e){setError('사진 저장 실패: '+e.message)}
   finally{setBusy('')}
  }
- function openMemo(board,index){
-  setMemoTarget({boardId:board.id,index});
-  setMemoDraft(String((board.memos||{})[index]||''));
+ function safeLink(value){
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  try{const url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);return ['http:','https:'].includes(url.protocol)&&url.hostname?url.href:null}
+  catch{return null}
  }
- async function saveMemo(){
-  if(!memoTarget)return;
-  const board=boards.find(b=>b.id===memoTarget.boardId);
-  if(!board)return;
-  setBusy('memo');setError('');
-  try{
-   await collection.write({...board,memos:{...(board.memos||{}),[memoTarget.index]:memoDraft},updated_at:new Date().toISOString()});
-   setMemoTarget(null);
-  }catch(e){setError('메모 저장 실패: '+e.message)}
+ async function updatePhotoMeta(board,index,key,value){
+  const current=boards.find(b=>b.id===board.id)||board;
+  const fields={...(current.photoMeta||{}),[index]:{...((current.photoMeta||{})[index]||{}),[key]:value}};
+  setBusy(board.id+':'+index);setError('');
+  try{await collection.write({...current,photoMeta:fields,updated_at:new Date().toISOString()});return true}
+  catch(e){setError('사진 정보 저장 실패: '+e.message);return false}
   finally{setBusy('')}
+ }
+ function openPhotoEditor(board,index,field,initial){
+  setPhotoEditor({boardId:board.id,index,field});
+  setPhotoDraft(String(initial||''));setPhotoNotice('');
+ }
+ async function pastePhotoLink(board,index){
+  setPhotoNotice('');
+  try{
+   if(!navigator.clipboard?.readText)throw Error('clipboard-unavailable');
+   const text=await navigator.clipboard.readText();
+   const link=safeLink(text);
+   if(!link){openPhotoEditor(board,index,'link',(board.photoMeta||{})[index]?.link);setPhotoNotice('클립보드에 유효한 웹 링크가 없어요. 직접 입력해 줘.');return}
+   if(await updatePhotoMeta(board,index,'link',link))setPhotoNotice('링크를 붙였어.');
+  }catch{
+   openPhotoEditor(board,index,'link',(board.photoMeta||{})[index]?.link);
+   setPhotoNotice('클립보드를 읽을 수 없어서 직접 붙여넣기 창을 열었어.');
+  }
+ }
+ function visitPhotoLink(board,index){
+  const link=safeLink((board.photoMeta||{})[index]?.link);
+  if(!link){setPhotoNotice('먼저 링크를 붙여넣어 줘.');return}
+  window.open(link,'_blank','noopener,noreferrer');
+ }
+ async function savePhotoEditor(event){
+  event.preventDefault();
+  if(!photoEditor)return;
+  const board=boards.find(b=>b.id===photoEditor.boardId);
+  if(!board)return;
+  const value=photoEditor.field==='link'?safeLink(photoDraft):photoDraft.replace(/[^0-9]/g,'');
+  if(value===null||photoEditor.field==='price'&&photoDraft.trim()&&!value){setPhotoNotice('올바른 값을 입력해 줘.');return}
+  if(await updatePhotoMeta(board,photoEditor.index,photoEditor.field,value)){setPhotoEditor(null);setPhotoNotice('저장했어.')}
  }
  async function clearSlot(board,index){
   const slots=[...(board.slots||Array(8).fill(null))];
@@ -212,7 +243,11 @@ export default function ClosetLookbook({userId}){
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
        {busy===key&&<span className="lookbook-loading">저장 중</span>}
       </button>
-      {path&&<button type="button" className={'lookbook-memo'+(String((board.memos||{})[index]||'').trim()?' has-memo':'')} aria-label={board.name+' '+(index+1)+'번 사진 메모'} onClick={()=>openMemo(board,index)}><NotebookPen size={17}/></button>}
+      {path&&<div className="lookbook-photo-tools" aria-label={board.name+' '+(index+1)+'번 사진 정보'}>
+       <button type="button" title="클립보드 링크 붙이기" aria-label="링크 붙여넣기" disabled={!!busy} onClick={()=>pastePhotoLink(board,index)}><ClipboardPaste size={17}/></button>
+       <button type="button" title={(board.photoMeta||{})[index]?.link||'링크 없음'} aria-label="저장된 링크 열기" disabled={!!busy||!(board.photoMeta||{})[index]?.link} onClick={()=>visitPhotoLink(board,index)} className={(board.photoMeta||{})[index]?.link?'has-value':''}><Link2 size={17}/></button>
+       <button type="button" title={(board.photoMeta||{})[index]?.price?'₩'+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR'):'가격 입력'} aria-label={(board.photoMeta||{})[index]?.price?'가격 '+Number((board.photoMeta||{})[index].price).toLocaleString('ko-KR')+'원, 편집':'가격 입력'} disabled={!!busy} className={(board.photoMeta||{})[index]?.price?'has-value':''} onClick={()=>openPhotoEditor(board,index,'price',(board.photoMeta||{})[index]?.price)}><Tag size={17}/></button>
+      </div>}
       {path&&<button type="button" className="lookbook-clear" aria-label={board.name+' '+(index+1)+'번 사진 제거'} disabled={!!busy} onClick={()=>clearSlot(board,index)}><X size={15}/></button>}
      </div>})}
     </div>
@@ -222,11 +257,15 @@ export default function ClosetLookbook({userId}){
    {archivedBoards.length===0?<p>아카이브한 보드가 없어요.</p>:archivedBoards.map(board=><div className="lookbook-archive-item" key={board.id}><div><strong>{board.name}</strong><small>{(board.slots||[]).filter(Boolean).length}장 사진 · {board.archivedAt?.slice(0,10)}</small></div><button type="button" disabled={!!busy} onClick={()=>changeArchive(board,false)}><ArchiveRestore size={17}/> 복원</button></div>)}
   </div>}
   {boardMenu&&<div className="lookbook-category-menu-backdrop" onClick={()=>setBoardMenu(null)}><div className="lookbook-category-menu" role="dialog" aria-modal="true" aria-label="보드 편집" onClick={e=>e.stopPropagation()}><strong>{boards.find(b=>b.id===boardMenu)?.name}</strong><button type="button" onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b){setDraft(b.name);setEditing(b.id)}setBoardMenu(null)}}><Pencil size={18}/> 이름 편집</button><button type="button" disabled={!!busy} onClick={()=>{const b=boards.find(b=>b.id===boardMenu);if(b)deleteBoard(b)}}><Trash2 size={18}/> 보드 삭제</button><button type="button" onClick={()=>setBoardMenu(null)}><X size={18}/> 취소</button></div></div>}
-  {memoTarget&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setMemoTarget(null)}}>
-    <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-labelledby="lookbook-memo-title">
-      <div className="lookbook-memo-heading"><h2 id="lookbook-memo-title">메모</h2><button type="button" aria-label="닫기" onClick={()=>setMemoTarget(null)}><X size={21}/></button></div>
-      <textarea autoFocus aria-label="사진 메모" value={memoDraft} onChange={e=>setMemoDraft(e.target.value)} rows={7}/>
-      <div className="lookbook-memo-actions"><button type="button" disabled={!!busy} onClick={()=>setMemoTarget(null)}>취소</button><button type="button" disabled={!!busy} onClick={saveMemo}>저장</button></div>
+  {photoNotice&&<div className="lookbook-photo-notice" role="status" onClick={()=>setPhotoNotice('')}>{photoNotice}</div>}
+  {photoEditor&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setPhotoEditor(null)}}>
+    <section className="lookbook-memo-dialog" role="dialog" aria-modal="true" aria-label={photoEditor.field==='price'?'사진 가격':'사진 링크'} onMouseDown={e=>e.stopPropagation()}>
+      <div className="lookbook-memo-heading"><h2>{photoEditor.field==='price'?'가격 입력':'링크 붙여넣기'}</h2><button type="button" aria-label="닫기" onClick={()=>setPhotoEditor(null)}><X size={21}/></button></div>
+      <form className="lookbook-photo-form" onSubmit={savePhotoEditor}>
+       <input autoFocus type={photoEditor.field==='price'?'text':'url'} inputMode={photoEditor.field==='price'?'numeric':'url'} aria-label={photoEditor.field==='price'?'가격 (원)':'웹 링크'} placeholder={photoEditor.field==='price'?'가격 (원)':'https://...'} value={photoDraft} onChange={e=>setPhotoDraft(e.target.value)}/>
+       {photoEditor.field==='price'&&<small>원화 기준 · 저장하면 가격 버튼에서 확인할 수 있어요.</small>}
+       <div className="lookbook-memo-actions"><button type="button" onClick={()=>setPhotoEditor(null)}>취소</button><button type="submit" disabled={!!busy}>저장</button></div>
+      </form>
     </section>
   </div>}
  </section>;
