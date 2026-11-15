@@ -38,11 +38,28 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
  const [cropSize,setCropSize]=useState({w:360,h:360});
  const [photoDraft,setPhotoDraft]=useState('');
  const [photoNotice,setPhotoNotice]=useState('');
+ const [expandedPhoto,setExpandedPhoto]=useState(null);
+ const photoHold=useRef(null);
+ const ignorePhotoClick=useRef(null);
  const scrolling=useRef(null);
  const seeding=useRef(new Set());
  const pressTimer=useRef(null);
  const longPressed=useRef(false);
  const fileRefs=useRef({});
+ function cancelPhotoHold(){if(photoHold.current?.timer)clearTimeout(photoHold.current.timer);photoHold.current=null}
+ function startPhotoHold(e,key,url,label){
+  if(!url||e.button!==0&&e.pointerType==='mouse')return;
+  cancelPhotoHold();
+  const pointerId=e.pointerId;
+  photoHold.current={key,pointerId,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{
+   photoHold.current=null;
+   ignorePhotoClick.current=key;
+   setExpandedPhoto({url,label});
+  },480)};
+ }
+ function movePhotoHold(e){const hold=photoHold.current;if(hold&&(Math.abs(e.clientX-hold.x)>9||Math.abs(e.clientY-hold.y)>9))cancelPhotoHold()}
+ useEffect(()=>{if(!expandedPhoto)return;const onKey=e=>{if(e.key==='Escape')setExpandedPhoto(null)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[expandedPhoto]);
+ useEffect(()=>()=>{if(photoHold.current?.timer)clearTimeout(photoHold.current.timer)},[]);
  const categoryTimer=useRef(null);
  const categoryPressFired=useRef(false);
  const categoryMeta=boards.filter(b=>b.type==='lookbook-category');
@@ -430,7 +447,7 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
     <div className="lookbook-tiles">
      {Array.from({length:Math.max(8,(board.slots||[]).length)},(_,index)=>index).sort((a,b)=>Number((board.pinnedSlots||[]).includes(b)&&!!(board.slots||[])[b])-Number((board.pinnedSlots||[]).includes(a)&&!!(board.slots||[])[a])||a-b).map(index=>{const path=(board.slots||[])[index],url=pictures[board.id+':'+index],key=board.id+':'+index;return <div className="lookbook-photo-cell" key={index}><div className="lookbook-tile">
       <input ref={el=>{if(el)fileRefs.current[key]=el;else delete fileRefs.current[key]}} type="file" accept="image/*" aria-label={board.name+' '+(index+1)+'번 사진 선택'} onChange={e=>upload(board,index,e)} hidden/>
-      <button type="button" className="lookbook-photo-button" disabled={!!busy} aria-label={board.name+' '+(index+1)+'번 사진 '+(path?'교체':'추가')} onClick={()=>fileRefs.current[key]?.click()}>
+      <button type="button" className="lookbook-photo-button" disabled={!!busy} aria-label={board.name+' '+(index+1)+'번 사진 '+(path?'교체, 길게 누르면 확대':'추가')} style={path?{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none'}:undefined} onPointerDown={e=>startPhotoHold(e,key,url,board.name+' '+(index+1)+'번 사진')} onPointerMove={movePhotoHold} onPointerUp={cancelPhotoHold} onPointerCancel={cancelPhotoHold} onPointerLeave={cancelPhotoHold} onContextMenu={e=>{if(path){e.preventDefault();cancelPhotoHold();ignorePhotoClick.current=key;setExpandedPhoto({url,label:board.name+' '+(index+1)+'번 사진'})}}} onClick={()=>{if(ignorePhotoClick.current===key){ignorePhotoClick.current=null;return}fileRefs.current[key]?.click()}}>
        {url?<img src={url} alt={board.name+' '+(index+1)+'번 사진'}/>:<span className="lookbook-empty"><Plus size={23}/></span>}
        {busy===key&&<span className="lookbook-loading">저장 중</span>}
       </button>
@@ -470,6 +487,12 @@ export default function ClosetLookbook({userId,onInventoryAdded,onOpenInventory}
     <small className="lookbook-crop-help">검은 테두리의 모서리·변을 끌어 자르기 · 안쪽을 끌어 이동</small>
     <div className="lookbook-crop-actions"><button type="button" onClick={closeCrop} disabled={!!busy}>취소</button><button type="button" onClick={saveCrop} disabled={!!busy}>{busy?'저장 중…':'크롭해서 저장'}</button></div>
    </section>
+  </div>}
+  {expandedPhoto&&<div role="presentation" onClick={()=>setExpandedPhoto(null)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,10,20,.92)',display:'flex',alignItems:'center',justifyContent:'center',padding:'56px 12px 24px',boxSizing:'border-box'}}>
+   <div role="dialog" aria-modal="true" aria-label={expandedPhoto.label+' 확대 보기'} onClick={e=>e.stopPropagation()} style={{position:'relative',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+    <button type="button" onClick={()=>setExpandedPhoto(null)} aria-label="확대 사진 닫기" style={{position:'absolute',top:-42,right:0,background:'rgba(255,255,255,.16)',border:'none',borderRadius:'50%',color:'#fff',width:38,height:38,display:'grid',placeItems:'center',zIndex:1}}><X size={23}/></button>
+    <img src={expandedPhoto.url} alt={expandedPhoto.label} style={{maxWidth:'100%',maxHeight:'100%',width:'auto',height:'auto',objectFit:'contain',borderRadius:6}} draggable={false}/>
+   </div>
   </div>}
   {photoNotice&&<div className="lookbook-photo-notice" role="status" onClick={()=>setPhotoNotice('')}>{photoNotice}</div>}
   {memoTarget&&<div className="lookbook-memo-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget&&!busy)setMemoTarget(null)}}>
