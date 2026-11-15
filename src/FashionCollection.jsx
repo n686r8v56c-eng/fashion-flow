@@ -55,6 +55,11 @@ function CollectionCard({item,onUpdate,onDelete,viewMode='list'}){
  async function deleteTag(tag){
   await onUpdate(item,{tags:(item.tags||[]).filter(x=>x!==tag)});
  }
+ if(viewMode==='gallery')return <article className="collect-gallery-tile">
+  <a href={item.url} target="_blank" rel="noopener noreferrer" className="collect-gallery-link" aria-label={(item.title||'수집한 게시물')+' 열기'}>
+   {thumbnail&&!thumbFailed?<img src={thumbnail} alt={item.title||'수집한 게시물 썸네일'} loading="lazy" onError={()=>setThumbFailed(true)}/>:<span className="collect-no-photo"><ImagePlus size={19}/> 사진 없음</span>}
+  </a>
+ </article>;
  return <article className={"collect-card"+(viewMode==="gallery"?" collect-card-gallery":"")}>
   <div className="collect-item-main">
    <div className="collect-photo-wrap">
