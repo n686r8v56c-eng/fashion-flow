@@ -94,3 +94,12 @@
 .video-folder-plus{min-width:26px;min-height:32px;padding:4px 2px}
 .collect-toolbar{margin:0 2px 10px;min-height:38px}
 @media(max-width:380px){.video-folder-row{gap:12px}.video-folder-tab{font-size:16px}}
+
+/* Seasonal video hierarchy: LOOKBOOK-like horizontal navigation. */
+.video-season-row{display:flex;align-items:center;gap:15px;min-height:40px;margin:0 0 4px;padding:0 5px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.video-season-row::-webkit-scrollbar{display:none}
+.video-season-tab{flex:0 0 auto;border:0;background:transparent;color:#947fa8;font:inherit;font-size:16px;font-weight:750;line-height:1.25;padding:7px 0;cursor:pointer}
+.video-season-tab.active{color:#3f2d4f;font-weight:800}
+.video-folder-row{margin-top:0;margin-bottom:10px}
+.video-season-tab:focus-visible{outline:2px solid #9070be;outline-offset:3px;border-radius:4px}
+@media(max-width:380px){.video-season-row{gap:12px}}
