@@ -166,3 +166,14 @@
 .lookbook-purchased.is-purchased{background:#8f6ac0;border-color:#8f6ac0;color:#fff}
 .lookbook-purchased:disabled{opacity:.55;cursor:wait}
 .lookbook-purchased:focus-visible{outline:2px solid #704a9e;outline-offset:2px}
+
+/* Search active LOOKBOOK boards across Wish, Look and custom categories. */
+.lookbook-heading-left{display:flex;align-items:center;gap:8px;min-width:0}
+.lookbook-search-trigger{display:grid;place-items:center;flex-shrink:0;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:#7653a1;cursor:pointer}
+.lookbook-search-trigger.active{background:#eee4f8;color:#624185}
+.lookbook-search-box{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:9px 12px;background:#f8f3fd;border:1px solid #e5d6f0;border-radius:12px;color:#8560a9}
+.lookbook-search-box input{font:inherit;min-width:0;flex:1;background:transparent;border:0;outline:0;color:#3e2b4b;font-size:15px}
+.lookbook-search-box button{border:0;background:none;color:#80619b;display:grid;place-items:center;padding:3px}
+.lookbook-search-count{font-size:12px;margin:4px 2px 9px;color:#806a90}
+.lookbook-search-category{font-size:11px;color:#8060a0;border-radius:6px;background:#f2eafb;padding:3px 6px;white-space:nowrap}
+.lookbook-search-empty{color:#806a90;font-size:14px;padding:20px 12px}
