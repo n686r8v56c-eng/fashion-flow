@@ -78,3 +78,6 @@
 .video-folder-dialog input{min-width:0;flex:1;border:1px solid #d8c8e6;border-radius:8px;padding:9px;font-size:16px}
 .video-folder-dialog button{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:8px;padding:9px;color:#674a87;background:#f4ecfa;cursor:pointer}
 .video-folder-dialog form button{background:#8056ad;color:white}
+
+.video-folder-move{display:flex;align-items:center;gap:6px;color:#85659f;font-size:12px}
+.video-folder-move select{max-width:150px;border:1px solid #dac9e7;border-radius:7px;background:#fff;color:#674a87;padding:5px;font-size:13px}
