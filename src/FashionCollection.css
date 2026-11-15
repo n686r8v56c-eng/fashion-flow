@@ -81,3 +81,16 @@
 
 .video-folder-move{display:flex;align-items:center;gap:6px;color:#85659f;font-size:12px}
 .video-folder-move select{max-width:150px;border:1px solid #dac9e7;border-radius:7px;background:#fff;color:#674a87;padding:5px;font-size:13px}
+
+/* Align VIDEO heading and folder navigation with CLOSET LOOKBOOK. */
+.collect{padding:4px 0 32px;max-width:none}
+.collect-header{margin:7px 0 6px}
+.collect-title-row{min-height:26px;gap:8px}
+.collect-title-row h1{font-size:21px;font-weight:800;letter-spacing:-.4px;line-height:1.25;margin:0}
+.collect-search-trigger{padding:2px;line-height:1}
+.video-folder-row{box-sizing:border-box;width:100%;min-height:40px;gap:15px;margin:0 0 10px;padding:0 5px;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;white-space:nowrap;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.video-folder-tab{font:inherit;font-size:16px;font-weight:750;line-height:1.25;color:#947fa8;padding:7px 0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+.video-folder-tab.active{color:#3f2d4f;font-weight:800}
+.video-folder-plus{min-width:26px;min-height:32px;padding:4px 2px}
+.collect-toolbar{margin:0 2px 10px;min-height:38px}
+@media(max-width:380px){.video-folder-row{gap:12px}.video-folder-tab{font-size:16px}}
