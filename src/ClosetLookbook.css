@@ -152,3 +152,11 @@
 
 .lookbook-add-row{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:10px;padding:10px 8px;border:1px dashed #c8b1df;border-radius:11px;background:#f7f1fc;color:#76539b;font-size:13px;font-weight:700;cursor:pointer}
 .lookbook-add-row:disabled{opacity:.5;cursor:wait}
+
+/* Per-photo note is kept outside the cropped image tile, so overlays and pins stay intact. */
+.lookbook-photo-cell{min-width:0;display:flex;flex-direction:column;gap:4px}
+.lookbook-photo-cell .lookbook-tile{width:100%;flex:none}
+.lookbook-photo-caption{display:block;width:100%;min-width:0;height:27px;padding:3px 5px;border:0;border-radius:6px;background:transparent;color:#a089b2;text-align:left;font:inherit;font-size:12px;cursor:pointer}
+.lookbook-photo-caption.has-memo{color:#4a395d}
+.lookbook-photo-caption span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lookbook-photo-caption:focus-visible{outline:2px solid #9070be;outline-offset:1px}
