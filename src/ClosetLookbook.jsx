@@ -19,6 +19,7 @@ export default function ClosetLookbook({userId}){
  const [draft,setDraft]=useState('');
  const [error,setError]=useState('');
  const [photoEditor,setPhotoEditor]=useState(null);
+ const cropCanvas=useRef(null);
  const [cropTarget,setCropTarget]=useState(null);
  const [cropZoom,setCropZoom]=useState(1);
  const [cropX,setCropX]=useState(50);
@@ -153,6 +154,17 @@ export default function ClosetLookbook({userId}){
   setCropTarget({boardId:board.id,index,file,url});
   setCropZoom(1);setCropX(50);setCropY(50);
  }
+ useEffect(()=>{
+  if(!cropTarget||!cropCanvas.current)return;
+  const canvas=cropCanvas.current;const img=new Image();
+  img.onload=()=>{
+   const side=Math.min(img.naturalWidth,img.naturalHeight)/cropZoom;
+   const sx=(img.naturalWidth-side)*cropX/100,sy=(img.naturalHeight-side)*cropY/100;
+   const ctx=canvas.getContext('2d');
+   if(ctx){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,sx,sy,side,side,0,0,canvas.width,canvas.height)}
+  };
+  img.src=cropTarget.url;
+ },[cropTarget,cropZoom,cropX,cropY]);
  function closeCrop(){if(cropTarget)URL.revokeObjectURL(cropTarget.url);setCropTarget(null)}
  async function saveCrop(){
   if(!cropTarget||busy)return;
@@ -284,9 +296,7 @@ export default function ClosetLookbook({userId}){
   {cropTarget&&<div className="lookbook-crop-backdrop" onClick={e=>{if(e.target===e.currentTarget&&!busy)closeCrop()}}>
    <section className="lookbook-crop-dialog" role="dialog" aria-modal="true" aria-label="사진 크롭">
     <div className="lookbook-crop-head"><strong>사진 크롭</strong><button type="button" onClick={closeCrop} disabled={!!busy} aria-label="닫기"><X size={21}/></button></div>
-    <div className="lookbook-crop-preview" style={{backgroundImage:`url("${cropTarget.url}")`,backgroundSize:`${cropZoom*100*Math.max(1,1)}% auto`}}>
-     <img src={cropTarget.url} alt="크롭 미리보기" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:`${cropX}% ${cropY}%`,transform:`scale(${cropZoom})`,transformOrigin:`${cropX}% ${cropY}%`}}/>
-    </div>
+    <canvas ref={cropCanvas} className="lookbook-crop-preview" width="480" height="480" aria-label="정사각형 크롭 미리보기"/>
     <label>확대 <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={e=>setCropZoom(Number(e.target.value))}/></label>
     <label>좌우 위치 <input type="range" min="0" max="100" value={cropX} onChange={e=>setCropX(Number(e.target.value))}/></label>
     <label>상하 위치 <input type="range" min="0" max="100" value={cropY} onChange={e=>setCropY(Number(e.target.value))}/></label>
